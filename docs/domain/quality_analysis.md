@@ -28,30 +28,15 @@ This system lets you check quality in **three phases**:
 
 ## 1. Before recording: checking topics
 
-Before pressing record, check that topics are streaming in the left panel.
-
-```
-┌─────────────┬───────────────────────────────────────────┐
-│  LiveTopics │     RecordingControl                       │
-│             │                                            │
-│  ☑ /joint.. │                                            │
-│    100Hz    │       (●) Idle                             │
-│    OK ●     │       -00:03                               │
-│             │       delay [3s ▾]                         │
-│  ☑ /camera. │                                            │
-│    30Hz     ├───────────────────────────────────────────┤
-│    OK ●     │     MonitorTabs (Loss Rate / Logs)        │
-│             │                                            │
-└─────────────┴───────────────────────────────────────────┘
-```
+Before pressing record, check that topics are streaming in the live topics list.
 
 ### What to check
 
-| Item | Where it's shown | Normal state | If abnormal |
-|---|---|---|---|
-| **Hz (frequency)** | Each topic row in the left panel | `30/30Hz` (actual/baseline) | `0Hz` → not streaming |
-| **Status dot** | Each topic row in the left panel | Green (ok) | Yellow (warning) / Red (danger) |
-| **Topic selection** | Checkboxes in the left panel | The topics you want to record are checked | Make sure nothing is missed |
+| Item | Normal state | If abnormal |
+|---|---|---|
+| **Hz (frequency)** | `30/30Hz` (actual/baseline) | `0Hz` → not streaming |
+| **Status dot** | Green (ok) | Yellow (warning) / Red (danger) |
+| **Topic selection** | The topics you want to record are checked | Make sure nothing is missed |
 
 > The Hz number is computed as described in [Frequency](#frequency).
 > See [Baseline Hz](#baseline-hz) for how the baseline Hz is obtained.
@@ -60,26 +45,11 @@ Before pressing record, check that topics are streaming in the left panel.
 
 ## 2. During recording: real-time monitoring
 
-Once recording starts, `TopicMonitor` (rclpy) streams quality data over SSE every second and shows it in the left panel and the bottom panel.
-
-```
-┌─────────────┬──────────────┬─────────────────────────────┐
-│ LiveTopics  │ TopicDetails │     RecordingControl         │
-│             │              │                              │
-│ /joint_...  │  Quality bar │       (●) Recording          │
-│ ● 98/100Hz  │  Live preview│       00:15                  │
-│             │              ├─────────────────────────────┤
-│ /camera/..  │              │  MonitorTabs (Loss Rate / Logs)│
-│ ● 30/30Hz   │              │  loss%                       │
-│             │              │  5% ┤┈┈┈┈ warn               │
-│             │              │  0% ┤── /joint ──            │
-│             │              │     0:00  REC▼  0:30         │
-└─────────────┴──────────────┴─────────────────────────────┘
-```
+Once recording starts, `TopicMonitor` (rclpy) streams quality data over SSE every second. The live topics list updates per-topic, a details panel appears when a topic is selected, and a loss-rate time series is plotted in the bottom tab.
 
 > Post-recording quality reports are reviewed on the **Recordings list page (`/recordings`)** or the **MCAP detail page (`/recordings/:folder`)**.
 
-### Left panel: per-topic quality display
+### Per-topic quality display
 
 Each topic row updates its status dot and quality info in real time.
 
@@ -99,9 +69,9 @@ Each topic row updates its status dot and quality info in real time.
 > See [Quality status determination](#quality-status-determination) for the status-dot logic.
 > See [Baseline Hz](#baseline-hz) for fixed vs. dynamically learned baselines.
 
-### Left panel: Topic Details (when a topic is selected)
+### Topic Details (when a topic is selected)
 
-Clicking a topic opens a detail dashboard in the bottom of the left panel.
+Clicking a topic opens a detail dashboard.
 
 | Item | Description |
 |---|---|
@@ -118,7 +88,7 @@ Clicking a topic opens a detail dashboard in the bottom of the left panel.
 | Image (`*Image*`) | MJPEG stream (red border) | `/api/topics/image/stream` (2fps normally / 30fps in Live) |
 | Sensor | Position bar gauges (red border) | Polls `/api/topics/live/positions` (30fps) |
 
-### Bottom panel: Loss Rate time-series graph (Loss Rate tab)
+### Loss Rate time-series graph (Loss Rate tab)
 
 A real-time graph of loss rate rendered with uPlot. The Y axis is inverted (0% at the top = stable).
 
@@ -159,25 +129,9 @@ A real-time graph of loss rate rendered with uPlot. The Y axis is inverted (0% a
 
 After recording stops, `MCAPAnalyzer` analyzes every message in the MCAP file and produces an accurate report.
 
-Once recording stops, navigate from the top page to the **Recordings list page (`/recordings`)** to review the quality report.
+Per-recording quality summaries are reviewed on the **Recordings list page (`/recordings`)**, and drop locations on the timeline and Joint graphs are reviewed on the **MCAP detail page (`/recordings/:folder`)**.
 
-```
-┌──────────────────────────────────┬──────────────────────┐
-│  Recordings Table                │  MCAP Details        │
-│                                  │                      │
-│  ☐ task_20260518_120000          │  /joint: OK          │
-│  ☐ task_20260518_120930          │   99.8Hz             │
-│  ☑ task_20260518_121530   ◀──────┤   Loss: 0.1%         │
-│  ☐ task_20260518_122100          │                      │
-│                                  │  /camera: WARN       │
-│                                  │   29.5Hz             │
-│                                  │   Gap: 2            │
-└──────────────────────────────────┴──────────────────────┘
-```
-
-Drop locations on the timeline and Joint graphs are reviewed on the **MCAP detail page (`/recordings/:folder`)**.
-
-### MCAP Details panel
+### MCAP quality report
 
 Selecting a recording shows the quality report. While analysis is running, an "Analyzing quality..." spinner is shown.
 
@@ -401,7 +355,7 @@ Each gap carries:
 
 ### Quality status determination
 
-**Used in**: each topic row in MCAP Details (green/yellow/red)
+**Used in**: each topic row in the MCAP quality report (green/yellow/red)
 
 Each topic is assigned `ok` / `warning` / `danger`. Decided based on loss_rate and LossEvent:
 
@@ -421,7 +375,7 @@ The timeline heatmap, Loss Rate graph, and Quality Details color coding are **al
 
 #### Live-monitoring status decision
 
-During recording, the live monitor (status dot in the left panel) uses a separate logic from the post-recording MCAP analysis. It uses only `baseline_hz` and the most recent receive time, so it is O(1) and lightweight:
+During recording, the live monitor (per-topic status dot) uses a separate logic from the post-recording MCAP analysis. It uses only `baseline_hz` and the most recent receive time, so it is O(1) and lightweight:
 
 | Status | Condition |
 |---|---|
