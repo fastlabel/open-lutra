@@ -5,8 +5,8 @@
  * (idempotent) so users do not have to push a button to see results.
  */
 
-import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { ValidationResponse, ValidationResultItem } from "@/api/generated/schemas";
 import { useStartValidation, useValidation } from "@/hooks/use-api";
 import { isValidationStatus, ValidationStatusBadge } from "./ui/status-badge";
@@ -44,9 +44,22 @@ function StatusMessage({
 }
 
 function ValidationResultRow({ item }: { item: ValidationResultItem }) {
+  // --- Render-only state ---
+  const [expanded, setExpanded] = useState(false);
+
   const status = isValidationStatus(item.status) ? item.status : "error";
-  return (
-    <div className="flex items-start gap-2 border-b border-border px-3 py-2 last:border-b-0">
+  const hasDetails = item.details !== null && Object.keys(item.details).length > 0;
+  const Chevron = expanded ? ChevronDown : ChevronRight;
+
+  const header = (
+    <div className="flex items-start gap-2 px-3 py-2 text-left">
+      <div className="pt-0.5">
+        {hasDetails ? (
+          <Chevron size={12} className="text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <span className="inline-block h-3 w-3" aria-hidden="true" />
+        )}
+      </div>
       <div className="pt-0.5">
         <ValidationStatusBadge status={status} size="sm" />
       </div>
@@ -66,6 +79,28 @@ function ValidationResultRow({ item }: { item: ValidationResultItem }) {
         </div>
         {item.message && <p className="mt-0.5 text-[13px] text-muted-foreground">{item.message}</p>}
       </div>
+    </div>
+  );
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      {hasDetails ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="block w-full hover:bg-muted/20"
+        >
+          {header}
+        </button>
+      ) : (
+        header
+      )}
+      {hasDetails && expanded && (
+        <pre className="mx-3 mb-2 ml-9 overflow-x-auto whitespace-pre rounded bg-muted/40 px-2 py-1.5 text-[13px] text-muted-foreground">
+          {JSON.stringify(item.details, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

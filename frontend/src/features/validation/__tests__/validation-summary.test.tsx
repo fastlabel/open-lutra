@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ValidationResponse } from "@/api/generated/schemas";
 import { ValidationSummary } from "../validation-summary";
@@ -164,6 +164,75 @@ describe("ValidationSummary", () => {
     useValidationMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<ValidationSummary selectedFolder="rec_001" />);
     expect(screen.getByText(/Running validators/i)).toBeInTheDocument();
+  });
+
+  it("toggles formatted details JSON when a row with details is clicked", () => {
+    useValidationMock.mockReturnValue({
+      data: {
+        status: "ready",
+        report: {
+          overall_status: "fail",
+          results: [
+            {
+              validator_name: "required_topics_present",
+              source: "builtin",
+              source_module: null,
+              status: "fail",
+              message: "Missing required topics",
+              details: { missing_topics: ["/cam/front"], required_topics: ["/cam/front", "/joint_states"] },
+            },
+          ],
+          task_name: null,
+          executed_at: "2026-05-25T00:00:00",
+        },
+        error: null,
+      },
+      isLoading: false,
+    });
+    render(<ValidationSummary selectedFolder="rec_001" />);
+
+    // Collapsed by default — JSON not visible.
+    expect(screen.queryByText(/missing_topics/)).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: /required_topics_present/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    // Formatted JSON appears with both keys visible.
+    expect(screen.getByText(/"missing_topics"/)).toBeInTheDocument();
+    expect(screen.getByText(/"\/cam\/front"/)).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/"missing_topics"/)).not.toBeInTheDocument();
+  });
+
+  it("does not render a toggle for rows without details", () => {
+    useValidationMock.mockReturnValue({
+      data: {
+        status: "ready",
+        report: {
+          overall_status: "pass",
+          results: [
+            {
+              validator_name: "required_topics_present",
+              source: "builtin",
+              source_module: null,
+              status: "pass",
+              message: "All required topics present",
+              details: null,
+            },
+          ],
+          task_name: null,
+          executed_at: "2026-05-25T00:00:00",
+        },
+        error: null,
+      },
+      isLoading: false,
+    });
+    render(<ValidationSummary selectedFolder="rec_001" />);
+    expect(screen.queryByRole("button", { name: /required_topics_present/i })).not.toBeInTheDocument();
   });
 
   it("shows the no-results message when status is unknown / report is not fetched", () => {
