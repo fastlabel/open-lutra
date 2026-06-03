@@ -36,6 +36,22 @@ default_topics:
   - /sim/master_arm_left
   - /sim/master_arm_left/hand
 
+# Builtin validators run after each recording completes.
+# Each entry must have a `name` matching a builtin validator; remaining fields
+# are passed as arguments to that validator's constructor.
+validators:
+  - name: required_topics_present
+    topics:
+      - /left_arm_depth_cam/color/image_raw/compressed
+      - /right_arm_depth_cam/color/image_raw/compressed
+      - /left_arm_depth_cam_2/color/image_raw/compressed
+      - /right_arm_depth_cam_2/color/image_raw/compressed
+      - /robot_master/cmd
+      - /robot_slave/states
+  - name: total_duration_sec
+    min_sec: 5
+    max_sec: 30
+
 # Expected Hz for quality monitoring (pattern match, first match wins).
 # Omit `hz` to enable dynamic learning (auto-computed from message intervals
 # after subscribe). Example:

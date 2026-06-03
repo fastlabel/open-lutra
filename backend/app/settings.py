@@ -9,8 +9,25 @@ from pathlib import Path
 from typing import Annotated
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ValidatorEntry(BaseModel):
+    """A single validator entry from the YAML config.
+
+    `name` must match a builtin validator's `name` ClassVar.
+    All other fields are passed as keyword arguments to the validator's constructor.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str
+
+    @property
+    def params(self) -> dict[str, object]:
+        """Extra fields forwarded to the validator constructor."""
+        return self.model_extra or {}
 
 
 class HzPattern(BaseModel):
@@ -45,6 +62,7 @@ class RobotConfig(BaseModel):
     monitor_qos_depth: int = 30
     default_topics: list[str] = Field(default_factory=list)
     expected_hz_patterns: list[HzPattern] = Field(default_factory=list)
+    validators: list[ValidatorEntry] = Field(default_factory=list)
     stamp_quality: bool = Field(
         default=False,
         description="Compute live-quality loss_rate based on header.stamp (intended for real hardware)",

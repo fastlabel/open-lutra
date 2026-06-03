@@ -79,8 +79,14 @@ class TestEnqueueValidation:
 class TestRunValidation:
     """Direct invocation of JobQueue._run_validation()."""
 
-    async def test_writes_validation_result(self, tmp_path: Path) -> None:
+    async def test_writes_validation_result(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """A successful run produces validation_result.json."""
+        from unittest.mock import MagicMock
+
+        mock_s = MagicMock()
+        mock_s.robot.validators = []
+        monkeypatch.setattr("app.features.validation.active_set.get_settings", lambda: mock_s)
+
         _write_quality_report(tmp_path)
         _write_meta(tmp_path, task_name="my_task")
 
@@ -91,7 +97,6 @@ class TestRunValidation:
         report = load_report(tmp_path)
         assert report is not None
         assert report.task_name == "my_task"
-        # The builtin active_set has no-op defaults → overall pass.
         assert report.overall_status == "pass"
 
     async def test_skips_when_cache_exists(self, tmp_path: Path) -> None:

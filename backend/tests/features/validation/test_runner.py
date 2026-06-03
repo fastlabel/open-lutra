@@ -132,8 +132,19 @@ class TestValidationRunner:
         assert statuses == {"error", "pass"}
         assert report.overall_status == "error"
 
-    def test_default_builtins_run_when_not_patched(self) -> None:
-        """The builtins from active_set run by default (and pass)."""
+    def test_default_builtins_run_when_not_patched(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The runner invokes builtins from active_set by default."""
+        from unittest.mock import MagicMock
+
+        from app.settings import ValidatorEntry
+
+        mock_s = MagicMock()
+        mock_s.robot.validators = [
+            ValidatorEntry(name="required_topics_present", topics=[]),
+            ValidatorEntry(name="total_duration_sec"),
+        ]
+        monkeypatch.setattr("app.features.validation.active_set.get_settings", lambda: mock_s)
+
         report = _invoke(_run())
         assert all(r.source == "builtin" for r in report.results)
         assert {r.validator_name for r in report.results} == {

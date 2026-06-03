@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.settings import HzPattern, RobotConfig, Settings, _load_robot_config, get_settings
+from app.settings import HzPattern, RobotConfig, Settings, ValidatorEntry, _load_robot_config, get_settings
 
 # ---------------------------------------------------------------------------
 # RobotConfig
@@ -28,6 +28,7 @@ class TestRobotConfig:
         assert cfg.default_topics == []
         assert cfg.expected_hz_patterns == []
         assert cfg.stamp_quality is False
+        assert cfg.validators == []
 
     def test_recording_start_delay_sec_negative_rejected(self) -> None:
         """Negative start_delay_sec is rejected by the ge=0 constraint."""
@@ -123,6 +124,51 @@ expected_hz_patterns:
         """Raises FileNotFoundError when the file does not exist."""
         with pytest.raises(FileNotFoundError):
             _load_robot_config(str(tmp_path / "nonexistent.yaml"))
+
+
+# ---------------------------------------------------------------------------
+# ValidatorEntry
+# ---------------------------------------------------------------------------
+
+
+class TestValidatorEntry:
+    """Tests for ValidatorEntry model."""
+
+    def test_name_only(self) -> None:
+        entry = ValidatorEntry(name="total_duration_sec")
+        assert entry.name == "total_duration_sec"
+        assert entry.params == {}
+
+    def test_extra_fields_become_params(self) -> None:
+        entry = ValidatorEntry(name="required_topics_present", topics=["/foo", "/bar"])
+        assert entry.params == {"topics": ["/foo", "/bar"]}
+
+    def test_multiple_extra_fields(self) -> None:
+        entry = ValidatorEntry(name="total_duration_sec", min_sec=5.0, max_sec=30.0)
+        assert entry.params == {"min_sec": 5.0, "max_sec": 30.0}
+
+
+class TestRobotConfigValidators:
+    """Tests for the validators field on RobotConfig."""
+
+    def test_loaded_from_yaml(self, tmp_path: Path) -> None:
+        yaml_path = tmp_path / "robot.yaml"
+        yaml_path.write_text(
+            "validators:\n"
+            "  - name: required_topics_present\n"
+            "    topics:\n"
+            "      - /cam\n"
+            "  - name: total_duration_sec\n"
+            "    min_sec: 5\n"
+            "    max_sec: 30\n",
+            encoding="utf-8",
+        )
+        cfg = _load_robot_config(str(yaml_path))
+        assert len(cfg.validators) == 2
+        assert cfg.validators[0].name == "required_topics_present"
+        assert cfg.validators[0].params == {"topics": ["/cam"]}
+        assert cfg.validators[1].name == "total_duration_sec"
+        assert cfg.validators[1].params == {"min_sec": 5, "max_sec": 30}
 
 
 # ---------------------------------------------------------------------------
