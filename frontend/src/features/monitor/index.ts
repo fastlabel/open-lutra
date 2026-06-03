@@ -1,1 +1,1 @@
-export { MonitorTabs } from "./monitor-tabs";
+export { MonitorTabs, MonitorTabsHeader } from "./monitor-tabs";

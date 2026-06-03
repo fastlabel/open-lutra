@@ -6,7 +6,7 @@ import { Group, Panel } from "react-resizable-panels";
 import { updateSubscriptions } from "@/api/generated/topics/topics";
 import { ResizeHandleH, ResizeHandleV } from "@/components/ui/resize-handle";
 import { LiveTopicPreview, LiveTopics, useLiveTopicsStore } from "@/features/live-topics";
-import { MonitorTabs } from "@/features/monitor";
+import { MonitorTabs, MonitorTabsHeader } from "@/features/monitor";
 import { RecordingCompletionBanner, RecordingControl, useRecordingStore } from "@/features/recording";
 import { useConfig, useIsRecording } from "@/hooks/use-api";
 import { useTopicsStream } from "@/hooks/use-topics-stream";
@@ -34,9 +34,17 @@ function RecorderPage() {
 
   // --- Render-only state ---
   const topicsSidebarOpen = usePanelStore((s) => s.topicsSidebarOpen);
+  const bottomPaneMinimized = usePanelStore((s) => s.bottomPaneMinimized);
 
-  // Right side (PREVIEW + QUALITY/LOG): renders the same vertical split regardless of sidebar open/closed state.
-  const rightSide = (
+  // Right side (PREVIEW + QUALITY/LOG): vertical split when expanded, or PREVIEW + thin tab bar when minimized.
+  const rightSide = bottomPaneMinimized ? (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1">
+        <LiveTopicPreview />
+      </div>
+      <MonitorTabsHeader placement="bottom-bar" />
+    </div>
+  ) : (
     <Group orientation="vertical" style={{ height: "100%" }}>
       <Panel defaultSize="65%" minSize="30%" id="preview">
         <LiveTopicPreview />

@@ -17,9 +17,8 @@ function PreviewHeader({ count }: { count: number }) {
 
   return (
     <div className="flex items-center justify-between border-b border-border px-3 py-2">
-      <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Live Preview</span>
-      <div className="flex items-center gap-3">
-        {count > 0 && <span className="text-xs text-muted-foreground">{count}/4</span>}
+      <div className="flex items-center gap-6">
+        <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Live Preview</span>
         <div className="flex items-center gap-1.5">
           <Label htmlFor="stop-live-monitor" className="text-[13px] text-muted-foreground cursor-pointer">
             Stop while recording
@@ -27,6 +26,7 @@ function PreviewHeader({ count }: { count: number }) {
           <Switch id="stop-live-monitor" checked={stopLiveMonitor} onCheckedChange={setStopLiveMonitor} />
         </div>
       </div>
+      {count > 0 && <span className="text-xs text-muted-foreground">{count}/4</span>}
     </div>
   );
 }

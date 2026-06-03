@@ -135,9 +135,12 @@ export function TopicList() {
         )}
       </div>
 
-      {/* Topic list (clicking the empty area clears the entire preview; disabled while Live) */}
+      {/* Topic list (clicking the empty area clears the entire preview; disabled while Live).
+          The `[&_[data-slot=scroll-area-viewport]>div]:!block` override forces the Radix Viewport's
+          inner wrapper to be block-level (its default `display: table` lets the row grow with content
+          and breaks the topic-name truncation when the sidebar is narrow). */}
       <ScrollArea
-        className="flex-1"
+        className="flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block"
         onClick={() => {
           if (!isLive) clearPreviewedTopics();
         }}
