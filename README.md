@@ -163,4 +163,5 @@ OpenLUTRA builds on the work of many upstream projects, including [ROS2](https:/
 
 ---
 
+Originally created by [Hideyuki Iwata (@h-iwata)](https://github.com/h-iwata)  
 Maintained by [FastLabel, Inc.](https://fastlabel.ai)
