@@ -2,11 +2,10 @@
 
 from pathlib import Path
 
-import pytest
-
 from app.features.validation.active_set import get_builtin_recording_validators
 from app.features.validation.builtins import RequiredTopicsPresent, TotalDurationSec
 from app.settings import Settings
+from tests.features.validation.conftest import make_ctx
 
 
 def _settings_with_yaml(tmp_path: Path, content: str) -> Settings:
@@ -72,10 +71,41 @@ class TestGetBuiltinRecordingValidators:
         assert a is not b
         assert all(x is not y for x, y in zip(a, b, strict=True))
 
-    def test_unknown_validator_name_raises(self, tmp_path: Path) -> None:
+    def test_unknown_validator_name_returns_error_sentinel(self, tmp_path: Path) -> None:
         s = _settings_with_yaml(
             tmp_path,
             "validators:\n  - name: nonexistent_validator\n",
         )
-        with pytest.raises(ValueError, match="nonexistent_validator"):
-            get_builtin_recording_validators(s)
+        validators = get_builtin_recording_validators(s)
+        assert len(validators) == 1
+        result = validators[0].validate(make_ctx())
+        assert result.status == "error"
+        assert "nonexistent_validator" in result.message
+
+    def test_invalid_params_returns_error_sentinel(self, tmp_path: Path) -> None:
+        s = _settings_with_yaml(
+            tmp_path,
+            "validators:\n"
+            "  - name: required_topics_present\n"
+            "    topic: [/foo]\n",  # typo: 'topic' instead of 'topics'
+        )
+        validators = get_builtin_recording_validators(s)
+        assert len(validators) == 1
+        result = validators[0].validate(make_ctx())
+        assert result.status == "error"
+        assert "required_topics_present" in result.message
+        assert "Valid params" in result.message
+
+    def test_valid_validators_still_run_after_config_error(self, tmp_path: Path) -> None:
+        s = _settings_with_yaml(
+            tmp_path,
+            "validators:\n"
+            "  - name: required_topics_present\n"
+            "    topic: [/foo]\n"  # typo → error sentinel
+            "  - name: total_duration_sec\n"
+            "    min_sec: 5\n",  # valid → normal instance
+        )
+        validators = get_builtin_recording_validators(s)
+        assert len(validators) == 2
+        assert validators[0].validate(make_ctx()).status == "error"
+        assert isinstance(validators[1], TotalDurationSec)
