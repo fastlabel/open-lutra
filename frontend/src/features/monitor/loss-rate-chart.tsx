@@ -168,66 +168,6 @@ function thresholdPlugin(): uPlot.Plugin {
   };
 }
 
-/** uPlot plugin that displays a tooltip at the cursor position. */
-function tooltipPlugin(): uPlot.Plugin {
-  let tooltip: HTMLDivElement | null = null;
-
-  function init(u: uPlot) {
-    tooltip = document.createElement("div");
-    tooltip.style.cssText =
-      "display:none;position:absolute;pointer-events:none;z-index:10;" +
-      "background:rgba(0,0,0,0.85);color:#e5e5e5;padding:8px 12px;" +
-      "border-radius:4px;font:13px monospace;white-space:nowrap;" +
-      "border:1px solid #444;";
-    u.over.appendChild(tooltip);
-  }
-
-  function buildLines(u: uPlot, idx: number): string[] {
-    const lines: string[] = [];
-    for (let i = 1; i < u.series.length; i++) {
-      const s = u.series[i];
-      if (!s.show) continue;
-      const v = (u.data[i] as number[])[idx];
-      if (v == null) continue;
-      const color = typeof s.stroke === "function" ? s.stroke(u, i) : s.stroke;
-      lines.push(`<span style="color:${color as string}">● ${s.label}: ${v.toFixed(1)}%</span>`);
-    }
-    return lines;
-  }
-
-  function setCursor(u: uPlot) {
-    if (!tooltip) return;
-    const idx = u.cursor.idx;
-    if (idx == null || idx < 0) {
-      tooltip.style.display = "none";
-      return;
-    }
-
-    const lines = buildLines(u, idx);
-    if (lines.length === 0) {
-      tooltip.style.display = "none";
-      return;
-    }
-
-    const xVal = (u.data[0] as number[])[idx];
-    tooltip.innerHTML = `<span style="color:#999">${fmtElapsed(xVal)}</span><br>${lines.join("<br>")}`;
-    tooltip.style.display = "block";
-
-    const left = u.cursor.left ?? 0;
-    const tipW = tooltip.offsetWidth;
-    const overW = u.over.clientWidth;
-    tooltip.style.left = `${left + tipW + 20 > overW ? left - tipW - 10 : left + 14}px`;
-    tooltip.style.top = `${Math.max(0, (u.cursor.top ?? 0) - 10)}px`;
-  }
-
-  return {
-    hooks: {
-      init: [init],
-      setCursor: [setCursor],
-    },
-  };
-}
-
 export function LossRateChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const uplotRef = useRef<uPlot | null>(null);
@@ -274,7 +214,7 @@ export function LossRateChart() {
       width: containerRef.current.clientWidth || 600,
       height: containerRef.current.clientHeight || 200,
       series,
-      plugins: [markersPlugin(markersRef), thresholdPlugin(), tooltipPlugin()],
+      plugins: [markersPlugin(markersRef), thresholdPlugin()],
       scales: {
         x: { time: false },
         y: { dir: -1 as const, range: [0, 10] }, // Inverted: 0% on top, 10% at the bottom
