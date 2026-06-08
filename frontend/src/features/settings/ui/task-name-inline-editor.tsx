@@ -3,8 +3,9 @@
  * Displays the current task name with a pencil icon. When unset, shows a
  * "Set task name" placeholder that still opens the editor on click. Click
  * the pencil (or double-click the text) to switch to edit mode. In edit
- * mode, Enter / blur commits, Escape cancels. Invalid input (empty or
- * disallowed characters) leaves the value untouched.
+ * mode, Enter commits (showing a popover and staying in edit mode if the
+ * input is invalid), Escape cancels, blur silently exits — invalid blur
+ * just reverts to the previous value to avoid trapping focus.
  *
  * Edit mode also shows a small autocomplete dropdown of previously-used
  * task names (most-recently-used first), filtered by the current draft.
@@ -31,6 +32,7 @@ export function TaskNameInlineEditor() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(taskName);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const allTaskNames = useTaskNames({ enabled: editing });
@@ -68,18 +70,35 @@ export function TaskNameInlineEditor() {
   const startEdit = () => {
     setDraft(taskName);
     setHighlightIndex(-1);
+    setError(null);
     setEditing(true);
   };
 
-  const commitValue = (value: string) => {
+  // Confirm the user's typed value (Enter without a highlighted suggestion).
+  // Surface the validation message in the error popover and keep the editor
+  // open so they can fix it in place.
+  const confirmTyped = (value: string) => {
+    const result = v.safeParse(settingsSchema, { taskName: value });
+    if (!result.success) {
+      setError(result.issues[0]?.message ?? "Invalid task name");
+      return;
+    }
+    update({ taskName: result.output.taskName });
+    setError(null);
+    setEditing(false);
+  };
+
+  // Close the editor with a best-effort save. Used for blur and explicit
+  // suggestion picks, where keeping focus would trap the user. Invalid
+  // input is silently dropped (the previous value remains).
+  const closeWithBestEffort = (value: string) => {
     const result = v.safeParse(settingsSchema, { taskName: value });
     if (result.success) {
       update({ taskName: result.output.taskName });
     }
+    setError(null);
     setEditing(false);
   };
-
-  const commit = () => commitValue(draft);
 
   // Dispatch table maps each navigation key to its handler. Returning true
   // means the event was consumed (preventDefault). The table keeps the
@@ -87,17 +106,19 @@ export function TaskNameInlineEditor() {
   const keyActions: Record<string, () => boolean> = {
     Enter: () => {
       const picked = highlightIndex >= 0 ? suggestions[highlightIndex] : undefined;
-      commitValue(picked ?? draft);
+      if (picked !== undefined) closeWithBestEffort(picked);
+      else confirmTyped(draft);
       return true;
     },
     Escape: () => {
+      setError(null);
       setEditing(false);
       return true;
     },
     Tab: () => {
       const picked = highlightIndex >= 0 ? suggestions[highlightIndex] : undefined;
       if (!picked) return false;
-      commitValue(picked);
+      closeWithBestEffort(picked);
       return true;
     },
     ArrowDown: () => {
@@ -123,23 +144,36 @@ export function TaskNameInlineEditor() {
         <input
           ref={inputRef}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setError(null);
+          }}
           onKeyDown={handleKeyDown}
           onBlur={(e) => {
             // Skip commit when blur is caused by clicking a suggestion — the
-            // suggestion's mousedown handler already calls commitValue().
+            // suggestion's mousedown handler already calls closeWithBestEffort().
             if (e.relatedTarget?.getAttribute("data-suggestion") === "true") return;
-            commit();
+            closeWithBestEffort(draft);
           }}
           aria-label="Task name"
           aria-autocomplete="list"
           aria-controls={suggestions.length > 0 ? "task-name-suggestions" : undefined}
           aria-activedescendant={highlightIndex >= 0 ? `task-name-suggestion-${highlightIndex}` : undefined}
+          aria-invalid={error !== null}
           role="combobox"
           aria-expanded={suggestions.length > 0}
-          className="h-8 w-48 rounded border border-input bg-transparent px-2 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className={`h-8 w-48 rounded border bg-transparent px-2 text-base text-foreground outline-none focus-visible:ring-[3px] ${
+            error
+              ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/50"
+              : "border-input focus-visible:border-ring focus-visible:ring-ring/50"
+          }`}
         />
-        {suggestions.length > 0 && (
+        {error && (
+          <p role="alert" className="absolute right-0 top-9 max-w-xs text-[13px] text-destructive">
+            {error}
+          </p>
+        )}
+        {!error && suggestions.length > 0 && (
           <div
             id="task-name-suggestions"
             role="listbox"
@@ -158,7 +192,7 @@ export function TaskNameInlineEditor() {
                   // Use mousedown so we beat the input's blur, which would
                   // otherwise commit the draft before this click registers.
                   e.preventDefault();
-                  commitValue(name);
+                  closeWithBestEffort(name);
                 }}
                 onMouseEnter={() => setHighlightIndex(idx)}
                 className={`w-full cursor-pointer px-2 py-1.5 text-left text-[13px] hover:bg-muted ${
