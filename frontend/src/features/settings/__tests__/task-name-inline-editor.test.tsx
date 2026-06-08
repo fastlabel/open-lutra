@@ -132,9 +132,7 @@ describe("TaskNameInlineEditor validation feedback", () => {
     fireEvent.change(input, { target: { value: "Invalid Task Name" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Only letters, digits, hyphens, and underscores are allowed",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Only letters, digits, hyphens, and underscores are allowed");
     expect(screen.getByRole("combobox", { name: "Task name" })).toBeInTheDocument();
     expect(useSettingsStore.getState().taskName).toBe("pick");
   });
