@@ -98,6 +98,19 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = False
 
+    # S3 client settings.
+    #
+    # Credentials are NOT declared here — boto3 picks AWS_ACCESS_KEY_ID /
+    # AWS_SECRET_ACCESS_KEY (or AWS_PROFILE) directly from the process env.
+    # Declaring them in pydantic would shadow that lookup. The remaining knobs
+    # are only set when the operator overrides the boto3 defaults.
+    aws_region: str | None = None
+    aws_profile: str | None = None
+    aws_endpoint_url: str | None = None  # e.g. http://minio:9000 for local testing
+    s3_multipart_threshold_mb: int | None = None  # boto3 default: 8 MB
+    s3_multipart_chunksize_mb: int | None = None  # boto3 default: 8 MB
+    s3_max_concurrency: int | None = None  # boto3 default: 10
+
     # --- Robot-specific settings loaded from YAML (cached) ---
     _robot: RobotConfig | None = None
 
