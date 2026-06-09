@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from app.settings import HzPattern, RobotConfig, Settings, _load_robot_config, get_settings
 
@@ -134,7 +135,7 @@ class TestSettings:
 
     def test_robot_uses_default_when_yaml_missing(self, tmp_path: Path) -> None:
         """Returns the default RobotConfig when the YAML file does not exist."""
-        s = Settings(robot_config=str(tmp_path / "missing.yaml"))
+        s = Settings(robot_config=str(tmp_path / "missing.yaml"), output_dir=tmp_path)
         robot = s.robot
         assert robot.robot_name == "Robot"
         assert robot.ros_domain_id == 0
@@ -146,7 +147,7 @@ class TestSettings:
             "robot_name: MyBot\nros_domain_id: 99\nrecording_start_delay_sec: 2.0\n",
             encoding="utf-8",
         )
-        s = Settings(robot_config=str(yaml_path))
+        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
         assert s.robot.robot_name == "MyBot"
         assert s.robot.ros_domain_id == 99
 
@@ -154,7 +155,7 @@ class TestSettings:
         """The robot property is loaded only on first access (cached)."""
         yaml_path = tmp_path / "robot.yaml"
         yaml_path.write_text("robot_name: Cached\n", encoding="utf-8")
-        s = Settings(robot_config=str(yaml_path))
+        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
         first = s.robot
         second = s.robot
         assert first is second  # Same instance
@@ -179,7 +180,7 @@ expected_hz_patterns:
 """,
             encoding="utf-8",
         )
-        s = Settings(robot_config=str(yaml_path))
+        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
         assert s.robot_name == "PropTest"
         assert s.ros_domain_id == 42
         assert s.recording_discovery_timeout == 8
@@ -192,14 +193,34 @@ expected_hz_patterns:
         """Defaults to 0.0 when not specified in YAML."""
         yaml_path = tmp_path / "robot.yaml"
         yaml_path.write_text("robot_name: Foo\n", encoding="utf-8")
-        s = Settings(robot_config=str(yaml_path))
+        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
         assert s.recording_start_delay_sec == 0.0
+
+    def test_missing_robot_config_raises(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Raises ValidationError when ROBOT_CONFIG is not set."""
+        monkeypatch.delenv("ROBOT_CONFIG", raising=False)
+        monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
+        with pytest.raises(ValidationError, match="robot_config"):
+            Settings(_env_file=None)  # type: ignore[call-arg]
+
+    def test_missing_output_dir_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Raises ValidationError when OUTPUT_DIR is not set."""
+        monkeypatch.setenv("ROBOT_CONFIG", "config/simulator.yaml")
+        monkeypatch.delenv("OUTPUT_DIR", raising=False)
+        with pytest.raises(ValidationError, match="output_dir"):
+            Settings(_env_file=None)  # type: ignore[call-arg]
 
 
 class TestGetSettings:
     """Tests for get_settings()."""
 
-    def test_returns_settings_instance(self) -> None:
+    def test_returns_settings_instance(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """Returns a Settings instance."""
+        monkeypatch.setenv("ROBOT_CONFIG", "config/simulator.yaml")
+        monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
         s = get_settings()
         assert isinstance(s, Settings)

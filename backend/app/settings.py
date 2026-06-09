@@ -82,11 +82,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Robot configuration file path
-    robot_config: str = "config/simulator.yaml"
+    # Robot configuration file path (required; must be set in .env)
+    robot_config: str
 
-    # Recording settings
-    output_dir: Path = Path("/data/output")
+    # Recording settings (required; must be set in .env)
+    output_dir: Path
 
     # Topic monitor settings
     gap_threshold_sec: Annotated[float, Field(gt=0)] = 3.0

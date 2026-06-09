@@ -57,7 +57,7 @@ Use `ROBOT_CONFIG` in `.env` to select a robot configuration. The topic list, ex
 
 ```bash
 # .env
-ROBOT_CONFIG=config/simulator.yaml   # Default
+ROBOT_CONFIG=config/simulator.yaml   # Required: use the bundled simulator config
 # ROBOT_CONFIG=config/myrobot.yaml   # Your own physical-robot config (copy simulator.yaml as a template)
 ```
 
@@ -229,8 +229,8 @@ The `.env` file holds only infrastructure and connection settings:
 
 | Variable | Default | Description |
 |------|-----------|------|
-| `ROBOT_CONFIG` | `config/simulator.yaml` | Path to the robot configuration YAML |
-| `OUTPUT_DIR` | `./output` | Directory where recording data is stored |
+| `ROBOT_CONFIG` | _required_ | Path to the robot configuration YAML (startup fails if unset) |
+| `OUTPUT_DIR` | _required_ | Directory where recording data is stored (startup fails if unset) |
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `8000` | Server port number |
 | `DEBUG` | `false` | Debug mode (affects log level) |
