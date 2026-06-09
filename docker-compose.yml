@@ -42,6 +42,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: open-lutra-backend
+    # Forward .env into the container so optional features can read their
+    # settings without each variable needing an explicit `environment:` entry.
+    # Hardcoded `environment:` values below still override matching .env keys.
+    env_file:
+      - path: .env
+        required: false
     environment:
       - CYCLONEDDS_URI=file:///cyclonedds.xml
       - OUTPUT_DIR=/data/output
