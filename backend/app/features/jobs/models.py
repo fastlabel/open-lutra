@@ -33,6 +33,7 @@ class JobType(str, Enum):
     QUALITY = "quality"  # quality_report.json generation
     TIMELINE = "timeline"  # timeline_data.json generation
     VALIDATION = "validation"  # validation_result.json generation
+    UPLOAD = "upload"  # zip + upload to the configured UploadDestination
 
 
 @dataclass
@@ -111,6 +112,18 @@ class ValidationJob(Job):
 
     Loads the QualityReport, runs all validators via ValidationRunner, and generates
     validation_result.json. Used in the auto-chain after recording stops or for manual re-runs.
+    """
+
+    target_path: Path | None = None
+
+
+@dataclass
+class UploadJob(Job):
+    """Upload execution job.
+
+    Zips the recording folder and sends the archive to the configured
+    `UploadDestination` (today: S3). Persists progress in
+    `upload_state.json` so the UI can survive page reloads mid-upload.
     """
 
     target_path: Path | None = None
