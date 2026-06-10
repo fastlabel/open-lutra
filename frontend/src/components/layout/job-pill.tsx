@@ -6,7 +6,7 @@
  * runs after every recording) is still in flight.
  */
 
-import { CheckCircle2, Film, Loader2, type LucideIcon, ShieldCheck, Sparkles } from "lucide-react";
+import { Boxes, CheckCircle2, Film, Loader2, type LucideIcon, ShieldCheck, Sparkles } from "lucide-react";
 import type { JobSchema } from "@/api/generated/schemas";
 
 const JOB_TYPE_META: Record<string, { label: string; icon: LucideIcon }> = {
@@ -14,6 +14,7 @@ const JOB_TYPE_META: Record<string, { label: string; icon: LucideIcon }> = {
   timeline: { label: "Timeline", icon: Sparkles },
   media: { label: "Media", icon: Film },
   validation: { label: "Validation", icon: ShieldCheck },
+  lerobot_export: { label: "LeRobot", icon: Boxes },
 };
 
 const FALLBACK_META = { label: "Job", icon: Sparkles };

@@ -33,6 +33,7 @@ class JobType(str, Enum):
     QUALITY = "quality"  # quality_report.json generation
     TIMELINE = "timeline"  # timeline_data.json generation
     VALIDATION = "validation"  # validation_result.json generation
+    LEROBOT_EXPORT = "lerobot_export"  # LeRobot v3.0 dataset export (spans multiple recordings)
 
 
 @dataclass
@@ -114,3 +115,23 @@ class ValidationJob(Job):
     """
 
     target_path: Path | None = None
+
+
+@dataclass
+class LeRobotExportJob(Job):
+    """LeRobot v3.0 dataset export job.
+
+    Unlike the per-recording jobs, this one spans multiple source recordings and
+    writes a single dataset directory.
+
+    Attributes:
+        target_path: Output dataset directory (also the dedup key, so the shared
+            `_active_folders` release logic in JobQueue works unchanged).
+        source_paths: Recording directories, each exported as one episode.
+
+    The mapping comes from the active robot config's `lerobot_export` section,
+    read when the job runs.
+    """
+
+    target_path: Path | None = None
+    source_paths: list[Path] = field(default_factory=list)

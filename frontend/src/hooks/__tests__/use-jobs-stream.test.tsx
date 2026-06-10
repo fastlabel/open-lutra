@@ -107,4 +107,40 @@ describe("useJobsStream", () => {
     const cached = client.getQueryData<JobSchema[]>(["sse", "jobs"]);
     expect(cached?.[0]?.status).toBe("completed");
   });
+
+  it("logs an info message when a LeRobot export completes", () => {
+    const { client } = renderWithClient(() => {
+      useJobsStream();
+    });
+
+    act(() => {
+      lastSource?.emit(
+        "job_completed",
+        makeJob({ job_id: "lex-1", type: "lerobot_export", folder: "ds_v1", status: "completed" }),
+      );
+    });
+
+    const logs = client.getQueryData<{ severity: string; message: string }[]>(["sse", "logs"]) ?? [];
+    const last = logs[logs.length - 1];
+    expect(last?.severity).toBe("info");
+    expect(last?.message).toContain("ds_v1");
+  });
+
+  it("logs a danger message when a LeRobot export fails", () => {
+    const { client } = renderWithClient(() => {
+      useJobsStream();
+    });
+
+    act(() => {
+      lastSource?.emit(
+        "job_failed",
+        makeJob({ job_id: "lex-2", type: "lerobot_export", folder: "ds_v2", status: "failed", error: "ffmpeg boom" }),
+      );
+    });
+
+    const logs = client.getQueryData<{ severity: string; message: string }[]>(["sse", "logs"]) ?? [];
+    const last = logs[logs.length - 1];
+    expect(last?.severity).toBe("danger");
+    expect(last?.message).toContain("ffmpeg boom");
+  });
 });

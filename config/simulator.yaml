@@ -45,3 +45,32 @@ expected_hz_patterns:
     hz:
   - pattern: "/robot_slave/*"
     hz: 100
+
+# LeRobot dataset export mapping (used by the "Export to LeRobot" action on
+# /recordings). Declares how this robot's MCAP topics map to LeRobot v3.0
+# features. Omit this whole section to disable export for the robot.
+#
+#   fps                output frame rate (0 = auto-detect from the first image topic)
+#   robot_type         free-form id stored in the dataset's meta/info.json
+#   sync_tolerance_ms  time-sync tolerance for state/action sources (default 50)
+#   image_tolerance_ms time-sync tolerance for image alignment (default 200)
+#   time_range         "intersection" (default) or "union"
+#   images             {camera_name: topic}   -> observation.images.<camera_name>
+#   observation        {field: [source, ...]} -> observation.<field> (concatenated)
+#   action             [source, ...]          -> action (concatenated)
+#
+# Each source: { topic, field?, indices?, names?, interpolation? }.
+#   field          optional; omitted = structural default (JointState -> position,
+#                  Float*MultiArray -> data). Override with velocity/effort/data/...
+#   interpolation  "linear" (default) or "nearest".
+lerobot_export:
+  fps: 30
+  robot_type: robot_simulator
+  images:
+    right_arm: /right_arm_depth_cam/color/image_raw/compressed
+    left_arm: /left_arm_depth_cam/color/image_raw/compressed
+  observation:
+    state:
+      - topic: /robot_slave/states
+  action:
+    - topic: /robot_master/cmd

@@ -26,6 +26,7 @@ from app.features.jobs.models import (
     JobProgress,
     JobStatus,
     JobType,
+    LeRobotExportJob,
     QualityJob,
     TimelineJob,
     ValidationJob,
@@ -40,6 +41,9 @@ _STEP_LABELS: dict[str, str] = {
     "read": "Reading messages",
     "mp4": "Generating MP4",
     "telemetry": "Generating telemetry.json",
+    "probe": "Probing features",
+    "convert": "Converting recordings",
+    "finalize": "Finalizing dataset",
 }
 
 # Event types used internally by JobQueue (must match the Literal in JobChangeEvent.event)
@@ -74,6 +78,7 @@ class JobQueue:
             JobType.QUALITY: {},
             JobType.TIMELINE: {},
             JobType.VALIDATION: {},
+            JobType.LEROBOT_EXPORT: {},
         }
         self._subscribers: set[asyncio.Queue[JobEvent]] = set()
         self._worker_task: asyncio.Task[None] | None = None
@@ -203,6 +208,42 @@ class JobQueue:
         logger.info("TimelineJob added: %s (%s)", job.job_id, folder.name)
         return job
 
+    async def enqueue_lerobot_export(
+        self,
+        source_dirs: list[Path],
+        output_dir: Path,
+    ) -> LeRobotExportJob:
+        """Enqueue a LeRobot dataset export job.
+
+        Deduped by the output dataset directory: if an export to the same
+        destination is already active, that job is returned instead.
+
+        Args:
+            source_dirs: Recording directories, each exported as one episode.
+            output_dir: Destination dataset directory.
+        """
+        async with self._lock:
+            existing_id = self._active_folders[JobType.LEROBOT_EXPORT].get(str(output_dir))
+            if existing_id and existing_id in self._jobs:
+                existing = self._jobs[existing_id]
+                if isinstance(existing, LeRobotExportJob):
+                    return existing
+
+            job = LeRobotExportJob(
+                job_id=f"lex_{uuid.uuid4().hex[:12]}",
+                type=JobType.LEROBOT_EXPORT,
+                folder=output_dir.name,
+                progress=JobProgress(step="queued", step_label="Waiting", current=0, total=1),
+                target_path=output_dir,
+                source_paths=source_dirs,
+            )
+            self._register_active(JobType.LEROBOT_EXPORT, output_dir, job)
+
+        await self._queue.put(job)
+        await self._broadcast(EVENT_JOB_ADDED, job)
+        logger.info("LeRobotExportJob added: %s (%s)", job.job_id, output_dir.name)
+        return job
+
     async def wait_for_completion(self, job_id: str) -> Job | None:
         """Wait for the specified job to complete or fail.
 
@@ -313,6 +354,8 @@ class JobQueue:
                 await self._run_timeline(job)
             elif isinstance(job, ValidationJob):
                 await self._run_validation(job)
+            elif isinstance(job, LeRobotExportJob):
+                await self._run_lerobot_export(job)
             else:  # pragma: no cover
                 raise ValueError(f"Unknown job type: {job.type}")
 
@@ -483,6 +526,30 @@ class JobQueue:
 
         await asyncio.to_thread(build_and_save_timeline, target)
 
+    async def _run_lerobot_export(self, job: LeRobotExportJob) -> None:
+        """Run a LeRobot dataset export, reflecting `run_export` progress onto the Job."""
+        target = job.target_path
+        if target is None:  # pragma: no cover
+            raise ValueError(f"LeRobotExportJob.target_path is not set: {job.job_id}")
+
+        loop = asyncio.get_running_loop()
+
+        def on_progress(step: str, current: int, total: int) -> None:
+            job.progress = JobProgress(
+                step=step,
+                step_label=_STEP_LABELS.get(step, step),
+                current=current,
+                total=max(total, 1),
+            )
+            asyncio.run_coroutine_threadsafe(self._broadcast(EVENT_JOB_PROGRESS, job), loop)
+
+        await asyncio.to_thread(
+            _run_export_dataset,
+            job.source_paths,
+            target,
+            on_progress,
+        )
+
     async def _broadcast(self, event: JobChangeEventName, job: Job) -> None:
         """Broadcast an event to all subscribers."""
         payload = JobChangeEvent(event=event, data=JobSchema.from_job(job))
@@ -502,6 +569,21 @@ def _run_convert_mcap(  # pragma: no cover
     from app.features.media.video_generator import VIDEO_FPS
 
     convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress)
+
+
+def _run_export_dataset(  # pragma: no cover
+    source_paths: list[Path],
+    output_dir: Path,
+    on_progress: Callable[[str, int, int], None],
+) -> None:
+    """Thin wrapper around `run_export()` for `asyncio.to_thread`.
+
+    The mapping is read from the active robot config's `lerobot_export` section.
+    """
+    from app.features.lerobot_export import load_active_config, run_export
+
+    config = load_active_config()
+    run_export(source_paths, config, output_dir, on_progress=on_progress)
 
 
 _job_queue: JobQueue | None = None

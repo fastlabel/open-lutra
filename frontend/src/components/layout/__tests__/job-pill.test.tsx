@@ -34,6 +34,7 @@ describe("JobPill", () => {
     ["quality", "Quality"],
     ["timeline", "Timeline"],
     ["media", "Media"],
+    ["lerobot_export", "LeRobot"],
   ])("renders the %s label", (type, label) => {
     render(<JobPill job={makeJob({ type })} />);
     expect(screen.getByText(label)).toBeInTheDocument();

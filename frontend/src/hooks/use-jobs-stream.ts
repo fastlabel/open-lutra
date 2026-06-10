@@ -14,12 +14,13 @@
  */
 
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getGetQualityQueryKey, getGetTimelineQueryKey } from "@/api/generated/analysis/analysis";
 import { getGetJointsQueryKey, getGetVideoStatusQueryKey } from "@/api/generated/media/media";
 import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
 import type { JobSchema } from "@/api/generated/schemas";
 import { getGetValidationQueryKey } from "@/api/generated/validation/validation";
+import { useAddLog } from "@/hooks/use-topics-stream";
 import { sseKeys } from "@/lib/query-keys";
 
 /**
@@ -45,6 +46,11 @@ const JOB_COMPLETION_INVALIDATIONS: Record<string, readonly (readonly unknown[])
  */
 export function useJobsStream() {
   const queryClient = useQueryClient();
+  // `useAddLog` returns a fresh function each render; keep it in a ref so the
+  // SSE effect (keyed on queryClient) doesn't reconnect on every render.
+  const addLog = useAddLog();
+  const addLogRef = useRef(addLog);
+  addLogRef.current = addLog;
 
   useEffect(() => {
     const es = new EventSource("/api/jobs/stream");
@@ -90,6 +96,15 @@ export function useJobsStream() {
         // Invalidate related REST queries when a job completes or fails.
         // (e.g. quality completes → the quality summary on the MCAP detail page auto-refetches.)
         invalidateRelated(job);
+        // LeRobot export has no view to refresh, so surface its async result as a log
+        // (the only feedback besides the in-flight StatusBar pill).
+        if (job.type === "lerobot_export") {
+          if (evt === "job_completed") {
+            addLogRef.current("info", `LeRobot export completed: _lerobot_exports/${job.folder}/`);
+          } else {
+            addLogRef.current("danger", `LeRobot export failed (${job.folder}): ${job.error ?? "unknown error"}`);
+          }
+        }
       });
     }
 

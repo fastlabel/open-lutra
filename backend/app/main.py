@@ -15,6 +15,7 @@ from app.features.analysis.router import router as analysis_router
 from app.features.config.router import router as config_router
 from app.features.jobs.router import router as jobs_router
 from app.features.jobs.service import JobQueue, set_job_queue
+from app.features.lerobot_export.router import router as lerobot_export_router
 from app.features.media.router import router as media_router
 from app.features.recording import ROS2BagRecorder
 from app.features.recording.router import router as recording_router
@@ -94,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(media_router)
     app.include_router(jobs_router)
     app.include_router(validation_router)
+    app.include_router(lerobot_export_router)
 
     # Serve the built frontend (production mode)
     if FRONTEND_DIR.is_dir():

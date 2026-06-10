@@ -18,6 +18,7 @@ import {
   useStartTimelineAnalysis as useStartTimelineAnalysisGenerated,
 } from "@/api/generated/analysis/analysis";
 import { useGetConfig, useGetMemory } from "@/api/generated/config/config";
+import { useGetLeRobotConfig } from "@/api/generated/lerobot/lerobot";
 import {
   getGetVideoStatusQueryKey,
   useStartVideoGeneration as useStartVideoGenerationGenerated,
@@ -35,6 +36,7 @@ import type {
   ConfigResponse,
   FilesResponse,
   LatestMessageResponse,
+  LeRobotConfigResponse,
   MemoryInfo,
   QualityResponse,
   RecordingStatus,
@@ -64,6 +66,13 @@ export function useConfig() {
       staleTime: Infinity,
       select: (resp) => resp.data as ConfigResponse,
     },
+  });
+}
+
+/** Fetch the active robot's LeRobot export mapping summary (for the export dialog). */
+export function useLeRobotConfig() {
+  return useGetLeRobotConfig<LeRobotConfigResponse>({
+    query: { select: (resp) => resp.data as LeRobotConfigResponse },
   });
 }
 

@@ -16,6 +16,9 @@ dependencies = [
     "mcap-ros2-support>=0.5.0",
     "Pillow>=10.0.0",
     "PyYAML>=6.0",
+    "numpy>=1.24.0",
+    "pyarrow>=15.0.0",
+    "pandas>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -83,7 +86,7 @@ check_untyped_defs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["rclpy.*", "sensor_msgs.*", "std_msgs.*", "rosidl_runtime_py.*", "mcap.*", "mcap_ros2.*", "PIL.*"]
+module = ["rclpy.*", "sensor_msgs.*", "std_msgs.*", "rosidl_runtime_py.*", "mcap.*", "mcap_ros2.*", "PIL.*", "pandas.*", "pyarrow.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]

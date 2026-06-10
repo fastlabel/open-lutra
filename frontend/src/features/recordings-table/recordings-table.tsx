@@ -9,6 +9,7 @@
 import { Search } from "lucide-react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Checkbox } from "@/components/ui/checkbox";
+import { BulkExportButton } from "@/features/lerobot-export";
 import { BulkDeleteButton, RecordingListItem, useRecordingsStore } from "@/features/recordings";
 import { useRecordingsTableStore } from "./store";
 import { TaskFilter } from "./ui/task-filter";
@@ -75,6 +76,7 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
           />
         </div>
         <div className="flex items-center gap-1">
+          <BulkExportButton />
           <BulkDeleteButton />
         </div>
       </div>
