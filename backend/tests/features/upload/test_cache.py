@@ -11,8 +11,8 @@ from app.features.upload.models import UploadState
 def _make_state() -> UploadState:
     return UploadState(
         status="uploaded",
-        s3_bucket="lutra-test",
-        s3_key="prefix/recording.zip",
+        destination="lutra-test",
+        key="prefix/recording.zip",
         etag='"abc-1"',
         size_bytes=1024,
         bytes_transferred=1024,
@@ -29,8 +29,8 @@ class TestSaveLoad:
         loaded = load_state(tmp_path)
         assert loaded is not None
         assert loaded.status == "uploaded"
-        assert loaded.s3_bucket == "lutra-test"
-        assert loaded.s3_key == "prefix/recording.zip"
+        assert loaded.destination == "lutra-test"
+        assert loaded.key == "prefix/recording.zip"
         assert loaded.etag == '"abc-1"'
         assert loaded.size_bytes == 1024
         assert loaded.bytes_transferred == 1024

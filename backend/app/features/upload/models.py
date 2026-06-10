@@ -17,11 +17,17 @@ class UploadState(BaseModel):
 
     Fields are required (no defaults) so JSON written by older versions
     surfaces as a parse error instead of silently defaulting to zero values.
+
+    `destination` and `key` are backend-agnostic: for the S3 backend they
+    map to bucket name and object key; future backends (GCS / local server)
+    fill in equivalents (bucket + object name, host + path). `etag` is the
+    backend's result identifier (S3 ETag, GCS generation, local hash) and
+    is `None` when the backend does not return one.
     """
 
     status: UploadStatus
-    s3_bucket: str | None
-    s3_key: str | None
+    destination: str | None
+    key: str | None
     etag: str | None
     size_bytes: int | None
     bytes_transferred: int
