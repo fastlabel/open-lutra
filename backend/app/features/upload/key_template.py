@@ -3,9 +3,12 @@
 The key template comes from the `S3_KEY_TEMPLATE` env var and supports the
 following placeholders:
 
-    {task_name}        — from recording_meta.json
     {recording_name}   — the recording folder name
     {yyyymmddhhmmss}   — recording start time (UTC), 14-digit string
+
+`task_name` is intentionally NOT a placeholder. Future task names may
+contain spaces or other characters that are awkward inside an S3 key
+(URL-encoding, CLI quoting), so the key composition is kept ASCII-safe.
 
 Template validation rejects unknown placeholders and unbalanced braces so
 that misconfiguration surfaces as a clear upload-time error rather than
@@ -18,7 +21,7 @@ import re
 from datetime import datetime, timezone
 
 _PLACEHOLDER_RE = re.compile(r"\{([^{}]*)\}")
-_ALLOWED_PLACEHOLDERS = frozenset({"task_name", "recording_name", "yyyymmddhhmmss"})
+_ALLOWED_PLACEHOLDERS = frozenset({"recording_name", "yyyymmddhhmmss"})
 
 
 class KeyTemplateError(ValueError):
@@ -45,7 +48,6 @@ def validate_template(template: str) -> None:
 def render_key(
     template: str,
     *,
-    task_name: str,
     recording_name: str,
     recording_start_ns: int,
 ) -> str:
@@ -63,7 +65,6 @@ def render_key(
     yyyymmddhhmmss = dt.strftime("%Y%m%d%H%M%S")
 
     return template.format(
-        task_name=task_name,
         recording_name=recording_name,
         yyyymmddhhmmss=yyyymmddhhmmss,
     )
