@@ -41,12 +41,12 @@ def _config(**overrides: object) -> ExportConfig:
     return ExportConfig(**base)  # type: ignore[arg-type]
 
 
-def _messages(overlap: bool = True) -> dict:
+def _messages(overlap: bool = True, size: int = 2) -> dict:
     # When overlap=False, state/cmd start only after the images end, so the
-    # intersection window is empty.
+    # intersection window is empty. `size` sets the camera frame resolution.
     base = 0 if overlap else 5000 * MS
     return {
-        "/img": [image_message(0), image_message(100 * MS)],
+        "/img": [image_message(0, size=size), image_message(100 * MS, size=size)],
         "/state": [joint_message(base, [1.0]), joint_message(base + 100 * MS, [2.0])],
         "/cmd": [joint_message(base, [9.0]), joint_message(base + 100 * MS, [8.0])],
     }
@@ -141,6 +141,22 @@ def test_run_export_rejects_structure_mismatch(tmp_path: Path) -> None:
     rec = _make_recording(tmp_path, "rec1", topics=["/img", "/state"])  # metadata.yaml lacks /cmd
     with pytest.raises(StructureMismatchError, match="/cmd"):
         service.run_export([rec], _config(), tmp_path / "out")
+
+
+def test_run_export_cleans_up_on_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Probe + rec1 use 2x2 frames; rec2 reads 4x4 -> shape mismatch mid-export.
+    sizes = iter([2, 4])
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _p, _t: _messages(size=next(sizes)))
+    rec1 = _make_recording(tmp_path, "rec1")
+    rec2 = _make_recording(tmp_path, "rec2")
+    out = tmp_path / "_lerobot_exports" / "ds"
+
+    with pytest.raises(ValueError, match="shape mismatch"):
+        service.run_export([rec1, rec2], _config(), out)
+
+    # No partial dataset and no leftover temp dir -> the name stays reusable.
+    assert not out.exists()
+    assert list((tmp_path / "_lerobot_exports").iterdir()) == []
 
 
 def test_run_export_skips_recording_without_overlap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

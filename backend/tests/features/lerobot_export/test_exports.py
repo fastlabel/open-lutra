@@ -41,6 +41,14 @@ def test_list_exports_missing_info(tmp_path: Path) -> None:
     assert exports[0].total_frames is None
 
 
+def test_list_exports_skips_inprogress_temp_dirs(tmp_path: Path) -> None:
+    root = exports_root(tmp_path)
+    _write_export(root, "ds_done", info={"total_episodes": 1, "total_frames": 10})
+    _write_export(root, ".ds_done.ab12.tmp", info={"total_episodes": 1, "total_frames": 10})
+    names = [e.name for e in list_exports(tmp_path)]
+    assert names == ["ds_done"]
+
+
 def test_list_exports_invalid_info(tmp_path: Path) -> None:
     dataset = exports_root(tmp_path) / "ds_bad"
     (dataset / "meta").mkdir(parents=True)

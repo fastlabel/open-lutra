@@ -8,6 +8,8 @@ contributes exactly one episode.
 from __future__ import annotations
 
 import logging
+import shutil
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -79,8 +81,11 @@ def run_export(
     fps = config.fps if config.fps > 0 else converter.detect_fps(probe_messages, image_topics)
     spec = converter.probe_feature_spec(probe_messages, config)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    writer = LeRobotV30Writer(output_dir, fps, config.robot_type, spec)
+    # Write into a sibling temp dir and rename on success, so a failed export
+    # never leaves a partial dataset that blocks the name / lists as complete.
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    work_dir = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", suffix=".tmp", dir=output_dir.parent))
+    writer = LeRobotV30Writer(work_dir, fps, config.robot_type, spec)
     writer.open()
     try:
         for index, (recording_dir, mcap_path) in enumerate(usable):
@@ -88,9 +93,14 @@ def run_export(
             messages = probe_messages if index == 0 else converter.read_topic_messages(mcap_path, all_topics)
             _export_recording(writer, recording_dir, messages, config, fps)
         progress("finalize", len(usable), len(usable))
-    finally:
         writer.close()
+    except BaseException:
+        # Clean up without masking the original error (abort swallows encoder errors).
+        writer.abort()
+        shutil.rmtree(work_dir, ignore_errors=True)
+        raise
 
+    work_dir.rename(output_dir)
     return ExportResult(
         output_dir=output_dir,
         total_episodes=writer.total_episodes,

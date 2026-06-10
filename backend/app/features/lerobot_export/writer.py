@@ -14,6 +14,7 @@ shard exceeds the default thresholds). Spec verified against huggingface/lerobot
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from collections.abc import Callable
@@ -186,6 +187,17 @@ class LeRobotV30Writer:
         self._cur_ep_count = 0
         self._cur_ep_tasks = set()
         self._ep_stats = self._new_accumulators()
+
+    def abort(self) -> None:
+        """Close the encoders without writing metadata (failure cleanup).
+
+        Swallows encoder errors so it never masks the original export exception;
+        the caller discards the (incomplete) output directory afterwards.
+        """
+        if self._sink is not None:
+            with contextlib.suppress(Exception):
+                self._sink.close()
+            self._sink = None
 
     def close(self) -> None:
         """Close the encoders and write all parquet/metadata files."""

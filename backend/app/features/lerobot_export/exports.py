@@ -39,7 +39,8 @@ def list_exports(output_dir: Path) -> list[ExportInfo]:
 
     infos: list[tuple[float, ExportInfo]] = []
     for item in root.iterdir():
-        if not item.is_dir():
+        # Skip in-progress export temp dirs (`.<name>.*.tmp`, renamed in on success).
+        if not item.is_dir() or item.name.startswith("."):
             continue
         episodes, frames = _read_info_totals(item)
         infos.append((item.stat().st_mtime, ExportInfo(name=item.name, total_episodes=episodes, total_frames=frames)))
