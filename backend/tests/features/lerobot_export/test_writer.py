@@ -148,6 +148,21 @@ def test_add_frame_before_open(tmp_path: Path) -> None:
         writer.add_frame(_frame(1.0))
 
 
+def test_add_frame_rejects_image_shape_mismatch(tmp_path: Path) -> None:
+    # spec expects cam at (2, 2, 3); a recording captured at a different resolution
+    # must fail loudly rather than silently corrupting the MP4.
+    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer.open()
+    mismatched = Frame(
+        camera_images={"cam": np.full((3, 4, 3), 0, dtype=np.uint8)},
+        observations={"state": np.array([0.0, 1.0])},
+        action=np.array([2.0, 3.0]),
+        task="pick",
+    )
+    with pytest.raises(ValueError, match="shape mismatch"):
+        writer.add_frame(mismatched)
+
+
 def test_warn_if_oversized(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
     probe = tmp_path / "probe.bin"

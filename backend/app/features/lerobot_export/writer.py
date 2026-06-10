@@ -128,6 +128,16 @@ class LeRobotV30Writer:
             raise RuntimeError("Writer must be opened before adding frames")
 
         for camera, image in frame.camera_images.items():
+            # All recordings must share each camera's resolution: the video shape
+            # is probed once from the first recording and the sink pipes raw bytes
+            # at that fixed size, so a differently-sized frame would silently
+            # corrupt the MP4. Fail loudly instead.
+            expected = self._spec.image_shapes[camera]
+            if tuple(image.shape) != expected:
+                raise ValueError(
+                    f"Image shape mismatch for camera {camera!r}: got {tuple(image.shape)}, "
+                    f"expected {expected}. All recordings must share the same camera resolution."
+                )
             self._sink.write(camera, image)
             self._global_stats[f"observation.images.{camera}"].add(image)
             self._ep_stats[f"observation.images.{camera}"].add(image)
