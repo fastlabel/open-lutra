@@ -6,6 +6,8 @@ import pytest
 # from the dev container's .env, contaminating tests that exercise the
 # unset / default code paths.
 _S3_ENV_VARS = (
+    "S3_BUCKET",
+    "S3_KEY_TEMPLATE",
     "AWS_REGION",
     "AWS_PROFILE",
     "AWS_ENDPOINT_URL",

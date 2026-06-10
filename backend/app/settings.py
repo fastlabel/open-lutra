@@ -98,6 +98,12 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = False
 
+    # S3 upload destination. When either field is unset, the upload feature
+    # is disabled (the eventual /api/upload/start endpoint refuses to enqueue
+    # and the UI hides its affordances).
+    s3_bucket: str | None = None
+    s3_key_template: str | None = None  # see app/features/upload/key_template.py
+
     # S3 client settings.
     #
     # Credentials are NOT declared here — boto3 picks AWS_ACCESS_KEY_ID /

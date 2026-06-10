@@ -2,6 +2,7 @@
 # Simple launcher for use at robot sites
 
 .PHONY: help up dev-up down restart logs ps build stream \
+	minio-up minio-down \
 	lint lint-backend lint-frontend \
 	test test-backend test-frontend \
 	test-cov test-cov-backend test-cov-frontend \
@@ -22,6 +23,10 @@ help:
 	@echo "  make ps         - Show container status"
 	@echo "  make build      - Build Docker images"
 	@echo "  make stream     - Show the SSE stream (topic monitoring)"
+	@echo ""
+	@echo "Local S3 (MinIO, for testing the upload feature):"
+	@echo "  make minio-up   - Start MinIO + auto-create the bucket"
+	@echo "  make minio-down - Stop MinIO"
 	@echo ""
 	@echo "Dev tools:"
 	@echo "  make lint              - Lint (all: backend + frontend)"
@@ -99,6 +104,21 @@ build:
 # Show the SSE stream (topic monitoring)
 stream:
 	@curl -s -N http://localhost:8000/api/topics/stream
+
+# ===== Local S3 (MinIO) =====
+
+# Start MinIO and auto-create the bucket
+minio-up:
+	@echo "=== Starting MinIO ==="
+	docker compose --profile s3 up -d minio minio-init
+	@echo "=== MinIO started ==="
+	@echo "  S3 API:  http://localhost:9000"
+	@echo "  Console: http://localhost:9001  (user: minioadmin / pass: minioadmin)"
+	@echo "  Bucket:  $${S3_BUCKET:-lutra-recordings}"
+
+# Stop MinIO
+minio-down:
+	docker compose --profile s3 down
 
 # ===== Dev tools =====
 

@@ -89,5 +89,40 @@ services:
       - backend
     restart: unless-stopped
 
+  # --- MinIO: local S3-compatible object store (development only) ---
+  minio:
+    image: pgsty/minio:latest
+    container_name: open-lutra-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    profiles:
+      - s3
+    restart: unless-stopped
+
+  # --- MinIO bucket bootstrap (runs once and exits) ---
+  minio-init:
+    image: minio/mc:latest
+    container_name: open-lutra-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} >/dev/null 2>&1; do
+        echo 'waiting for minio...'; sleep 1;
+      done;
+      mc mb --ignore-existing local/${S3_BUCKET:-lutra-recordings};
+      echo 'bucket ready: ${S3_BUCKET:-lutra-recordings}';
+      "
+    profiles:
+      - s3
+
 volumes:
   frontend_node_modules:
+  minio_data:
