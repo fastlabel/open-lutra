@@ -90,11 +90,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Robot configuration file path
-    robot_config: str = "config/simulator.yaml"
+    # Robot configuration file path (required; must be set in .env)
+    robot_config: str
 
-    # Recording settings
-    output_dir: Path = Path("/data/output")
+    # Recording settings (required; must be set in .env)
+    output_dir: Path
 
     # Topic monitor settings
     gap_threshold_sec: Annotated[float, Field(gt=0)] = 3.0
@@ -105,6 +105,25 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = False
+
+    # S3 upload destination. When either field is unset, the upload feature
+    # is disabled (the eventual /api/upload/start endpoint refuses to enqueue
+    # and the UI hides its affordances).
+    s3_bucket: str | None = None
+    s3_key_template: str | None = None  # see app/features/upload/key_template.py
+
+    # S3 client settings.
+    #
+    # Credentials are NOT declared here — boto3 picks AWS_ACCESS_KEY_ID /
+    # AWS_SECRET_ACCESS_KEY (or AWS_PROFILE) directly from the process env.
+    # Declaring them in pydantic would shadow that lookup. The remaining knobs
+    # are only set when the operator overrides the boto3 defaults.
+    aws_region: str | None = None
+    aws_profile: str | None = None
+    aws_endpoint_url: str | None = None  # e.g. http://minio:9000 for local testing
+    s3_multipart_threshold_mb: int | None = None  # boto3 default: 8 MB
+    s3_multipart_chunksize_mb: int | None = None  # boto3 default: 8 MB
+    s3_max_concurrency: int | None = None  # boto3 default: 10
 
     # --- Robot-specific settings loaded from YAML (cached) ---
     _robot: RobotConfig | None = None

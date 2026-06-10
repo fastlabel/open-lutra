@@ -123,3 +123,76 @@ describe("TaskNameInlineEditor autocomplete", () => {
     expect(useSettingsStore.getState().taskName).toBe("place");
   });
 });
+
+describe("TaskNameInlineEditor validation feedback", () => {
+  it("shows an error popover and keeps edit mode when Enter is pressed on invalid input", () => {
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "Invalid Task Name" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Only letters, digits, hyphens, and underscores are allowed");
+    expect(screen.getByRole("combobox", { name: "Task name" })).toBeInTheDocument();
+    expect(useSettingsStore.getState().taskName).toBe("pick");
+  });
+
+  it("shows an error for empty input on Enter", () => {
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Please enter a task name");
+    expect(screen.getByRole("combobox", { name: "Task name" })).toBeInTheDocument();
+  });
+
+  it("clears the error and hides the popover when the user keeps typing", () => {
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "bad name" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "good_name" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("hides suggestions while an error popover is shown", () => {
+    taskNamesMock.mockReturnValue(["pick", "place"]);
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "bad name" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.queryByRole("listbox", { name: "Task name suggestions" })).not.toBeInTheDocument();
+  });
+
+  it("blur with invalid input silently exits without showing an error", () => {
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "bad name" } });
+    fireEvent.blur(input);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Task name" })).not.toBeInTheDocument();
+    expect(useSettingsStore.getState().taskName).toBe("pick");
+  });
+
+  it("Escape clears the error and exits", () => {
+    renderEditor();
+    const input = openEditor();
+
+    fireEvent.change(input, { target: { value: "bad name" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Task name" })).not.toBeInTheDocument();
+  });
+});
