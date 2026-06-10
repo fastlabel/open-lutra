@@ -17,8 +17,12 @@ import logging
 import subprocess
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +41,7 @@ class VideoSink:  # pragma: no cover
             self._stderr_chunks[camera] = []
             self._start_stderr_drain(camera)
 
-    def write(self, camera: str, image: np.ndarray) -> None:
+    def write(self, camera: str, image: NDArray[np.uint8]) -> None:
         """Pipe one RGB frame to the camera's ffmpeg process."""
         proc = self._procs[camera]
         if proc.stdin is None:

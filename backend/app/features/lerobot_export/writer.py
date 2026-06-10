@@ -27,6 +27,8 @@ from app.features.lerobot_export.stats import ImageStats, StatsAccumulator, Vect
 from app.features.lerobot_export.video_sink import VideoSink
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from app.features.lerobot_export.converter import Frame
     from app.features.lerobot_export.models import FeatureSpec
 
@@ -43,7 +45,7 @@ EPISODES_PATH_TEMPLATE = "meta/episodes/chunk-{chunk_index:03d}/file-{file_index
 class FrameSink(Protocol):
     """Structural type for the per-camera video encoder (so tests can inject a fake)."""
 
-    def write(self, camera: str, image: np.ndarray) -> None: ...
+    def write(self, camera: str, image: NDArray[np.uint8]) -> None: ...
 
     def close(self) -> None: ...
 
@@ -72,8 +74,8 @@ class LeRobotV30Writer:
         self._video_keys = [f"observation.images.{cam}" for cam in spec.camera_names]
 
         # Per-frame buffers (numeric only; small).
-        self._actions: list[np.ndarray] = []
-        self._obs: dict[str, list[np.ndarray]] = {name: [] for name in spec.observation_fields}
+        self._actions: list[NDArray[np.float32]] = []
+        self._obs: dict[str, list[NDArray[np.float32]]] = {name: [] for name in spec.observation_fields}
         self._timestamps: list[float] = []
         self._frame_indices: list[int] = []
         self._episode_indices: list[int] = []

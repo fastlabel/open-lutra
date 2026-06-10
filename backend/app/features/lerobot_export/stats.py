@@ -42,10 +42,10 @@ class VectorStats(StatsAccumulator):
 
     def __post_init__(self) -> None:
         self._count = 0
-        self._sum = np.zeros(self.dim, dtype=np.float64)
-        self._sumsq = np.zeros(self.dim, dtype=np.float64)
-        self._min = np.full(self.dim, np.inf, dtype=np.float64)
-        self._max = np.full(self.dim, -np.inf, dtype=np.float64)
+        self._sum: NDArray[np.float64] = np.zeros(self.dim, dtype=np.float64)
+        self._sumsq: NDArray[np.float64] = np.zeros(self.dim, dtype=np.float64)
+        self._min: NDArray[np.float64] = np.full(self.dim, np.inf, dtype=np.float64)
+        self._max: NDArray[np.float64] = np.full(self.dim, -np.inf, dtype=np.float64)
 
     def add(self, value: NDArray[Any]) -> None:
         vector = value.astype(np.float64)
@@ -77,10 +77,10 @@ class ImageStats(StatsAccumulator):
     def __post_init__(self) -> None:
         self._frames = 0
         self._pixels = 0
-        self._sum = np.zeros(self.channels, dtype=np.float64)
-        self._sumsq = np.zeros(self.channels, dtype=np.float64)
-        self._min = np.full(self.channels, np.inf, dtype=np.float64)
-        self._max = np.full(self.channels, -np.inf, dtype=np.float64)
+        self._sum: NDArray[np.float64] = np.zeros(self.channels, dtype=np.float64)
+        self._sumsq: NDArray[np.float64] = np.zeros(self.channels, dtype=np.float64)
+        self._min: NDArray[np.float64] = np.full(self.channels, np.inf, dtype=np.float64)
+        self._max: NDArray[np.float64] = np.full(self.channels, -np.inf, dtype=np.float64)
 
     def add(self, value: NDArray[Any]) -> None:
         norm = value.astype(np.float64) / 255.0
