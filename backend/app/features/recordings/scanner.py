@@ -7,6 +7,7 @@ import logging
 import re
 from pathlib import Path
 
+from app.features.lerobot_export import EXPORTS_DIRNAME
 from app.features.recordings.meta import read_recording_meta
 from app.features.recordings.schemas import FileEntry
 from app.features.validation.cache import load_report as load_validation_report
@@ -42,9 +43,10 @@ def scan_output_dir(output_dir: Path) -> list[FileEntry]:
 
     entries: list[FileEntry] = []
     for item in items:
-        # Skip dotfiles and underscore-prefixed system directories such as
-        # `_lerobot_exports/` (generated datasets, not recordings).
-        if not item.is_dir() or item.name.startswith((".", "_")):
+        # Skip the reserved exports directory (generated datasets, not recordings).
+        # Note: only this exact name is excluded — recording folders may legitimately
+        # start with `_`/`.` (task names are unsanitized), and must stay visible.
+        if not item.is_dir() or item.name == ".DS_Store" or item.name == EXPORTS_DIRNAME:
             continue
         entry = _build_recording_entry(item, output_dir)
         if entry is not None:
@@ -139,7 +141,7 @@ def collect_recent_task_names(output_dir: Path) -> list[str]:
     candidates: list[tuple[float, str]] = []
     for item in items:
         try:
-            if not item.is_dir() or item.name.startswith((".", "_")):
+            if not item.is_dir() or item.name == ".DS_Store" or item.name == EXPORTS_DIRNAME:
                 continue
 
             meta = read_recording_meta(item)

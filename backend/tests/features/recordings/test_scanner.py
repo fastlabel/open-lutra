@@ -234,6 +234,24 @@ class TestScanOutputDir:
         assert len(entries) == 1
         assert entries[0].name == "rec"
 
+    def test_lerobot_exports_dir_excluded(self, tmp_path: Path) -> None:
+        """The reserved _lerobot_exports directory is never listed as a recording."""
+        _make_recording(tmp_path / "_lerobot_exports")  # has an mcap, but reserved name
+        _make_recording(tmp_path / "rec")
+
+        entries = scan_output_dir(tmp_path)
+
+        assert [e.name for e in entries] == ["rec"]
+
+    def test_underscore_or_dot_task_name_recording_is_visible(self, tmp_path: Path) -> None:
+        """Recordings whose (unsanitized) name starts with _ or . must stay visible."""
+        _make_recording(tmp_path / "_calib_20260101")
+        _make_recording(tmp_path / ".hidden_20260101")
+
+        names = {e.name for e in scan_output_dir(tmp_path)}
+
+        assert names == {"_calib_20260101", ".hidden_20260101"}
+
     def test_sorted_by_recording_start_ns_not_mtime(self, tmp_path: Path) -> None:
         """Recording folders are sorted by recording_start_ns descending, not by mtime.
 
