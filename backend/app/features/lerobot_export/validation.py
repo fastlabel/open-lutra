@@ -25,11 +25,12 @@ class StructureMismatchError(ValueError):
     """Raised when a recording's topic structure does not match the export config."""
 
 
-def read_recorded_topics(recording_dir: Path) -> dict[str, str]:
-    """Return `{topic_name: msg_type}` from a recording's `metadata.yaml`.
+def read_recorded_topic_counts(recording_dir: Path) -> dict[str, int]:
+    """Return `{topic_name: message_count}` from a recording's `metadata.yaml`.
 
     Returns an empty dict when the file is absent or unparseable (the caller
-    treats that as "structure unknown", not a mismatch).
+    treats that as "structure unknown", not a mismatch). `message_count` is a
+    sibling of `topic_metadata` within each `topics_with_message_count` entry.
     """
     meta_path = recording_dir / "metadata.yaml"
     if not meta_path.exists():
@@ -41,31 +42,32 @@ def read_recorded_topics(recording_dir: Path) -> dict[str, str]:
         return {}
 
     info = (data or {}).get("rosbag2_bagfile_information", {})
-    topics: dict[str, str] = {}
+    counts: dict[str, int] = {}
     for entry in info.get("topics_with_message_count", []):
-        topic_metadata = entry.get("topic_metadata", {})
-        name = topic_metadata.get("name")
+        name = entry.get("topic_metadata", {}).get("name")
         if name:
-            topics[name] = topic_metadata.get("type", "")
-    return topics
+            counts[name] = entry.get("message_count", 0)
+    return counts
 
 
 def find_structure_mismatches(source_dirs: list[Path], config: ExportConfig) -> list[str]:
-    """Return one human-readable message per recording missing config topics.
+    """Return one message per recording whose config topics are missing or empty.
 
-    Recordings without a readable `metadata.yaml` are skipped. An empty result
-    means every checkable recording contains all the config's topics.
+    A config topic that is absent from `metadata.yaml`, or present with
+    `message_count == 0`, would silently contribute zero frames, so both are
+    reported. Recordings without a readable `metadata.yaml` are skipped (their
+    structure cannot be verified from the manifest).
     """
     required = config.all_topics()
     problems: list[str] = []
     for recording_dir in source_dirs:
-        recorded = read_recorded_topics(recording_dir)
-        if not recorded:
+        counts = read_recorded_topic_counts(recording_dir)
+        if not counts:
             logger.warning("Skipping structure check for %s: no readable metadata.yaml", recording_dir.name)
             continue
-        missing = [topic for topic in required if topic not in recorded]
-        if missing:
-            problems.append(f"{recording_dir.name}: missing topic(s) {', '.join(missing)}")
+        bad = [topic for topic in required if counts.get(topic, 0) == 0]
+        if bad:
+            problems.append(f"{recording_dir.name}: missing or empty topic(s) {', '.join(bad)}")
     return problems
 
 

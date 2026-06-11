@@ -91,7 +91,13 @@ def run_export(
         for index, (recording_dir, mcap_path) in enumerate(usable):
             progress("convert", index, len(usable))
             messages = probe_messages if index == 0 else converter.read_topic_messages(mcap_path, all_topics)
+            before = writer.total_frames
             _export_recording(writer, recording_dir, messages, config, fps)
+            if writer.total_frames == before:
+                # Contributed no frames (e.g. no overlapping time range): surface it
+                # instead of silently dropping the recording from the dataset.
+                logger.warning("Recording contributed no frames: %s", recording_dir.name)
+                skipped.append(recording_dir.name)
         progress("finalize", len(usable), len(usable))
         writer.close()
     except BaseException:

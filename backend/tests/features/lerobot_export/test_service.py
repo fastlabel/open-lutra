@@ -54,7 +54,8 @@ def _messages(overlap: bool = True, size: int = 2) -> dict:
 
 def _write_metadata(folder: Path, topics: list[str]) -> None:
     entries = "\n".join(
-        f"    - topic_metadata:\n        name: {t}\n        type: sensor_msgs/msg/JointState" for t in topics
+        f"    - topic_metadata:\n        name: {t}\n        type: sensor_msgs/msg/JointState\n      message_count: 10"
+        for t in topics
     )
     folder.joinpath("metadata.yaml").write_text(
         f"rosbag2_bagfile_information:\n  topics_with_message_count:\n{entries}\n", encoding="utf-8"
@@ -165,4 +166,5 @@ def test_run_export_skips_recording_without_overlap(tmp_path: Path, monkeypatch:
     out = tmp_path / "out"
     result = service.run_export([rec], _config(), out)
     assert result.total_episodes == 0  # no overlapping time range
+    assert result.skipped == ["rec1"]  # surfaced, not silently dropped
     assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 0
