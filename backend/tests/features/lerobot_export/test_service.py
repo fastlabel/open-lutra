@@ -160,11 +160,26 @@ def test_run_export_cleans_up_on_failure(tmp_path: Path, monkeypatch: pytest.Mon
     assert list((tmp_path / "_lerobot_exports").iterdir()) == []
 
 
-def test_run_export_skips_recording_without_overlap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_export_fails_when_no_frames(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Only recording has no overlapping window -> 0 frames -> fail instead of
+    # writing a 0-episode dataset with Infinity in stats.json.
     monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages(overlap=False))
     rec = _make_recording(tmp_path, "rec1")
+    out = tmp_path / "_lerobot_exports" / "ds"
+    with pytest.raises(ValueError, match="No frames were exported"):
+        service.run_export([rec], _config(), out)
+    assert not out.exists()
+    assert list((tmp_path / "_lerobot_exports").iterdir()) == []  # temp cleaned up
+
+
+def test_run_export_skips_empty_recording_but_succeeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # rec1 has overlapping data (frames); rec2 has none -> succeeds with rec2 in skipped.
+    msgs = iter([_messages(overlap=True), _messages(overlap=False)])
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: next(msgs))
+    rec1 = _make_recording(tmp_path, "rec1")
+    rec2 = _make_recording(tmp_path, "rec2")
     out = tmp_path / "out"
-    result = service.run_export([rec], _config(), out)
-    assert result.total_episodes == 0  # no overlapping time range
-    assert result.skipped == ["rec1"]  # surfaced, not silently dropped
-    assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 0
+    result = service.run_export([rec1, rec2], _config(), out)
+    assert result.total_episodes == 1
+    assert result.skipped == ["rec2"]
+    assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 1

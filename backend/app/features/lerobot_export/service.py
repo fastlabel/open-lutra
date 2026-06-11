@@ -98,6 +98,10 @@ def run_export(
                 # instead of silently dropping the recording from the dataset.
                 logger.warning("Recording contributed no frames: %s", recording_dir.name)
                 skipped.append(recording_dir.name)
+        if writer.total_frames == 0:
+            # Nothing to write: avoid emitting a 0-episode dataset whose stats.json
+            # would contain non-standard Infinity tokens (the min/max stay at +-inf).
+            raise ValueError("No frames were exported: every selected recording had no usable/overlapping data.")
         progress("finalize", len(usable), len(usable))
         writer.close()
     except BaseException:
