@@ -114,11 +114,13 @@ export function ExportDialog({
     );
   };
 
-  // While running, "Close" only dismisses the dialog (the job keeps running in
-  // the background). On success it also clears the recording selection.
+  // Always dismiss the dialog (the job keeps running in the background); on
+  // success also clear the recording selection. Both must run: BulkExportButton
+  // stays mounted while returning null, so leaving `open` true would re-pop the
+  // dialog uninvited the next time a recording is checked.
   const handleClose = () => {
     if (job?.status === "completed") onExported();
-    else onOpenChange(false);
+    onOpenChange(false);
   };
 
   return (

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRecordingsStore } from "@/features/recordings";
 import { BulkExportButton } from "../ui/bulk-export-button";
+import { ExportDialog } from "../ui/export-dialog";
 
 // Mock the API layer so the test does not depend on generated hooks / network.
 const { mutateMock, jobMock } = vi.hoisted(() => ({
@@ -95,5 +96,30 @@ describe("BulkExportButton", () => {
     expect(screen.getByText(/Export completed/)).toBeInTheDocument();
     expect(screen.getByText("_lerobot_exports/ds_v1/")).toBeInTheDocument();
     expect(screen.queryByLabelText("Output name")).not.toBeInTheDocument(); // form replaced by status
+  });
+
+  it("closes the dialog (open=false) when a completed export is dismissed", () => {
+    // Otherwise BulkExportButton (mounted but rendering null) keeps open=true and
+    // the dialog re-pops the next time a recording is checked.
+    mutateMock.mockImplementation((_vars, opts) => opts.onSuccess({ data: { job_id: "lex-1" } }));
+    jobMock.mockReturnValue({
+      job_id: "lex-1",
+      type: "lerobot_export",
+      folder: "ds_v1",
+      status: "completed",
+      progress: { step: "finalize", step_label: "Finalizing", current: 1, total: 1 },
+      error: null,
+    });
+    const onOpenChange = vi.fn();
+    const onExported = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => <TooltipProvider>{children}</TooltipProvider>;
+    render(<ExportDialog folders={["rec1"]} open onOpenChange={onOpenChange} onExported={onExported} />, { wrapper });
+
+    fireEvent.change(screen.getByLabelText("Output name"), { target: { value: "ds_v1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(onExported).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
