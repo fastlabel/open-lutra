@@ -114,8 +114,8 @@ export function ExportDialog({
     );
   };
 
-  // While running, "Close" only dismisses the dialog (the job keeps running and
-  // re-appears on reopen). On success it also clears the recording selection.
+  // While running, "Close" only dismisses the dialog (the job keeps running in
+  // the background). On success it also clears the recording selection.
   const handleClose = () => {
     if (job?.status === "completed") onExported();
     else onOpenChange(false);
