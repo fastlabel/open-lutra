@@ -20,6 +20,7 @@ from app.features.recording import ROS2BagRecorder
 from app.features.recording.router import router as recording_router
 from app.features.recordings.router import router as recordings_router
 from app.features.topics.router import router as topics_router
+from app.features.upload.router import router as upload_router
 from app.features.validation import load_custom_validators
 from app.features.validation.router import router as validation_router
 from app.infra.ros2 import ROS2Command
@@ -94,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(media_router)
     app.include_router(jobs_router)
     app.include_router(validation_router)
+    app.include_router(upload_router)
 
     # Serve the built frontend (production mode)
     if FRONTEND_DIR.is_dir():
