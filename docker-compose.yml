@@ -23,7 +23,7 @@ services:
       - SIM_DROP_RATE=${SIM_DROP_RATE:-0.1}
       - SIM_UNSTABLE_TOPICS=${SIM_UNSTABLE_TOPICS:-all}
       - SIM_STOP_AFTER_SEC=${SIM_STOP_AFTER_SEC:-15}
-      - SIM_STOP_TOPICS=${SIM_STOP_TOPICS:-/robot_slave/states,/robot_master/cmd}
+      - SIM_STOP_TOPICS=${SIM_STOP_TOPICS:-/sim/slave_arm_left,/sim/master_arm_left}
       - SIM_EMPTY_CAMERA_INDICES=${SIM_EMPTY_CAMERA_INDICES:-0}
       - SIM_EMPTY_FRAME_RATE=${SIM_EMPTY_FRAME_RATE:-0.3}
       - SIM_BURST_INTERVAL_SEC=${SIM_BURST_INTERVAL_SEC:-10}

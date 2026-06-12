@@ -27,12 +27,14 @@ recording_start_delay_sec: 0
 
 # Default topics to record (pre-selected in the UI)
 default_topics:
-  - /right_arm_depth_cam/color/image_raw/compressed
-  - /right_arm_depth_cam_2/color/image_raw/compressed
+  - /chest_depth_cam/color/image_raw/compressed
+  - /head_depth_cam/color/image_raw/compressed
   - /left_arm_depth_cam/color/image_raw/compressed
-  - /left_arm_depth_cam_2/color/image_raw/compressed
-  - /robot_master/cmd
-  - /robot_slave/states
+  - /sim/slave_arm_left
+  - /sim/slave_arm_left/gripper
+  - /sim/slave_arm_left/pose
+  - /sim/master_arm_left
+  - /sim/master_arm_left/hand
 
 # Expected Hz for quality monitoring (pattern match, first match wins).
 # Omit `hz` to enable dynamic learning (auto-computed from message intervals
@@ -41,7 +43,5 @@ default_topics:
 expected_hz_patterns:
   - pattern: "**/compressed"
     hz: 30
-  - pattern: "/robot_master/*"
-    hz:
-  - pattern: "/robot_slave/*"
+  - pattern: "/sim/**"
     hz: 100

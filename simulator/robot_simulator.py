@@ -5,21 +5,22 @@ with multiple depth cameras, allowing end-to-end testing without
 physical hardware.
 
 Published topics:
-  /robot_slave/states                                       (sensor_msgs/JointState)     @ 100Hz
-  /robot_master/cmd                                         (sensor_msgs/JointState)     @ 100Hz
-  /right_arm_depth_cam/color/image_raw/compressed           (sensor_msgs/CompressedImage) @ 30Hz
-  /right_arm_depth_cam_2/color/image_raw/compressed         (sensor_msgs/CompressedImage) @ 30Hz
-  /left_arm_depth_cam/color/image_raw/compressed            (sensor_msgs/CompressedImage) @ 30Hz
-  /left_arm_depth_cam_2/color/image_raw/compressed          (sensor_msgs/CompressedImage) @ 30Hz
+  /sim/slave_arm_left                                         (sensor_msgs/JointState)     @ 100Hz
+  /sim/slave_arm_left/gripper                                 (std_msgs/Float64)           @ 100Hz
+  /sim/slave_arm_left/pose                                    (geometry_msgs/Point)        @ 100Hz
+  /sim/master_arm_left                                        (sensor_msgs/JointState)     @ 100Hz
+  /sim/master_arm_left/hand                                   (std_msgs/Float64)           @ 100Hz
+  /chest_depth_cam/color/image_raw/compressed                 (sensor_msgs/CompressedImage) @ 30Hz
+  /head_depth_cam/color/image_raw/compressed                  (sensor_msgs/CompressedImage) @ 30Hz
+  /left_arm_depth_cam/color/image_raw/compressed              (sensor_msgs/CompressedImage) @ 30Hz
 
 Data sources:
-  - Cameras: loops the real-recording JPEGs under `simulator/frames/<cam>/` (different
-    footage per camera). The `_2` topics republish the same data as their counterpart
-    so a single sample dataset can populate four independent topics — enough to exercise
-    multi-camera UI paths without bundling more footage.
-  - Joints: replays the real-recording trajectory (right arm) in
-    `simulator/joint_replay.json` by indexing into it via elapsed time, looping at the
-    end; fed to both slave and master
+  - Cameras: loops real-recording JPEGs from `simulator/frames/<cam>/`
+    (chest / head / left_arm).
+  - Joints: replays the recorded trajectory from `simulator/joint_replay.json`.
+    Slave arm positions (radians) and master positions (encoder counts) are keyed
+    by arm name. Gripper / hand are scalar float values. End-effector Cartesian
+    position (pose) comes from forward-kinematics solved at record time.
 
 Simulation modes: see config.py
 """
@@ -31,24 +32,27 @@ from pathlib import Path
 import rclpy
 from config import SIM_MODE
 from fault_modes import FaultInjector
+from geometry_msgs.msg import Point
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage, JointState
-from std_msgs.msg import Header
+from std_msgs.msg import Float64, Header
 
 # Frame ID shared by all cameras (matches the `frame_id` from real-hardware recordings)
 CAMERA_FRAME_ID = "camera_color_optical_frame"
 JOINT_FRAME_ID = "base_link"
 
-CAMERA_TOPICS_BY_DIR: dict[str, list[str]] = {
-    "right_arm": [
-        "/right_arm_depth_cam/color/image_raw/compressed",
-        "/right_arm_depth_cam_2/color/image_raw/compressed",
-    ],
-    "left_arm": [
-        "/left_arm_depth_cam/color/image_raw/compressed",
-        "/left_arm_depth_cam_2/color/image_raw/compressed",
-    ],
+# One topic per camera directory.
+CAMERA_TOPICS_BY_DIR: dict[str, str] = {
+    "chest": "/chest_depth_cam/color/image_raw/compressed",
+    "head": "/head_depth_cam/color/image_raw/compressed",
+    "left_arm": "/left_arm_depth_cam/color/image_raw/compressed",
 }
+
+TOPIC_SLAVE_JOINT = "/sim/slave_arm_left"
+TOPIC_SLAVE_GRIPPER = "/sim/slave_arm_left/gripper"
+TOPIC_SLAVE_POSE = "/sim/slave_arm_left/pose"
+TOPIC_MASTER_JOINT = "/sim/master_arm_left"
+TOPIC_MASTER_HAND = "/sim/master_arm_left/hand"
 
 FRAMES_DIR = Path(__file__).parent / "frames"
 JOINT_REPLAY_PATH = Path(__file__).parent / "joint_replay.json"
@@ -58,20 +62,14 @@ JOINT_HZ = 100
 
 
 def _load_camera_frames() -> dict[str, list[bytes]]:
-    """Load `frames/<cam>/*.jpg` for each camera dir and key by topic name.
-
-    When a directory maps to multiple topics, the frame list is shared by reference
-    across topics so the same bytes back every mirror — no extra memory.
-    """
+    """Load `frames/<cam>/*.jpg` for each camera directory and key by topic name."""
     frames: dict[str, list[bytes]] = {}
-    for cam_dir, topics in CAMERA_TOPICS_BY_DIR.items():
+    for cam_dir, topic in CAMERA_TOPICS_BY_DIR.items():
         cam_path = FRAMES_DIR / cam_dir
         if not cam_path.is_dir():
             continue
         loaded = [p.read_bytes() for p in sorted(cam_path.glob("*.jpg"))]
-        if not loaded:
-            continue
-        for topic in topics:
+        if loaded:
             frames[topic] = loaded
     return frames
 
@@ -116,9 +114,14 @@ class RobotSimulator(Node):
             dur = self._joint_replay["timestamps"][-1]
             self.get_logger().info(f"Loaded joint replay: {n} samples over {dur:.1f}s")
 
-        # Publishers
-        self._slave_pub = self.create_publisher(JointState, "/robot_slave/states", 10)
-        self._master_pub = self.create_publisher(JointState, "/robot_master/cmd", 10)
+        # Publishers — joint topics
+        self._slave_joint_pub = self.create_publisher(JointState, TOPIC_SLAVE_JOINT, 10)
+        self._slave_gripper_pub = self.create_publisher(Float64, TOPIC_SLAVE_GRIPPER, 10)
+        self._slave_pose_pub = self.create_publisher(Point, TOPIC_SLAVE_POSE, 10)
+        self._master_joint_pub = self.create_publisher(JointState, TOPIC_MASTER_JOINT, 10)
+        self._master_hand_pub = self.create_publisher(Float64, TOPIC_MASTER_HAND, 10)
+
+        # Publishers — camera topics
         self._camera_pubs = {topic: self.create_publisher(CompressedImage, topic, 10) for topic in self._camera_frames}
 
         # Timers
@@ -135,48 +138,68 @@ class RobotSimulator(Node):
         header.frame_id = frame_id
         return header
 
-    def _build_joint_msg(self, positions: list[float], *, with_velocity: bool) -> JointState:
-        """Build a JointState message."""
+    def _build_joint_state(self, names: list[str], positions: list[float], *, with_velocity: bool) -> JointState:
         msg = JointState()
         msg.header = self._make_header(JOINT_FRAME_ID)
-        msg.name = list(self._joint_replay["joint_names"])  # type: ignore[index]
+        msg.name = names
         msg.position = list(positions)
-        # Velocity and effort are not in the recording, so fill with zeros
-        # (recorder/analysis only use position)
         msg.velocity = [0.0] * len(positions) if with_velocity else []
         msg.effort = [0.0] * len(positions)
         return msg
 
     def _joint_index_for_tick(self, tick: int) -> int:
-        """100Hz tick → index in joint_replay.timestamps. Loops when elapsed time exceeds the data length."""
+        """100Hz tick → index in joint_replay.timestamps. Loops at the end of the trajectory."""
         timestamps: list[float] = self._joint_replay["timestamps"]  # type: ignore[index]
         duration = timestamps[-1]
         elapsed = (tick / JOINT_HZ) % duration
-        # bisect to get the largest index whose timestamp is <= elapsed
         idx = bisect.bisect_right(timestamps, elapsed) - 1
         return max(0, idx)
 
     def _publish_joints(self) -> None:
-        """Publish master cmd / slave states following the recorded trajectory."""
+        """Publish all five joint topics following the recorded trajectory."""
         burst_state = self._fault.update_burst()
         if burst_state == "gap":
             return
 
         idx = self._joint_index_for_tick(self._joint_tick)
-        master_positions = self._joint_replay["master_positions_rad"][idx]  # type: ignore[index]
-        slave_positions = self._joint_replay["slave_positions_rad"][idx]  # type: ignore[index]
+        replay = self._joint_replay  # type: ignore[index]
+        slave = replay["slave_arm_left"]
+        master = replay["master_arm_left"]
 
-        if not self._fault.is_stopped("/robot_slave/states") and not self._fault.should_drop("/robot_slave/states"):
-            self._slave_pub.publish(self._build_joint_msg(slave_positions, with_velocity=True))
+        if not self._fault.is_stopped(TOPIC_SLAVE_JOINT) and not self._fault.should_drop(TOPIC_SLAVE_JOINT):
+            self._slave_joint_pub.publish(
+                self._build_joint_state(slave["joint_names"], slave["positions"][idx], with_velocity=True)
+            )
 
-        if not self._fault.is_stopped("/robot_master/cmd") and not self._fault.should_drop("/robot_master/cmd"):
-            self._master_pub.publish(self._build_joint_msg(master_positions, with_velocity=False))
+        if not self._fault.is_stopped(TOPIC_SLAVE_GRIPPER) and not self._fault.should_drop(TOPIC_SLAVE_GRIPPER):
+            msg = Float64()
+            msg.data = slave["gripper"][idx]
+            self._slave_gripper_pub.publish(msg)
 
-        # During burst: send extra messages to slave all at once
+        if not self._fault.is_stopped(TOPIC_SLAVE_POSE) and not self._fault.should_drop(TOPIC_SLAVE_POSE):
+            msg_p = Point()
+            msg_p.x = slave["pose_x"][idx]
+            msg_p.y = slave["pose_y"][idx]
+            msg_p.z = slave["pose_z"][idx]
+            self._slave_pose_pub.publish(msg_p)
+
+        if not self._fault.is_stopped(TOPIC_MASTER_JOINT) and not self._fault.should_drop(TOPIC_MASTER_JOINT):
+            self._master_joint_pub.publish(
+                self._build_joint_state(master["joint_names"], master["positions"][idx], with_velocity=False)
+            )
+
+        if not self._fault.is_stopped(TOPIC_MASTER_HAND) and not self._fault.should_drop(TOPIC_MASTER_HAND):
+            msg_h = Float64()
+            msg_h.data = master["hand"][idx]
+            self._master_hand_pub.publish(msg_h)
+
+        # During burst: send extra messages to slave joint topic all at once
         if burst_state == "burst" and self._fault.burst_remaining > 0:
             n = min(self._fault.burst_remaining, 10)
             for _ in range(n):
-                self._slave_pub.publish(self._build_joint_msg(slave_positions, with_velocity=True))
+                self._slave_joint_pub.publish(
+                    self._build_joint_state(slave["joint_names"], slave["positions"][idx], with_velocity=True)
+                )
             self._fault.consume_burst(n)
 
         self._joint_tick += 1
