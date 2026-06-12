@@ -52,6 +52,13 @@ def test_extract_struct_with_keys() -> None:
     assert result.tolist() == [1.0, 2.0, 3.0]
 
 
+def test_extract_struct_no_field_applies_keys_to_decoded() -> None:
+    # geometry_msgs/Point published as top-level: field=None, keys on decoded directly
+    msg = SimpleNamespace(x=-0.183, y=0.481, z=0.274)
+    result = extract_field_data(msg, None, "struct", keys=["x", "y", "z"])
+    assert result.tolist() == pytest.approx([-0.183, 0.481, 0.274])
+
+
 def test_extract_struct_partial_keys() -> None:
     msg = SimpleNamespace(pos=SimpleNamespace(x=5.0, y=6.0, z=7.0))
     assert extract_field_data(msg, "pos", "struct", keys=["x", "z"]).tolist() == [5.0, 7.0]

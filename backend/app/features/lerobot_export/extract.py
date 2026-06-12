@@ -21,7 +21,7 @@ _VALID_FIELD_TYPES = ("list", "number", "struct")
 
 def extract_field_data(
     decoded: Any,
-    field: str,
+    field: str | None,
     field_type: str,
     indices: list[int] | None = None,
     keys: list[str] | None = None,
@@ -30,7 +30,9 @@ def extract_field_data(
 
     Traverses `field` as a dot-separated attribute path (e.g.
     "joint_state.position", "gripper_pos", "pose.position"), then extracts
-    values according to `field_type`:
+    values according to `field_type`. When `field` is None, extraction is
+    applied directly to the decoded message (used for struct types where the
+    message itself is the target object, e.g. geometry_msgs/Point).
 
     - "number": scalar float/int → 1-element array.
     - "list":   numeric sequence → elements selected by `indices` (required);
@@ -46,7 +48,7 @@ def extract_field_data(
         raise ValueError(f"Unknown field type {field_type!r}; must be one of {_VALID_FIELD_TYPES}")
 
     obj: Any = decoded
-    for part in field.split("."):
+    for part in (field.split(".") if field is not None else []):
         try:
             obj = getattr(obj, part)
         except AttributeError as e:
@@ -57,15 +59,15 @@ def extract_field_data(
 
     if field_type == "struct":
         if keys is None:
-            raise ValueError(f"Field {field!r} has type 'struct' but 'keys' is not specified")
+            raise ValueError(f"Source field {field!r} has type 'struct' but 'keys' is not specified")
         try:
             return np.array([float(getattr(obj, k)) for k in keys], dtype=np.float64)
         except AttributeError as e:
-            raise ValueError(f"Field {field!r}: {e}") from e
+            raise ValueError(f"Source field {field!r}: {e}") from e
 
     # type == "list"
     if indices is None:
-        raise ValueError(f"Field {field!r} has type 'list' but 'indices' is not specified")
+        raise ValueError(f"Source field {field!r} has type 'list' but 'indices' is not specified")
     arr = np.asarray(list(obj), dtype=np.float64)
     return np.array([arr[i] if 0 <= i < len(arr) else 0.0 for i in indices], dtype=np.float64)
 

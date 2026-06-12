@@ -27,12 +27,14 @@ recording_start_delay_sec: 0
 
 # Default topics to record (pre-selected in the UI)
 default_topics:
-  - /right_arm_depth_cam/color/image_raw/compressed
-  - /right_arm_depth_cam_2/color/image_raw/compressed
+  - /chest_depth_cam/color/image_raw/compressed
+  - /head_depth_cam/color/image_raw/compressed
   - /left_arm_depth_cam/color/image_raw/compressed
-  - /left_arm_depth_cam_2/color/image_raw/compressed
-  - /robot_master/cmd
-  - /robot_slave/states
+  - /sim/slave_arm_left
+  - /sim/slave_arm_left/gripper
+  - /sim/slave_arm_left/pose
+  - /sim/master_arm_left
+  - /sim/master_arm_left/hand
 
 # Expected Hz for quality monitoring (pattern match, first match wins).
 # Omit `hz` to enable dynamic learning (auto-computed from message intervals
@@ -41,9 +43,7 @@ default_topics:
 expected_hz_patterns:
   - pattern: "**/compressed"
     hz: 30
-  - pattern: "/robot_master/*"
-    hz:
-  - pattern: "/robot_slave/*"
+  - pattern: "/sim/**"
     hz: 100
 
 # LeRobot dataset export mapping (used by the "Export to LeRobot" action on
@@ -75,111 +75,51 @@ lerobot_export:
   # Required. Maps camera names to image topics.
   # Each entry becomes observation.images.<camera_name> in the dataset.
   images:
-    right_arm: /right_arm_depth_cam/color/image_raw/compressed
-    left_arm:  /left_arm_depth_cam/color/image_raw/compressed
-    chest:     /chest_depth_cam/color/image_raw/compressed
-    head:      /head_depth_cam/color/image_raw/compressed
+    chest: /chest_depth_cam/color/image_raw/compressed
+    head:  /head_depth_cam/color/image_raw/compressed
+    left_arm: /left_arm_depth_cam/color/image_raw/compressed
 
   # Required. Maps LeRobot field names to one or more source topics.
   # Each field becomes observation.<field_name> in the dataset.
   # Multiple sources under one field are concatenated in declaration order.
   #
   # type must be one of: list | number | struct
-  #   list   → numeric sequence (float64[], float32[]); indices selects elements (required).
+  #   list   → numeric sequence; indices selects elements (required).
   #   number → scalar float/int; becomes a 1-element array automatically.
-  #   struct → named-field object (e.g. geometry_msgs/Point); keys lists attributes (required).
+  #   struct → named-field object; keys lists sub-field names to extract (required).
   observation:
     # --- type: list ---
-    # /mcap/slave_arm_{left,right}
-    # {
-    #   "joint_state": {
-    #     "position": [-0.8235510608460442, -1.2301953232682032, 1.5731874278701288]
-    #   }
-    # }
+    # sensor_msgs/JointState: {"name": ["joint1", ...], "position": [-0.858, -1.287, 1.582, ...]}
     state:
-      - topic: /mcap/slave_arm_left
-        field: joint_state.position
+      - topic: /sim/slave_arm_left
         type: list
-        indices: [0, 1, 2]
-        names: [left_j1, left_j2, left_j3]
-        interpolation: linear
-      - topic: /mcap/slave_arm_right
-        field: joint_state.position
-        type: list
-        indices: [0, 1, 2]
-        names: [right_j1, right_j2, right_j3]
-        interpolation: linear
+        field: position
+        indices: [0, 1, 2, 3, 4, 5, 6]
 
     # --- type: number ---
-    # /mcap/slave_arm_{left,right}
-    # {
-    #   "gripper_pos": 0.006583333481103182
-    # }
+    # std_msgs/Float64: {"data": 0.033}
     gripper:
-      - topic: /mcap/slave_arm_left
-        field: gripper_pos
+      - topic: /sim/slave_arm_left/gripper
         type: number
-        names: [left_gripper]
-        interpolation: nearest
-      - topic: /mcap/slave_arm_right
-        field: gripper_pos
-        type: number
-        names: [right_gripper]
-        interpolation: nearest
+        field: data
 
     # --- type: struct ---
-    # /mcap/slave_arm_{left,right}
-    # {
-    #   "pose": {
-    #     "position": { "x": -0.151332, "y": 0.435293, "z": 0.272669 }
-    #   }
-    # }
+    # geometry_msgs/Point: {"x": -0.183, "y": 0.481, "z": 0.274}
     ee_pos:
-      - topic: /mcap/slave_arm_left
-        field: pose.position
+      - topic: /sim/slave_arm_left/pose
         type: struct
         keys: [x, y, z]
-        names: [left_ee_x, left_ee_y, left_ee_z]
-        interpolation: linear
-      - topic: /mcap/slave_arm_right
-        field: pose.position
-        type: struct
-        keys: [x, y, z]
-        names: [right_ee_x, right_ee_y, right_ee_z]
-        interpolation: linear
 
   # Required. Same source format and concatenation rules as observation.
   # All sources are concatenated into one flat action vector.
   #
-  # /mcap/master_arm_{left,right}  (rm_robot_interfaces/ArmMasterData)
-  # {
-  #   "joint_state": {
-  #     "position": [-47109.0, -70488.0, 90087.0]
-  #   },
-  #   "hand_position": [0.07999999821186066]
-  # }
+  # sensor_msgs/JointState: {"position": [-49517.0, -74117.0, ...]}  (encoder counts)
+  # std_msgs/Float64: {"data": 0.51}
   action:
-    - topic: /mcap/master_arm_left
-      field: joint_state.position
+    - topic: /sim/master_arm_left
       type: list
-      indices: [0, 1, 2]
-      names: [left_j1, left_j2, left_j3]
-      interpolation: linear
-    - topic: /mcap/master_arm_right
-      field: joint_state.position
-      type: list
-      indices: [0, 1, 2]
-      names: [right_j1, right_j2, right_j3]
-      interpolation: linear
-    - topic: /mcap/master_arm_left
-      field: hand_position
-      type: list
-      indices: [0]
-      names: [left_hand]
-      interpolation: nearest
-    - topic: /mcap/master_arm_right
-      field: hand_position
-      type: list
-      indices: [0]
-      names: [right_hand]
-      interpolation: nearest
+      field: position
+      indices: [0, 1, 2, 3, 4, 5, 6]
+    - topic: /sim/master_arm_left/hand
+      type: number
+      field: data
