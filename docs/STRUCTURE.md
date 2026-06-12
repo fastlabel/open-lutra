@@ -64,8 +64,33 @@ backend/app/
 │   ├── jobs/                  # Background job queue
 │   │   ├── router.py          # API endpoints (/jobs/stream SSE, etc.)
 │   │   ├── service.py         # JobQueue (asyncio.Queue + single worker, SSE broadcasting)
-│   │   ├── models.py          # Job / JobStatus / JobType (media/timeline/quality)
+│   │   ├── models.py          # Job / JobStatus / JobType (media/timeline/quality/validation/upload)
 │   │   └── schemas.py         # API schemas
+│   ├── validation/            # Per-recording rule checks (validation_result.json)
+│   │   ├── router.py          # API endpoints (/api/validation)
+│   │   ├── service.py         # ValidationService (API facade; delegates to JobQueue)
+│   │   ├── runner.py          # ValidationRunner (orchestrates builtin + custom validators)
+│   │   ├── context.py         # ValidationContext (frozen dataclass bundling report + paths + meta)
+│   │   ├── registry.py        # @register_validator + custom-validator discovery
+│   │   ├── active_set.py      # Builtin validator config (which builtins are on + their params)
+│   │   ├── builtins/          # Builtin validators (required_topics_present, total_duration_sec, ...)
+│   │   ├── custom/            # User-defined validators (auto-loaded on startup)
+│   │   ├── cache.py           # Load / save validation_result.json
+│   │   ├── models.py          # Domain models (ValidationReport, ValidationResult, ValidationStatus)
+│   │   └── schemas.py         # API schemas (ValidationResponse)
+│   ├── upload/                # Recording → zip → upload destination (S3 / future GCS / local)
+│   │   ├── router.py          # API endpoints (/api/upload, /api/upload/start)
+│   │   ├── service.py         # UploadService + is_upload_enabled (API facade; delegates to JobQueue)
+│   │   ├── destinations/      # Pluggable upload-destination backends
+│   │   │   ├── base.py        # UploadDestination Protocol + UploadResult + ProgressCallback
+│   │   │   ├── registry.py    # get_active_destination(settings)
+│   │   │   └── s3.py          # S3Destination (boto3 + S3-compatible endpoints incl. MinIO)
+│   │   ├── zip_builder.py     # Zip the recording folder (mtime-keyed reuse)
+│   │   ├── key_template.py    # Render the destination key from {recording_name} / {yyyymmddhhmmss}
+│   │   ├── progress.py        # ThrottledProgress callback (boto3 → SSE / state-file, 1 Hz)
+│   │   ├── cache.py           # Load / save upload_state.json
+│   │   ├── models.py          # UploadState (status / destination / key / etag / bytes / timestamps)
+│   │   └── schemas.py         # API schemas (UploadResponse)
 │   └── config/                # System configuration, memory info
 │       ├── router.py          # API endpoints
 │       ├── memory_reader.py   # Reads memory usage from cgroup
@@ -102,6 +127,8 @@ frontend/src/
 │       ├── media/                 # MP4 / Joint preview API
 │       ├── config/                # System config API
 │       ├── jobs/                  # Job queue API
+│       ├── validation/            # Validation API
+│       ├── upload/                # Upload API (/api/upload)
 │       └── schemas/               # TypeScript type definitions (barrel export)
 ├── features/                      # Feature domains (Bulletproof React)
 │   ├── recording/                 # Recording controls
@@ -167,12 +194,22 @@ frontend/src/
 │   │   └── ui/                    # UI components
 │   │       ├── filter-tabs.tsx        # Filter tabs (All / Report uncreated, shows search hit counts)
 │   │       └── quality-create-button.tsx
-│   └── settings/                  # Settings (inline task-name editor in the header)
-│       ├── index.ts               # Barrel
-│       ├── schema.ts              # Valibot validation schema for the task name
-│       ├── store.ts               # Zustand: persisted task name
-│       └── ui/
-│           └── task-name-inline-editor.tsx # Inline task-name editor in the header
+│   ├── settings/                  # Settings (inline task-name editor in the header)
+│   │   ├── index.ts               # Barrel
+│   │   ├── schema.ts              # Valibot validation schema for the task name
+│   │   ├── store.ts               # Zustand: persisted task name
+│   │   └── ui/
+│   │       └── task-name-inline-editor.tsx # Inline task-name editor in the header
+│   ├── validation/                # Validation summary panel + per-row badge
+│   │   ├── index.ts               # Barrel (ValidationSummary, ValidationBadge)
+│   │   ├── validation-summary.tsx # Per-validator pass/warn/fail/error panel
+│   │   ├── validation-badge.tsx   # Row badge (validation_overall_status)
+│   │   └── ui/
+│   │       └── status-badge.tsx   # Status icon primitive shared between summary + badge
+│   └── upload/                    # Upload-to-destination button + per-row badge
+│       ├── index.ts               # Barrel (UploadButton, UploadBadge)
+│       ├── upload-button.tsx      # Detail-page action (Upload / Uploading N% / Re-upload / Retry)
+│       └── upload-badge.tsx       # Row badge (FileEntry.upload_status + live job progress)
 ├── components/
 │   ├── layout/
 │   │   ├── header.tsx             # Header (OpenLUTRA brand + nav + task name)
@@ -182,7 +219,9 @@ frontend/src/
 ├── hooks/                         # Shared hooks
 │   ├── use-api.ts                 # TanStack Query wrapper (extensions of orval-generated hooks)
 │   ├── use-topics-stream.ts       # SSE connection → Query cache update
-│   └── use-jobs-stream.ts         # Job queue SSE connection (progress → cache update)
+│   ├── use-jobs-stream.ts         # Job queue SSE connection (progress → cache update)
+│   ├── use-upload-status.ts       # Persisted upload state + live job progress, fused
+│   └── use-file-entries.ts        # FileEntry[] thin wrapper
 ├── lib/                           # Shared utilities
 │   ├── query-keys.ts              # SSE Query Keys (REST keys are orval-generated)
 │   ├── query-client.ts            # QueryClient instance

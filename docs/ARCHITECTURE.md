@@ -197,7 +197,8 @@ JobQueue (asyncio.Queue + single worker)
   ├─ media     : MCAP → MP4 (all cameras) + joint_data.json
   ├─ timeline  : MCAP → timeline_data.json
   ├─ quality   : MCAP → quality_report.json
-  └─ validation: QualityReport → validation_result.json
+  ├─ validation: QualityReport → validation_result.json
+  └─ upload    : recording folder → zip → ship to UploadDestination
 ```
 
 - **Single worker**: At most one job runs concurrently. Running multiple CPU-bound MCAP conversions/analyses at once would actually slow things down
