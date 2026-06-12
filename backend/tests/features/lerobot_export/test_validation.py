@@ -16,8 +16,8 @@ from app.features.lerobot_export.validation import (
 def _config() -> ExportConfig:
     return ExportConfig(
         images={"cam": "/img"},
-        observation={"state": [SourceConfig(topic="/state")]},
-        action=[SourceConfig(topic="/cmd")],
+        observation={"state": [SourceConfig(topic="/state", field="position", type="list", indices=[0])]},
+        action=[SourceConfig(topic="/cmd", field="position", type="list", indices=[0])],
     )
 
 

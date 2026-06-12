@@ -1,8 +1,8 @@
 """Field extraction and image decoding for LeRobot export.
 
-Both are structure-based (no ROS2 type names), matching the rest of the project
-(`app/infra/mcap`). `extract_field_data` reads a numeric vector from a decoded
-message; `decode_ros_image` turns an Image / CompressedImage into an RGB ndarray.
+`extract_field_data` resolves a dot-separated field path on a decoded message
+and returns a float64 ndarray according to an explicit type declaration.
+`decode_ros_image` turns an Image / CompressedImage into an RGB ndarray.
 """
 
 from __future__ import annotations
@@ -13,48 +13,60 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from PIL import Image
 
-from app.infra.mcap import extract_joint_positions
-
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
+_VALID_FIELD_TYPES = ("list", "number", "struct")
 
 
 def extract_field_data(
     decoded: Any,
-    field: str | None,
+    field: str,
+    field_type: str,
     indices: list[int] | None = None,
+    keys: list[str] | None = None,
 ) -> NDArray[np.float64]:
     """Extract a float vector from a decoded telemetry message.
 
-    When `field` is None, the vector is detected by structure: joint positions
-    via `extract_joint_positions` (which also handles nested `joint_state` and
-    composite `neck_joint_state` custom messages), falling back to a `data`
-    field (Float*MultiArray or scalar std_msgs/Float64). Set `field` to override
-    (e.g. "velocity", "effort", "data", or a custom attribute).
+    Traverses `field` as a dot-separated attribute path (e.g.
+    "joint_state.position", "gripper_pos", "pose.position"), then extracts
+    values according to `field_type`:
 
-    Scalar sources (e.g. a `std_msgs/Float64` gripper value) are normalized to a
-    length-1 vector. Out-of-range `indices` are filled with 0.0 to keep a
-    fixed-length vector.
+    - "number": scalar float/int → 1-element array.
+    - "list":   numeric sequence → elements selected by `indices` (required);
+                out-of-range indices are filled with 0.0.
+    - "struct": named-field object (e.g. geometry_msgs/Point) → attributes
+                named by `keys` extracted in order (required).
 
     Raises:
-        ValueError: When no vector can be extracted, or `field` is absent.
+        ValueError: When the path is not found, `field_type` is unknown, or
+            `indices` / `keys` is missing for "list" / "struct" respectively.
     """
-    if field is None:
-        raw: Any = extract_joint_positions(decoded)
-        if not len(raw) and hasattr(decoded, "data"):
-            raw = decoded.data
-    else:
-        raw = getattr(decoded, field, None)
-        if raw is None:
-            raise ValueError(f"Message has no field {field!r}")
+    if field_type not in _VALID_FIELD_TYPES:
+        raise ValueError(f"Unknown field type {field_type!r}; must be one of {_VALID_FIELD_TYPES}")
 
-    # np.atleast_1d normalizes scalars (std_msgs/Float64 .data) to shape (1,)
-    # while leaving list/array sources as a flat vector.
-    arr = np.atleast_1d(np.asarray(raw, dtype=np.float64))
-    if field is None and arr.size == 0:
-        raise ValueError("Cannot extract a vector (no joint position or 'data' field); set 'field' in the config")
+    obj: Any = decoded
+    for part in field.split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            raise ValueError(f"Message has no field {field!r} (missing attribute {part!r})")
+
+    if field_type == "number":
+        return np.array([float(obj)], dtype=np.float64)
+
+    if field_type == "struct":
+        if keys is None:
+            raise ValueError(f"Field {field!r} has type 'struct' but 'keys' is not specified")
+        try:
+            return np.array([float(getattr(obj, k)) for k in keys], dtype=np.float64)
+        except AttributeError as e:
+            raise ValueError(f"Field {field!r}: {e}")
+
+    # type == "list"
     if indices is None:
-        return arr
+        raise ValueError(f"Field {field!r} has type 'list' but 'indices' is not specified")
+    arr = np.asarray(list(obj), dtype=np.float64)
     return np.array([arr[i] if 0 <= i < len(arr) else 0.0 for i in indices], dtype=np.float64)
 
 

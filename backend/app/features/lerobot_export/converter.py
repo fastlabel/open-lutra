@@ -230,7 +230,7 @@ def _interpolate_source(
     source_data = [
         TimestampedValue(
             timestamp_ns=msg.timestamp_ns,
-            value=extract_field_data(msg.decoded, source.field, source.indices),
+            value=extract_field_data(msg.decoded, source.field, source.type, source.indices, source.keys),
         )
         for msg in messages
     ]
@@ -248,7 +248,7 @@ def _probe_sources(
         messages = probe_messages.get(src.topic) or []
         if not messages:
             raise ValueError(f"No messages for topic: {src.topic}")
-        sample = extract_field_data(messages[0].decoded, src.field, src.indices)
+        sample = extract_field_data(messages[0].decoded, src.field, src.type, src.indices, src.keys)
         dim = len(sample)
         if src.names:
             names.extend(src.names)

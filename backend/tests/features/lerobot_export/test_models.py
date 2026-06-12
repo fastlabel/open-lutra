@@ -4,7 +4,7 @@ from app.features.lerobot_export.models import ExportConfig, SourceConfig
 
 
 def _src(topic: str) -> SourceConfig:
-    return SourceConfig(topic=topic, field="position")
+    return SourceConfig(topic=topic, field="position", type="list", indices=[0])
 
 
 def test_all_topics_dedupes_and_preserves_order() -> None:

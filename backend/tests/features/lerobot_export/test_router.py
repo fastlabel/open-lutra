@@ -12,8 +12,8 @@ _MAPPING = {
     "fps": 15,
     "robot_type": "demo",
     "images": {"cam": "/img"},
-    "observation": {"state": [{"topic": "/s", "field": "position"}]},
-    "action": [{"topic": "/c", "field": "position"}],
+    "observation": {"state": [{"topic": "/s", "field": "position", "type": "list", "indices": [0]}]},
+    "action": [{"topic": "/c", "field": "position", "type": "list", "indices": [0]}],
 }
 
 

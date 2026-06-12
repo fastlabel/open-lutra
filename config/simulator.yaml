@@ -1,9 +1,9 @@
-# Recording configuration (default: simulator)
+# Robot configuration (default: simulator)
 #
-# Set RECORDING_CONFIG=config/simulator.yaml in .env to use this file.
+# Set ROBOT_CONFIG=config/simulator.yaml in .env to use this file.
 # Use it as a template for a physical robot: copy to e.g. config/myrobot.yaml,
 # adjust ros_domain_id / topic names / expected Hz / stamp_quality /
-# recording_start_delay_sec, then repoint RECORDING_CONFIG at the new file.
+# recording_start_delay_sec, then repoint ROBOT_CONFIG at the new file.
 
 robot_name: RobotSimulator
 ros_domain_id: 0
@@ -27,32 +27,12 @@ recording_start_delay_sec: 0
 
 # Default topics to record (pre-selected in the UI)
 default_topics:
-  - /chest_depth_cam/color/image_raw/compressed
-  - /head_depth_cam/color/image_raw/compressed
+  - /right_arm_depth_cam/color/image_raw/compressed
+  - /right_arm_depth_cam_2/color/image_raw/compressed
   - /left_arm_depth_cam/color/image_raw/compressed
-  - /sim/slave_arm_left
-  - /sim/slave_arm_left/gripper
-  - /sim/slave_arm_left/pose
-  - /sim/master_arm_left
-  - /sim/master_arm_left/hand
-
-# Builtin validators run after each recording completes.
-# Each entry must have a `name` matching a builtin validator; remaining fields
-# are passed as arguments to that validator's constructor.
-validators:
-  - name: required_topics_present
-    topics:
-      - /chest_depth_cam/color/image_raw/compressed
-      - /head_depth_cam/color/image_raw/compressed
-      - /left_arm_depth_cam/color/image_raw/compressed
-      - /sim/slave_arm_left
-      - /sim/slave_arm_left/gripper
-      - /sim/slave_arm_left/pose
-      - /sim/master_arm_left
-      - /sim/master_arm_left/hand
-  - name: total_duration_sec
-    min_sec: 5
-    max_sec: 30
+  - /left_arm_depth_cam_2/color/image_raw/compressed
+  - /robot_master/cmd
+  - /robot_slave/states
 
 # Expected Hz for quality monitoring (pattern match, first match wins).
 # Omit `hz` to enable dynamic learning (auto-computed from message intervals
@@ -61,42 +41,145 @@ validators:
 expected_hz_patterns:
   - pattern: "**/compressed"
     hz: 30
-  - pattern: "/sim/**"
+  - pattern: "/robot_master/*"
+    hz:
+  - pattern: "/robot_slave/*"
     hz: 100
 
 # LeRobot dataset export mapping (used by the "Export to LeRobot" action on
 # /recordings). Declares how this robot's MCAP topics map to LeRobot v3.0
 # features. Omit this whole section to disable export for the robot.
-#
-#   fps                output frame rate (0 = auto-detect from the first image topic)
-#   robot_type         free-form id stored in the dataset's meta/info.json
-#   sync_tolerance_ms  time-sync tolerance for state/action sources (default 50)
-#   image_tolerance_ms time-sync tolerance for image alignment (default 200)
-#   time_range         "intersection" (default) or "union"
-#   images             {camera_name: topic}   -> observation.images.<camera_name>
-#   observation        {field: [source, ...]} -> observation.<field> (concatenated)
-#   action             [source, ...]          -> action (concatenated)
-#
-# Each source: { topic, field?, indices?, names?, interpolation? }.
-#   field          optional; omitted = structural default (JointState -> position,
-#                  Float*MultiArray -> data). Override with velocity/effort/data/...
-#   interpolation  "linear" (default) or "nearest".
 lerobot_export:
+  # Output video frame rate. 0 = auto-detect from the first image topic's
+  # message interval. (optional, default: 0)
   fps: 30
+
+  # Free-form robot identifier written to the dataset's meta/info.json.
+  # (optional, default: "custom")
   robot_type: robot_simulator
+
+  # Maximum time gap (ms) allowed when aligning state/action samples across
+  # topics. Samples farther apart than this are not paired. (optional, default: 50)
+  sync_tolerance_ms: 50.0
+
+  # Maximum time gap (ms) allowed when aligning image frames to the sync grid.
+  # (optional, default: 200)
+  image_tolerance_ms: 200.0
+
+  # How to determine the episode time span when sources have different durations.
+  # "intersection": use only the period covered by all sources (safest).
+  # "union":        extend to the full span of any source (pads missing samples).
+  # (optional, default: "intersection")
+  time_range: intersection
+
+  # Required. Maps camera names to image topics.
+  # Each entry becomes observation.images.<camera_name> in the dataset.
   images:
-    chest: /chest_depth_cam/color/image_raw/compressed
-    head: /head_depth_cam/color/image_raw/compressed
-    left_arm: /left_arm_depth_cam/color/image_raw/compressed
+    right_arm: /right_arm_depth_cam/color/image_raw/compressed
+    left_arm:  /left_arm_depth_cam/color/image_raw/compressed
+    chest:     /chest_depth_cam/color/image_raw/compressed
+    head:      /head_depth_cam/color/image_raw/compressed
+
+  # Required. Maps LeRobot field names to one or more source topics.
+  # Each field becomes observation.<field_name> in the dataset.
+  # Multiple sources under one field are concatenated in declaration order.
+  #
+  # type must be one of: list | number | struct
+  #   list   → numeric sequence (float64[], float32[]); indices selects elements (required).
+  #   number → scalar float/int; becomes a 1-element array automatically.
+  #   struct → named-field object (e.g. geometry_msgs/Point); keys lists attributes (required).
   observation:
+    # --- type: list ---
+    # /mcap/slave_arm_{left,right}
+    # {
+    #   "joint_state": {
+    #     "position": [-0.8235510608460442, -1.2301953232682032, 1.5731874278701288]
+    #   }
+    # }
     state:
-      - topic: /sim/master_arm_left
-        field: position
-        names: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
-    hand:
-      - topic: /sim/master_arm_left/hand
-        field: data
+      - topic: /mcap/slave_arm_left
+        field: joint_state.position
+        type: list
+        indices: [0, 1, 2]
+        names: [left_j1, left_j2, left_j3]
+        interpolation: linear
+      - topic: /mcap/slave_arm_right
+        field: joint_state.position
+        type: list
+        indices: [0, 1, 2]
+        names: [right_j1, right_j2, right_j3]
+        interpolation: linear
+
+    # --- type: number ---
+    # /mcap/slave_arm_{left,right}
+    # {
+    #   "gripper_pos": 0.006583333481103182
+    # }
+    gripper:
+      - topic: /mcap/slave_arm_left
+        field: gripper_pos
+        type: number
+        names: [left_gripper]
+        interpolation: nearest
+      - topic: /mcap/slave_arm_right
+        field: gripper_pos
+        type: number
+        names: [right_gripper]
+        interpolation: nearest
+
+    # --- type: struct ---
+    # /mcap/slave_arm_{left,right}
+    # {
+    #   "pose": {
+    #     "position": { "x": -0.151332, "y": 0.435293, "z": 0.272669 }
+    #   }
+    # }
+    ee_pos:
+      - topic: /mcap/slave_arm_left
+        field: pose.position
+        type: struct
+        keys: [x, y, z]
+        names: [left_ee_x, left_ee_y, left_ee_z]
+        interpolation: linear
+      - topic: /mcap/slave_arm_right
+        field: pose.position
+        type: struct
+        keys: [x, y, z]
+        names: [right_ee_x, right_ee_y, right_ee_z]
+        interpolation: linear
+
+  # Required. Same source format and concatenation rules as observation.
+  # All sources are concatenated into one flat action vector.
+  #
+  # /mcap/master_arm_{left,right}  (rm_robot_interfaces/ArmMasterData)
+  # {
+  #   "joint_state": {
+  #     "position": [-47109.0, -70488.0, 90087.0]
+  #   },
+  #   "hand_position": [0.07999999821186066]
+  # }
   action:
-    - topic: /sim/slave_arm_left
-      field: position
-      names: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
+    - topic: /mcap/master_arm_left
+      field: joint_state.position
+      type: list
+      indices: [0, 1, 2]
+      names: [left_j1, left_j2, left_j3]
+      interpolation: linear
+    - topic: /mcap/master_arm_right
+      field: joint_state.position
+      type: list
+      indices: [0, 1, 2]
+      names: [right_j1, right_j2, right_j3]
+      interpolation: linear
+    - topic: /mcap/master_arm_left
+      field: hand_position
+      type: list
+      indices: [0]
+      names: [left_hand]
+      interpolation: nearest
+    - topic: /mcap/master_arm_right
+      field: hand_position
+      type: list
+      indices: [0]
+      names: [right_hand]
+      interpolation: nearest

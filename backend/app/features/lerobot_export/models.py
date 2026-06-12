@@ -8,11 +8,15 @@ features. Kept separate from API schemas (schemas.py).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 DEFAULT_INTERPOLATION = "linear"
 DEFAULT_SYNC_TOLERANCE_MS = 50.0
 DEFAULT_IMAGE_TOLERANCE_MS = 200.0
 DEFAULT_TIME_RANGE = "intersection"
+
+
+FieldType = Literal["list", "number", "struct"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,17 +25,26 @@ class SourceConfig:
 
     Attributes:
         topic: ROS2 topic name.
-        field: Attribute to extract. None uses the sensor's default for the
-            topic's message type (e.g. `position` for JointState, `data` for
-            Float*MultiArray); set it to override (e.g. `velocity`).
-        indices: Indices to keep (None = all).
+        field: Dot-separated attribute path to extract (e.g.
+            "joint_state.position", "gripper_pos", "pose.position").
+        type: Value type at the resolved path.
+            - "list": numeric sequence; `indices` is required.
+            - "number": scalar float/int; wrapped as a 1-element array.
+            - "struct": named-field object (e.g. geometry_msgs/Point);
+              `keys` is required.
+        indices: Elements to keep (required when type == "list"); out-of-range
+            indices are filled with 0.0 to keep a fixed-length vector.
+        keys: Attribute names to extract in order (required when
+            type == "struct").
         names: Per-dimension labels recorded into info.json (None = auto).
         interpolation: "linear" or "nearest".
     """
 
     topic: str
-    field: str | None = None
+    field: str
+    type: FieldType
     indices: list[int] | None = None
+    keys: list[str] | None = None
     names: list[str] | None = None
     interpolation: str = DEFAULT_INTERPOLATION
 

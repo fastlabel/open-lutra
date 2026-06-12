@@ -33,8 +33,8 @@ class FakeSink:
 def _config(**overrides: object) -> ExportConfig:
     base: dict = {
         "images": {"cam": "/img"},
-        "observation": {"state": [SourceConfig(topic="/state", field="position")]},
-        "action": [SourceConfig(topic="/cmd", field="position")],
+        "observation": {"state": [SourceConfig(topic="/state", field="position", type="list", indices=[0])]},
+        "action": [SourceConfig(topic="/cmd", field="position", type="list", indices=[0])],
         "fps": 10,
         "robot_type": "demo",
         "sync_tolerance_ms": 1000.0,

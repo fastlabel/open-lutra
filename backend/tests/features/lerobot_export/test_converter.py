@@ -13,8 +13,8 @@ MS = 1_000_000  # nanoseconds per millisecond
 def _config(**overrides: object) -> ExportConfig:
     base: dict = {
         "images": {"cam": "/img"},
-        "observation": {"state": [SourceConfig(topic="/state", field="position")]},
-        "action": [SourceConfig(topic="/cmd", field="position")],
+        "observation": {"state": [SourceConfig(topic="/state", field="position", type="list", indices=[0])]},
+        "action": [SourceConfig(topic="/cmd", field="position", type="list", indices=[0])],
         "sync_tolerance_ms": 1000.0,
         "image_tolerance_ms": 1000.0,
     }
@@ -66,9 +66,10 @@ def test_probe_feature_spec() -> None:
     config = _config(
         observation={
             "state": [
-                SourceConfig(topic="/state", field="position", names=["a", "b"]),
+                SourceConfig(topic="/state", field="position", type="list", indices=[0, 1], names=["a", "b"]),
             ]
         },
+    action=[SourceConfig(topic="/cmd", field="position", type="list", indices=[0, 1])]
     )
     messages = {
         "/img": [image_message(0, size=4)],
@@ -163,8 +164,8 @@ def test_iter_episode_frames_multi_source_concat() -> None:
     config = _config(
         observation={
             "state": [
-                SourceConfig(topic="/state", field="position"),
-                SourceConfig(topic="/cmd", field="position"),
+                SourceConfig(topic="/state", field="position", type="list", indices=[0, 1]),
+                SourceConfig(topic="/cmd", field="position", type="list", indices=[0]),
             ]
         },
     )

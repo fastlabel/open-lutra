@@ -10,50 +10,85 @@ from app.features.lerobot_export.extract import decode_ros_image, extract_field_
 from ._fakes import FakeFloatArray, FakeJointState, FakeRawImage, make_image_message, make_png_bytes
 
 
-def test_extract_default_joint_position() -> None:
+# --- extract_field_data: type=number ---
+
+def test_extract_number_scalar_float() -> None:
+    msg = SimpleNamespace(gripper_pos=0.75)
+    assert extract_field_data(msg, "gripper_pos", "number").tolist() == [0.75]
+
+
+def test_extract_number_via_dot_path() -> None:
+    msg = SimpleNamespace(arm=SimpleNamespace(speed=1.5))
+    assert extract_field_data(msg, "arm.speed", "number").tolist() == [1.5]
+
+
+# --- extract_field_data: type=list ---
+
+def test_extract_list_with_indices() -> None:
     msg = FakeJointState(position=[0.0, 1.0, 2.0, 3.0])
-    assert extract_field_data(msg, field=None).tolist() == [0.0, 1.0, 2.0, 3.0]
+    assert extract_field_data(msg, "position", "list", indices=[3, 1]).tolist() == [3.0, 1.0]
 
 
-def test_extract_default_nested_joint_state() -> None:
-    msg = SimpleNamespace(joint_state=SimpleNamespace(position=[7.0, 8.0]))
-    assert extract_field_data(msg, field=None).tolist() == [7.0, 8.0]
+def test_extract_list_dot_path() -> None:
+    msg = SimpleNamespace(joint_state=FakeJointState(position=[10.0, 20.0, 30.0]))
+    assert extract_field_data(msg, "joint_state.position", "list", indices=[0, 2]).tolist() == [10.0, 30.0]
 
 
-def test_extract_default_falls_back_to_data() -> None:
-    assert extract_field_data(FakeFloatArray(data=[1.5, 2.5]), field=None).tolist() == [1.5, 2.5]
-
-
-def test_extract_default_no_vector() -> None:
-    with pytest.raises(ValueError, match="Cannot extract a vector"):
-        extract_field_data(SimpleNamespace(header="x"), field=None)
-
-
-def test_extract_explicit_field_with_indices() -> None:
-    msg = FakeJointState(position=[0.0], velocity=[5.0, 6.0, 7.0])
-    assert extract_field_data(msg, field="velocity", indices=[2, 0]).tolist() == [7.0, 5.0]
-
-
-def test_extract_indices_out_of_range_padded() -> None:
+def test_extract_list_indices_out_of_range_padded() -> None:
     msg = FakeFloatArray(data=[1.0, 2.0])
-    assert extract_field_data(msg, field="data", indices=[0, 5]).tolist() == [1.0, 0.0]
+    assert extract_field_data(msg, "data", "list", indices=[0, 5]).tolist() == [1.0, 0.0]
 
 
-def test_extract_explicit_field_missing() -> None:
+def test_extract_list_missing_indices_raises() -> None:
+    msg = FakeJointState(position=[0.0, 1.0])
+    with pytest.raises(ValueError, match="indices"):
+        extract_field_data(msg, "position", "list")
+
+
+# --- extract_field_data: type=struct ---
+
+def test_extract_struct_with_keys() -> None:
+    msg = SimpleNamespace(pose=SimpleNamespace(position=SimpleNamespace(x=1.0, y=2.0, z=3.0)))
+    result = extract_field_data(msg, "pose.position", "struct", keys=["x", "y", "z"])
+    assert result.tolist() == [1.0, 2.0, 3.0]
+
+
+def test_extract_struct_partial_keys() -> None:
+    msg = SimpleNamespace(pos=SimpleNamespace(x=5.0, y=6.0, z=7.0))
+    assert extract_field_data(msg, "pos", "struct", keys=["x", "z"]).tolist() == [5.0, 7.0]
+
+
+def test_extract_struct_missing_keys_raises() -> None:
+    msg = SimpleNamespace(pos=SimpleNamespace(x=1.0))
+    with pytest.raises(ValueError, match="keys"):
+        extract_field_data(msg, "pos", "struct")
+
+
+def test_extract_struct_key_not_found_raises() -> None:
+    msg = SimpleNamespace(pos=SimpleNamespace(x=1.0))
+    with pytest.raises(ValueError, match="pos"):
+        extract_field_data(msg, "pos", "struct", keys=["x", "w"])
+
+
+# --- error cases ---
+
+def test_extract_missing_field_raises() -> None:
     with pytest.raises(ValueError, match="has no field"):
-        extract_field_data(FakeJointState(position=[0.0]), field="effort")
+        extract_field_data(FakeJointState(position=[0.0]), "effort", "list", indices=[0])
 
 
-def test_extract_explicit_scalar_field() -> None:
-    # std_msgs/Float64 .data is a scalar (e.g. gripper openness) → length-1 vector.
-    msg = SimpleNamespace(data=0.55)
-    assert extract_field_data(msg, field="data").tolist() == [0.55]
+def test_extract_missing_dot_path_raises() -> None:
+    with pytest.raises(ValueError, match="has no field"):
+        extract_field_data(SimpleNamespace(a=SimpleNamespace()), "a.b.c", "number")
 
 
-def test_extract_default_scalar_data() -> None:
-    # Structure detection falls back to a scalar `data` field.
-    assert extract_field_data(SimpleNamespace(data=0.55), field=None).tolist() == [0.55]
+def test_extract_unknown_type_raises() -> None:
+    msg = FakeJointState(position=[0.0])
+    with pytest.raises(ValueError, match="Unknown field type"):
+        extract_field_data(msg, "position", "vector", indices=[0])
 
+
+# --- decode_ros_image ---
 
 def test_decode_compressed_image() -> None:
     msg = make_image_message(height=3, width=4, value=200)
