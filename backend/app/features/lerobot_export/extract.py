@@ -49,8 +49,8 @@ def extract_field_data(
     for part in field.split("."):
         try:
             obj = getattr(obj, part)
-        except AttributeError:
-            raise ValueError(f"Message has no field {field!r} (missing attribute {part!r})")
+        except AttributeError as e:
+            raise ValueError(f"Message has no field {field!r} (missing attribute {part!r})") from e
 
     if field_type == "number":
         return np.array([float(obj)], dtype=np.float64)
@@ -61,7 +61,7 @@ def extract_field_data(
         try:
             return np.array([float(getattr(obj, k)) for k in keys], dtype=np.float64)
         except AttributeError as e:
-            raise ValueError(f"Field {field!r}: {e}")
+            raise ValueError(f"Field {field!r}: {e}") from e
 
     # type == "list"
     if indices is None:

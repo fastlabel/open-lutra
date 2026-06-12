@@ -69,7 +69,7 @@ def test_probe_feature_spec() -> None:
                 SourceConfig(topic="/state", field="position", type="list", indices=[0, 1], names=["a", "b"]),
             ]
         },
-    action=[SourceConfig(topic="/cmd", field="position", type="list", indices=[0, 1])]
+        action=[SourceConfig(topic="/cmd", field="position", type="list", indices=[0, 1])],
     )
     messages = {
         "/img": [image_message(0, size=4)],

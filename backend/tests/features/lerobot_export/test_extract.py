@@ -9,7 +9,6 @@ from app.features.lerobot_export.extract import decode_ros_image, extract_field_
 
 from ._fakes import FakeFloatArray, FakeJointState, FakeRawImage, make_image_message, make_png_bytes
 
-
 # --- extract_field_data: type=number ---
 
 def test_extract_number_scalar_float() -> None:
