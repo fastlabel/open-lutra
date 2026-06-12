@@ -29,6 +29,8 @@ make format-backend    # Format (ruff)
 make format-frontend   # Format (biome)
 make generate          # Regenerate API types (requires: backend running)
 make build             # Build Docker images
+make minio-up          # Start the local MinIO sandbox + auto-create the bucket (for upload-feature testing)
+make minio-down        # Stop the local MinIO sandbox
 make prod-up           # Production start (host network)
 ```
 
@@ -54,9 +56,10 @@ A **hybrid architecture** is used:
 - **Loss detection is IQR-based**: Instead of a fixed multiplier, uses a statistical threshold (`Q3 + 1.5×IQR`) to detect per-frame losses. Recorded as `LossEvent` (severity=minor/major) and used for per-topic status determination.
 - **Image/Joint detection is automatic**: Determined by structure (presence of `format` + `data` fields), not by hard-coded message type names. Also supports vendor-specific or user-defined message types that nest a `JointState` inside a `joint_state` field. See [examples/custom_ros2_messages/](examples/custom_ros2_messages/) for how to plug in custom message packages.
 - **Video preview is MCAP → MP4 conversion**: When the Preview on the recording detail page is opened, per-camera MP4s are generated from the MCAP and persisted in the recording directory. FPS is fixed at 30 (`backend/app/features/media/video_generator.py:VIDEO_FPS`). Frames are piped to ffmpeg one at a time to keep memory usage constant.
-- **Feature boundaries follow the "recording lifecycle"**: `recordings` (directory operations) / `analysis` (quality and timeline; persistent findings) / `media` (MP4 / Joint data generation for preview) / `validation` (per-recording rule checks) are managed as independent features.
+- **Feature boundaries follow the "recording lifecycle"**: `recordings` (directory operations) / `analysis` (quality and timeline; persistent findings) / `media` (MP4 / Joint data generation for preview) / `validation` (per-recording rule checks) / `upload` (zip + ship to an `UploadDestination`) are managed as independent features.
 - **MCAP I/O is consolidated in `backend/app/infra/mcap/`**: Centralizes `make_reader` + `DecoderFactory` initialization, header.stamp-preferred timestamp normalization, and image/Joint structure detection. All consumers in analysis / media read MCAP through this layer.
 - **Validation takes a ValidationContext as input**: After a recording stops, quality → validation runs automatically as a chain in JobQueue, and results are saved to `validation_result.json`. `ValidationContext` is a frozen dataclass bundling `QualityReport` / `recording_dir` / `mcap_path` / `recording_meta`; it also exposes the MCAP path so validators can read raw frames with `MCAPReader` when needed (if you only need aggregated values, `ctx.report` is enough). Builtins live in `backend/app/features/validation/builtins/` with their params controlled by `active_set.py`; user-defined validators go in `backend/app/features/validation/custom/` registered via `@register_validator` and applied on restart. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md) for how to add a custom validator.
+- **Upload destinations are pluggable behind a Protocol**: The upload feature is generic over the storage backend. `UploadDestination` (in `backend/app/features/upload/destinations/base.py`) defines `configuration_error()` + `upload(local_path, key, progress) -> UploadResult`; `S3Destination` is the only implementation today (also covers MinIO / R2 / LocalStack via `AWS_ENDPOINT_URL`), and the registry returns a single active destination per machine. Adding a new backend (GCS, local-network server) means one new module under `destinations/` + a registry update — `UploadService` / `JobQueue` / `UploadState` are destination-agnostic. See [docs/domain/upload.md](docs/domain/upload.md) for the lifecycle, key-template syntax, and failure modes.
 
 ## Frontend Architecture
 

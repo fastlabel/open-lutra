@@ -13,6 +13,7 @@
 | rclpy | (ROS2 Humble) | Topic subscription / real-time monitoring |
 | mcap / mcap-ros2-support | 1.1+ | MCAP file analysis / CDR deserialization |
 | Pillow | 10.0+ | Image processing |
+| boto3 | 1.34+ | S3 client for the upload feature (also covers any S3-compatible endpoint: MinIO / R2 / LocalStack) |
 | uv | latest | Package manager |
 
 ## Frontend
@@ -41,6 +42,7 @@
 | Docker Compose | Development / production environments |
 | nginx | Production frontend serving + API reverse proxy |
 | CycloneDDS | ROS2 DDS communication |
+| MinIO (pgsty/minio) | Local S3-compatible sandbox for testing the upload feature (`make minio-up`) |
 
 ## Dev Tools
 

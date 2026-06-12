@@ -300,6 +300,12 @@ AWS_ENDPOINT_URL=http://minio:9000
 
 The backend reaches MinIO via the compose-internal hostname `minio:9000`. From the host (browser, `aws s3` CLI), use `http://localhost:9000` instead. The bucket name and the root credentials are configurable via `S3_BUCKET`, `MINIO_ROOT_USER`, and `MINIO_ROOT_PASSWORD` in `.env`.
 
+After editing `.env`, restart the backend so the new values are picked up — `env_file` is read on container start, so plain `make up` against an already-running stack will keep the old values:
+
+```bash
+make restart
+```
+
 ---
 
 ## Simulator
