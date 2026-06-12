@@ -19,6 +19,7 @@ import { getGetQualityQueryKey, getGetTimelineQueryKey } from "@/api/generated/a
 import { getGetJointsQueryKey, getGetVideoStatusQueryKey } from "@/api/generated/media/media";
 import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
 import type { JobSchema } from "@/api/generated/schemas";
+import { getGetUploadQueryKey } from "@/api/generated/upload/upload";
 import { getGetValidationQueryKey } from "@/api/generated/validation/validation";
 import { sseKeys } from "@/lib/query-keys";
 
@@ -37,6 +38,9 @@ const JOB_COMPLETION_INVALIDATIONS: Record<string, readonly (readonly unknown[])
   // Validation completion also flips `validation_overall_status` on FileEntry,
   // so refresh the recordings list to update the inline row badge.
   validation: [getGetValidationQueryKey(), getGetRecordingsQueryKey()],
+  // Upload completion flips `upload_status` on FileEntry; refresh the list so
+  // the inline row badge picks up the new state.
+  upload: [getGetUploadQueryKey(), getGetRecordingsQueryKey()],
 };
 
 /**

@@ -40,6 +40,7 @@ import type {
   RecordingStatus,
   TaskNamesResponse,
   TopicsResponse,
+  UploadResponse,
   ValidationResponse,
 } from "@/api/generated/schemas";
 import {
@@ -47,6 +48,11 @@ import {
   useGetTopics,
   useUpdateSubscriptions as useUpdateSubscriptionsGenerated,
 } from "@/api/generated/topics/topics";
+import {
+  getGetUploadQueryKey,
+  useGetUpload,
+  useStartUpload as useStartUploadGenerated,
+} from "@/api/generated/upload/upload";
 import {
   getGetValidationQueryKey,
   useGetValidation,
@@ -280,6 +286,45 @@ export function useStartValidation() {
     mutation: {
       onSuccess: (data, variables) => {
         queryClient.setQueryData(getGetValidationQueryKey({ path: variables.params.path }), data);
+      },
+    },
+  });
+}
+
+/** Fetch the persisted upload state for a recording (no side effects).
+ *
+ * Trigger an upload via useStartUpload(). Polls every 2s while the backend
+ * reports `status === "uploading"` as a safety net for any SSE event drops;
+ * the SSE job stream is the primary live-progress source.
+ */
+export function useUpload(folderPath: string | null) {
+  return useGetUpload<UploadResponse>(
+    { path: folderPath ?? "" },
+    {
+      query: {
+        enabled: !!folderPath,
+        select: (resp) => resp.data as UploadResponse,
+        refetchInterval: (query) => {
+          const raw = query.state.data?.data;
+          const status = raw && "status" in raw ? raw.status : undefined;
+          return status === "uploading" ? 2000 : false;
+        },
+      },
+    },
+  );
+}
+
+/** Start an upload (idempotent; always overwrites per issue #6).
+ *
+ * POST returns the same envelope as GET /api/upload, so write the response back
+ * into the GET cache to avoid a refetch race.
+ */
+export function useStartUpload() {
+  const queryClient = useQueryClient();
+  return useStartUploadGenerated({
+    mutation: {
+      onSuccess: (data, variables) => {
+        queryClient.setQueryData(getGetUploadQueryKey({ path: variables.params.path }), data);
       },
     },
   });
