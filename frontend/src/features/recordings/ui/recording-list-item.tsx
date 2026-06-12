@@ -10,6 +10,7 @@ import type { FileEntry } from "@/api/generated/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { UploadBadge } from "@/features/upload";
 import { ValidationBadge } from "@/features/validation";
 import { useDeleteRecordings, useRenameRecording } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
@@ -115,6 +116,7 @@ export function RecordingListItem({
       </div>
 
       <ValidationBadge status={entry.validation_overall_status} />
+      <UploadBadge entry={entry} />
 
       {/* Two-line text */}
       <div className="min-w-0 flex-1">

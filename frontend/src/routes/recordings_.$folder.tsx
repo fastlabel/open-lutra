@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QualitySummary } from "@/features/quality-summary";
 import { QualityTimeline, useQualityTimelineStore } from "@/features/quality-timeline";
+import { UploadButton } from "@/features/upload";
 import { ValidationSummary } from "@/features/validation";
 
 /** Compute the display range for a loss event (minimum 0.5 seconds). */
@@ -83,6 +84,7 @@ function McapDetailPage() {
         <span className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           {folderPath.split("/").pop() ?? folder}
         </span>
+        <UploadButton folderPath={folderPath} />
         <TabsList className="ml-auto -my-2 self-stretch">
           <TabsTrigger value="quality">Quality Analytics</TabsTrigger>
           <TabsTrigger value="validation">Validation</TabsTrigger>
