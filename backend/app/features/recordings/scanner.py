@@ -9,6 +9,7 @@ from pathlib import Path
 
 from app.features.recordings.meta import read_recording_meta
 from app.features.recordings.schemas import FileEntry
+from app.features.upload.cache import load_state as load_upload_state
 from app.features.validation.cache import load_report as load_validation_report
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ def _build_recording_entry(folder: Path, rel_root: Path) -> FileEntry | None:
     topic_count, start_ns, dur_ns, msg_count = read_metadata_summary(folder)
     meta = read_recording_meta(folder)
     validation_report = load_validation_report(folder)
+    upload_state = load_upload_state(folder)
     return FileEntry(
         name=folder.name,
         path=str(folder.relative_to(rel_root)),
@@ -96,6 +98,7 @@ def _build_recording_entry(folder: Path, rel_root: Path) -> FileEntry | None:
         message_count=msg_count,
         has_quality_report=has_quality_report,
         validation_overall_status=(validation_report.overall_status if validation_report else None),
+        upload_status=upload_state.status if upload_state else None,
         task_name=meta.task_name if meta else None,
         robot_config_name=meta.robot_config_name if meta else None,
         tags=meta.tags if meta else [],

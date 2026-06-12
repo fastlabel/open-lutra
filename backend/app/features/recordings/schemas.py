@@ -52,6 +52,13 @@ class FileEntry(BaseModel):
             "(pass / warn / fail / error). null when no validation report exists."
         ),
     )
+    upload_status: str | None = Field(
+        ...,
+        description=(
+            "Latest upload status from upload_state.json "
+            "(idle / uploading / uploaded / failed). null when no upload state exists."
+        ),
+    )
     task_name: str | None
     robot_config_name: str | None
     tags: list[str]

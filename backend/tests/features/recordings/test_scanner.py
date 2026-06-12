@@ -184,6 +184,7 @@ class TestScanOutputDir:
 
         assert entries[0].has_quality_report is False
         assert entries[0].validation_overall_status is None
+        assert entries[0].upload_status is None
 
     def test_validation_overall_status_loaded(self, tmp_path: Path) -> None:
         """When validation_result.json exists, its overall_status is reflected in FileEntry."""
@@ -201,6 +202,27 @@ class TestScanOutputDir:
         entries = scan_output_dir(tmp_path)
 
         assert entries[0].validation_overall_status == "warn"
+
+    def test_upload_status_loaded(self, tmp_path: Path) -> None:
+        """When upload_state.json exists, its status is reflected in FileEntry."""
+        state = {
+            "status": "uploaded",
+            "destination": "lutra-test",
+            "key": "uploads/rec.zip",
+            "etag": '"abc"',
+            "size_bytes": 1024,
+            "bytes_transferred": 1024,
+            "uploaded_at": "2026-05-25T12:00:00+00:00",
+            "error": None,
+        }
+        _make_recording(
+            tmp_path / "rec",
+            files={"upload_state.json": json.dumps(state).encode("utf-8")},
+        )
+
+        entries = scan_output_dir(tmp_path)
+
+        assert entries[0].upload_status == "uploaded"
 
     def test_metadata_summary_included(self, tmp_path: Path) -> None:
         """When metadata.yaml is present, topic_count/recording_start_ns/duration_ns/message_count are filled in."""
