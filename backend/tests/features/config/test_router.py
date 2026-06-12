@@ -38,6 +38,7 @@ class TestConfig:
         assert "robot_name" in data
         assert "default_topics" in data
         assert isinstance(data["default_topics"], list)
+        assert isinstance(data["upload_enabled"], bool)
 
 
 class TestHealth:

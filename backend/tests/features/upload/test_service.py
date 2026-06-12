@@ -13,7 +13,7 @@ import pytest
 from app.features.jobs.models import JobStatus, JobType, UploadJob
 from app.features.jobs.service import set_job_queue
 from app.features.upload.cache import CACHE_FILENAME
-from app.features.upload.service import UploadService, get_upload_service
+from app.features.upload.service import UploadService, get_upload_service, is_upload_enabled
 from app.settings import Settings
 
 
@@ -245,3 +245,19 @@ class TestUploadServiceStart:
 class TestGetUploadService:
     def test_returns_singleton(self) -> None:
         assert get_upload_service() is get_upload_service()
+
+
+class TestIsUploadEnabled:
+    """``is_upload_enabled()`` — read-only check used by ``/api/config``."""
+
+    def test_true_when_destination_and_template_valid(self) -> None:
+        assert is_upload_enabled(_make_settings()) is True
+
+    def test_false_when_bucket_missing(self) -> None:
+        assert is_upload_enabled(_make_settings(s3_bucket=None)) is False
+
+    def test_false_when_template_missing(self) -> None:
+        assert is_upload_enabled(_make_settings(s3_key_template=None)) is False
+
+    def test_false_when_template_syntax_invalid(self) -> None:
+        assert is_upload_enabled(_make_settings(s3_key_template="x/{unknown}")) is False

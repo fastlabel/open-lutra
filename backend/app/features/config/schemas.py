@@ -23,3 +23,4 @@ class ConfigResponse(BaseModel):
     robot_name: str
     default_topics: list[str]
     stamp_quality: bool
+    upload_enabled: bool

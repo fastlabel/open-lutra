@@ -20,9 +20,38 @@ from app.features.upload.cache import load_state
 from app.features.upload.destinations import get_active_destination
 from app.features.upload.key_template import validate_template
 from app.features.upload.schemas import UploadResponse
-from app.settings import get_settings
+from app.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _upload_availability_error(settings: Settings) -> str | None:
+    """Return why the upload feature is not usable, or ``None`` when fully configured.
+
+    Powers both ``UploadService.start()``'s early-rejection path and the
+    ``/api/config`` ``upload_enabled`` flag.
+    """
+    destination = get_active_destination(settings)
+    err = destination.configuration_error()
+    if err is not None:
+        return err
+    # configuration_error() guarantees the template is set; assert for the type checker.
+    assert settings.s3_key_template is not None
+    try:
+        validate_template(settings.s3_key_template)
+    except ValueError as e:
+        return str(e)
+    return None
+
+
+def is_upload_enabled(settings: Settings) -> bool:
+    """Whether the upload feature is fully usable.
+
+    Drives the UI's "hide upload affordances when not configured" toggle
+    via ``/api/config``. True only when the destination is configured
+    and the key template parses without error.
+    """
+    return _upload_availability_error(settings) is None
 
 
 class UploadService:
@@ -70,17 +99,9 @@ class UploadService:
         * Key template syntax is invalid (unknown placeholder, unbalanced
           braces).
         """
-        settings = get_settings()
-        destination = get_active_destination(settings)
-        err = destination.configuration_error()
+        err = _upload_availability_error(get_settings())
         if err is not None:
             return UploadResponse(status="failed", state=None, error=err)
-        # configuration_error() guarantees the template is set; assert for the type checker.
-        assert settings.s3_key_template is not None
-        try:
-            validate_template(settings.s3_key_template)
-        except ValueError as e:
-            return UploadResponse(status="failed", state=None, error=str(e))
 
         queue = get_job_queue()
         active = queue.get_active_upload_job(target)
