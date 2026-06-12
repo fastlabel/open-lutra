@@ -86,6 +86,10 @@ def _parse_source(source: dict[str, Any]) -> SourceConfig:
             f"Source {source['topic']!r}: type {field_type!r} is invalid; "
             f"must be one of {_VALID_FIELD_TYPES}"
         )
+    if field_type == "list" and "indices" not in source:
+        raise ValueError(f"Source {source['topic']!r}: type 'list' requires 'indices'")
+    if field_type == "struct" and "keys" not in source:
+        raise ValueError(f"Source {source['topic']!r}: type 'struct' requires 'keys'")
     return SourceConfig(
         topic=source["topic"],
         field=source["field"],

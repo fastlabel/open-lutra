@@ -63,6 +63,18 @@ def test_parse_source_invalid_type_raises() -> None:
         parse_config(data)
 
 
+def test_parse_source_list_without_indices_raises() -> None:
+    data = {**_VALID, "action": [{"topic": "/cmd", "field": "position", "type": "list"}]}
+    with pytest.raises(ValueError, match="indices"):
+        parse_config(data)
+
+
+def test_parse_source_struct_without_keys_raises() -> None:
+    data = {**_VALID, "action": [{"topic": "/cmd", "field": "pose.position", "type": "struct"}]}
+    with pytest.raises(ValueError, match="keys"):
+        parse_config(data)
+
+
 def test_parse_source_keys_stored() -> None:
     data = {
         **_VALID,
