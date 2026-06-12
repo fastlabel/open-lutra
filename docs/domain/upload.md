@@ -32,7 +32,20 @@ What is **not** in scope (out by design, per [issue #6](https://github.com/fastl
 - Auto-upload after recording stops. Upload is always user-initiated.
 - Resumable retry beyond what boto3's `TransferManager` already does.
 - Download / restore from the destination.
-- Bulk-upload across multiple recordings from the list page.
+
+Out of scope for the initial drop but on the near-term roadmap (no
+design baked in yet — both decisions sit with whoever picks them up):
+
+- **Bulk upload from the recordings list page.** Mounted next to
+  `<BulkDeleteButton />` in `recordings-table.tsx`; reads the selected
+  set from `useRecordingsStore.checkedFolders`. The JobQueue is
+  single-worker with per-folder dedup, so either implementation shape
+  (N `POST /api/upload/start` calls from the frontend, or one new
+  endpoint that enqueues `N` jobs server-side) ends up serialized the
+  same way — pick whichever fits the rest of the UI's mutation
+  patterns better.
+- **Non-S3 destinations** (local-network server, GCS, …). See "The
+  destination abstraction" below for the extension recipe.
 
 ## Lifecycle
 
@@ -92,13 +105,39 @@ class UploadDestination(Protocol):
     def upload(self, local_path, key, progress) -> UploadResult: ...
 ```
 
-Adding a backend (e.g. GCS) is then a single new module + a registry
-update:
+Adding a backend (e.g. a local-network server, GCS) is a small,
+well-bounded change:
 
-1. Implement `GCSDestination` in `destinations/gcs.py`.
-2. Extend `get_active_destination()` to switch on a future
-   `UPLOAD_DESTINATION` setting and return the new instance.
-3. Add the relevant `GCS_*` env vars to `Settings`.
+1. **Implement the destination.** New module under `destinations/`
+   (e.g. `destinations/local.py`) with a class that fulfils the
+   `UploadDestination` Protocol. Set `name = "local"` on the class —
+   it is read by diagnostics and (eventually) by selection logic.
+2. **Add settings.** Whatever env vars the backend needs (host /
+   credentials / path prefix) go on `Settings` in
+   `backend/app/settings.py`. Follow the existing S3 pattern:
+   `str | None = None` for optional fields, no defaults on values
+   the operator must supply.
+3. **Wire up selection.** `get_active_destination(settings)` in
+   `destinations/registry.py` currently hard-returns `S3Destination`.
+   Introduce `UPLOAD_DESTINATION` on `Settings` (allowed values:
+   `"s3"` / `"local"` / …; default `"s3"` so existing deployments
+   keep working) and switch on it.
+4. **Generalise the availability check.** `_upload_availability_error`
+   in `upload/service.py` today calls `validate_template(
+   settings.s3_key_template)` directly — that lives outside the
+   Protocol because S3 happens to use a key template. If the new
+   destination does not use a key template, push that validation into
+   the destination's `configuration_error()` (or a similar Protocol
+   method) so the service layer stops naming S3 fields.
+5. **Mirror the tests.** Drop a sibling test file under
+   `backend/tests/features/upload/destinations/` named after the
+   destination (e.g. `test_local.py`), following `test_s3.py` for the
+   test-class layout (`TestConfigurationError`, `TestUpload`, plus
+   any private-helper tests). 100% coverage on the new module is
+   expected — see `docs/DEVELOPMENT.md` for the coverage gate.
+6. **Update operator-facing docs.** Add an env-var table for the new
+   destination to `docs/SETUP.md` (mirror the S3 Upload section) so
+   the operator knows what to set.
 
 The service layer, the job queue, the UI, and the persisted
 `upload_state.json` are all destination-agnostic — `state.destination`

@@ -351,6 +351,8 @@ Clicking the details panel header navigates to the MCAP detail page (`/recording
 - This makes "filter or search to narrow down, then bulk-delete with one button" possible with minimal operations.
 - The count on each filter tab updates in real time to reflect the breakdown within the current search hits.
 
+**Where bulk actions live**: bulk-action buttons are individual components under `frontend/src/features/recordings/ui/bulk-*.tsx` (today: `bulk-delete-button.tsx`) and mounted inside `features/recordings-table/recordings-table.tsx`. They read the selected set from `useRecordingsStore.checkedFolders` (a Zustand store inside the `recordings` feature). Add new bulk actions by mirroring this pattern.
+
 #### MCAP detail page (`/recordings/:folder`) — integrated timeline view
 
 ```
