@@ -93,8 +93,12 @@ class TopicQuality(BaseModel):
     timestamp_source: str = Field(..., description="Timestamp source (header_stamp/log_time)")
     avg_message_size_bytes: int
     size_stats: MessageSizeStats
-    start_delay_sec: float = Field(..., description="Delay from recording start to this topic's first message (seconds)")
-    end_early_sec: float = Field(..., description="Empty interval from this topic's last message to recording end (seconds)")
+    start_delay_sec: float = Field(
+        ..., description="Delay from recording start to this topic's first message (seconds)"
+    )
+    end_early_sec: float = Field(
+        ..., description="Empty interval from this topic's last message to recording end (seconds)"
+    )
     status: str
 
     @classmethod
@@ -191,7 +195,9 @@ class TopicQuality(BaseModel):
         major_loss_count = sum(1 for le in loss_events if le.severity == "major")
 
         # Continuity score (computed from loss_events, more accurate than legacy gaps)
-        loss_total_sec = sum(le.duration_sec for le in loss_events) if loss_events else sum(g.duration_sec for g in gaps)
+        loss_total_sec = (
+            sum(le.duration_sec for le in loss_events) if loss_events else sum(g.duration_sec for g in gaps)
+        )
         topic_duration = timestamps[-1] - timestamps[0]
         continuity = max(0.0, 1.0 - (loss_total_sec / topic_duration)) if topic_duration > 0 else 1.0
 

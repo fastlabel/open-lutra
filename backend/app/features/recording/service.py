@@ -265,7 +265,9 @@ class ROS2BagRecorder:
                 )
 
         if self._start_delay_sec > 0:
-            logger.info("Delaying recording start by %.2f s (waiting for camera publish ramp-up)", self._start_delay_sec)
+            logger.info(
+                "Delaying recording start by %.2f s (waiting for camera publish ramp-up)", self._start_delay_sec
+            )
             time.sleep(self._start_delay_sec)
 
         record.resume()

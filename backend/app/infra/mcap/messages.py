@@ -15,11 +15,7 @@ def is_image_message(decoded: Any) -> bool:
     Detection is based on the presence of `format` + `data` (bytes) fields and
     does not depend on the message type name (e.g., `sensor_msgs/msg/Image`).
     """
-    return (
-        hasattr(decoded, "format")
-        and hasattr(decoded, "data")
-        and isinstance(decoded.data, (bytes, bytearray))
-    )
+    return hasattr(decoded, "format") and hasattr(decoded, "data") and isinstance(decoded.data, (bytes, bytearray))
 
 
 def extract_joint_positions(decoded: Any) -> list[float]:

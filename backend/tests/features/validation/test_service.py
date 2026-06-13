@@ -69,29 +69,21 @@ class TestValidationServiceGet:
         assert response.report is not None
         assert response.report.overall_status == "pass"
 
-    async def test_returns_analyzing_when_job_running(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
+    async def test_returns_analyzing_when_job_running(self, tmp_path: Path, mock_queue: MagicMock) -> None:
         mock_queue.get_active_validation_job.return_value = _make_job(tmp_path, JobStatus.RUNNING)
 
         response = await ValidationService().get(tmp_path)
         assert response.status == "analyzing"
         assert response.report is None
 
-    async def test_returns_analyzing_when_job_queued(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
+    async def test_returns_analyzing_when_job_queued(self, tmp_path: Path, mock_queue: MagicMock) -> None:
         mock_queue.get_active_validation_job.return_value = _make_job(tmp_path, JobStatus.QUEUED)
 
         response = await ValidationService().get(tmp_path)
         assert response.status == "analyzing"
 
-    async def test_returns_error_when_job_failed(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
-        mock_queue.get_active_validation_job.return_value = _make_job(
-            tmp_path, JobStatus.FAILED, error="boom"
-        )
+    async def test_returns_error_when_job_failed(self, tmp_path: Path, mock_queue: MagicMock) -> None:
+        mock_queue.get_active_validation_job.return_value = _make_job(tmp_path, JobStatus.FAILED, error="boom")
 
         response = await ValidationService().get(tmp_path)
         assert response.status == "error"
@@ -100,17 +92,13 @@ class TestValidationServiceGet:
     async def test_returns_error_with_default_message_when_no_detail(
         self, tmp_path: Path, mock_queue: MagicMock
     ) -> None:
-        mock_queue.get_active_validation_job.return_value = _make_job(
-            tmp_path, JobStatus.FAILED, error=None
-        )
+        mock_queue.get_active_validation_job.return_value = _make_job(tmp_path, JobStatus.FAILED, error=None)
 
         response = await ValidationService().get(tmp_path)
         assert response.status == "error"
         assert response.error == "Validation failed"
 
-    async def test_returns_not_found_when_nothing(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
+    async def test_returns_not_found_when_nothing(self, tmp_path: Path, mock_queue: MagicMock) -> None:
         mock_queue.get_active_validation_job.return_value = None
 
         response = await ValidationService().get(tmp_path)
@@ -129,18 +117,14 @@ class TestValidationServiceStart:
         assert response.status == "ready"
         mock_queue.enqueue_validation.assert_not_called()
 
-    async def test_returns_analyzing_when_job_running(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
+    async def test_returns_analyzing_when_job_running(self, tmp_path: Path, mock_queue: MagicMock) -> None:
         mock_queue.get_active_validation_job.return_value = _make_job(tmp_path, JobStatus.RUNNING)
 
         response = await ValidationService().start(tmp_path)
         assert response.status == "analyzing"
         mock_queue.enqueue_validation.assert_not_called()
 
-    async def test_returns_not_found_without_quality_report(
-        self, tmp_path: Path, mock_queue: MagicMock
-    ) -> None:
+    async def test_returns_not_found_without_quality_report(self, tmp_path: Path, mock_queue: MagicMock) -> None:
         """Validation requires the quality report to be already generated."""
         mock_queue.get_active_validation_job.return_value = None
 

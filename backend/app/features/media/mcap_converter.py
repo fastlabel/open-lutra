@@ -137,9 +137,7 @@ def convert_mcap(  # pragma: no cover
                 generated_files.append("telemetry.json")
                 logger.info("telemetry.json generation complete: %d frames", len(frame_timestamps))
             else:
-                logger.warning(
-                    "Cannot build JointState mapping: %s (skipping telemetry.json)", mcap_dir.name
-                )
+                logger.warning("Cannot build JointState mapping: %s (skipping telemetry.json)", mcap_dir.name)
         else:
             logger.info("No JointState topics: %s (skipping telemetry.json)", mcap_dir.name)
 
@@ -345,9 +343,7 @@ def _stream_generate_mp4(
         # Also remove incomplete file on ffmpeg error
         if output_path.exists():
             output_path.unlink()
-        raise MediaError(
-            f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}"
-        )
+        raise MediaError(f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}")
 
 
 @dataclass

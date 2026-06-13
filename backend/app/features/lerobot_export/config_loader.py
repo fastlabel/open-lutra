@@ -83,8 +83,7 @@ def _parse_source(source: dict[str, Any]) -> SourceConfig:
     field_type = source["type"]
     if field_type not in _VALID_FIELD_TYPES:
         raise ValueError(
-            f"Source {source['topic']!r}: type {field_type!r} is invalid; "
-            f"must be one of {_VALID_FIELD_TYPES}"
+            f"Source {source['topic']!r}: type {field_type!r} is invalid; must be one of {_VALID_FIELD_TYPES}"
         )
     if field_type in ("list", "number") and "field" not in source:
         raise ValueError(f"Source {source['topic']!r}: type {field_type!r} requires 'field'")

@@ -184,9 +184,12 @@ class TestLossEvents:
         """For evenly spaced timestamps, loss_events is empty."""
         ts = [i * 0.01 for i in range(200)]  # 100 Hz, perfect
         tq = TopicQuality.from_timestamps(
-            name="/t", msg_type="sensor_msgs/msg/JointState",
-            timestamps=ts, sizes=[100] * len(ts),
-            recording_start=0.0, duration_sec=2.0,
+            name="/t",
+            msg_type="sensor_msgs/msg/JointState",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=2.0,
             timestamp_source="header_stamp",
         )
         assert tq.loss_events == []
@@ -199,9 +202,12 @@ class TestLossEvents:
         # ts[24]=0.24 -> next is 0.26 (20 ms later, one frame lost)
         ts += [0.26 + i * 0.01 for i in range(25)]
         tq = TopicQuality.from_timestamps(
-            name="/t", msg_type="sensor_msgs/msg/JointState",
-            timestamps=ts, sizes=[100] * len(ts),
-            recording_start=0.0, duration_sec=0.5,
+            name="/t",
+            msg_type="sensor_msgs/msg/JointState",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=0.5,
             timestamp_source="header_stamp",
         )
         assert len(tq.loss_events) >= 1
@@ -213,9 +219,12 @@ class TestLossEvents:
         # 100 Hz: 10 ms interval, with a gap after 50 ms
         ts = [i * 0.01 for i in range(50)] + [0.5 + 0.06 + i * 0.01 for i in range(50)]
         tq = TopicQuality.from_timestamps(
-            name="/t", msg_type="sensor_msgs/msg/JointState",
-            timestamps=ts, sizes=[100] * len(ts),
-            recording_start=0.0, duration_sec=1.1,
+            name="/t",
+            msg_type="sensor_msgs/msg/JointState",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=1.1,
             timestamp_source="header_stamp",
         )
         major_events = [e for e in tq.loss_events if e.severity == "major"]
@@ -226,9 +235,12 @@ class TestLossEvents:
         """timestamp_source is recorded in the report."""
         ts = [i * 0.01 for i in range(20)]
         tq = TopicQuality.from_timestamps(
-            name="/t", msg_type="sensor_msgs/msg/JointState",
-            timestamps=ts, sizes=[100] * len(ts),
-            recording_start=0.0, duration_sec=0.2,
+            name="/t",
+            msg_type="sensor_msgs/msg/JointState",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=0.2,
             timestamp_source="header_stamp",
         )
         assert tq.timestamp_source == "header_stamp"
@@ -237,9 +249,12 @@ class TestLossEvents:
         """loss_events is empty when there are fewer than 4 intervals (IQR cannot be computed)."""
         ts = [0.0, 0.01, 0.02]
         tq = TopicQuality.from_timestamps(
-            name="/t", msg_type="sensor_msgs/msg/JointState",
-            timestamps=ts, sizes=[100] * len(ts),
-            recording_start=0.0, duration_sec=0.02,
+            name="/t",
+            msg_type="sensor_msgs/msg/JointState",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=0.02,
             timestamp_source="header_stamp",
         )
         assert tq.loss_events == []

@@ -120,7 +120,6 @@ def _notify_log(severity: LogSeverity, message: str) -> None:  # pragma: no cove
         logger.debug("Skipping log add because LogManager is not initialized: %s", e)
 
 
-
 def _get_qos_overrides() -> dict[str, str] | None:  # pragma: no cover
     """Fetch QoS information for subscribed topics from TopicMonitorService.
 

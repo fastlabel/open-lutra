@@ -11,6 +11,7 @@ from ._fakes import FakeFloatArray, FakeJointState, FakeRawImage, make_image_mes
 
 # --- extract_field_data: type=number ---
 
+
 def test_extract_number_scalar_float() -> None:
     msg = SimpleNamespace(gripper_pos=0.75)
     assert extract_field_data(msg, "gripper_pos", "number").tolist() == [0.75]
@@ -22,6 +23,7 @@ def test_extract_number_via_dot_path() -> None:
 
 
 # --- extract_field_data: type=list ---
+
 
 def test_extract_list_with_indices() -> None:
     msg = FakeJointState(position=[0.0, 1.0, 2.0, 3.0])
@@ -45,6 +47,7 @@ def test_extract_list_missing_indices_raises() -> None:
 
 
 # --- extract_field_data: type=struct ---
+
 
 def test_extract_struct_with_keys() -> None:
     msg = SimpleNamespace(pose=SimpleNamespace(position=SimpleNamespace(x=1.0, y=2.0, z=3.0)))
@@ -78,6 +81,7 @@ def test_extract_struct_key_not_found_raises() -> None:
 
 # --- error cases ---
 
+
 def test_extract_missing_field_raises() -> None:
     with pytest.raises(ValueError, match="has no field"):
         extract_field_data(FakeJointState(position=[0.0]), "effort", "list", indices=[0])
@@ -95,6 +99,7 @@ def test_extract_unknown_type_raises() -> None:
 
 
 # --- decode_ros_image ---
+
 
 def test_decode_compressed_image() -> None:
     msg = make_image_message(height=3, width=4, value=200)

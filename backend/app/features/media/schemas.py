@@ -19,4 +19,6 @@ class VideoResponse(BaseModel):
     videos: list[str]
     progress: VideoProgress | None
     error: str | None
-    job_id: str | None = Field(..., description="ID of the in-flight generation job (subscribe to progress via SSE /api/jobs/stream)")
+    job_id: str | None = Field(
+        ..., description="ID of the in-flight generation job (subscribe to progress via SSE /api/jobs/stream)"
+    )

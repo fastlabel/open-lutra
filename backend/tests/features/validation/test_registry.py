@@ -51,9 +51,7 @@ class TestRegisterValidator:
         with pytest.raises(ValueError, match="'name'"):
             register_validator(_EmptyName)
 
-    def test_duplicate_name_logs_warning_but_keeps_both(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_duplicate_name_logs_warning_but_keeps_both(self, caplog: pytest.LogCaptureFixture) -> None:
         register_validator(_OkValidator)
 
         class _OkDup(RecordingValidator):
@@ -85,9 +83,7 @@ class TestLoadCustomValidators:
         assert len(validators) == 1
         assert validators[0].name == "sample_validator"
 
-    def test_load_mixed_plugin_isolates_failures(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_load_mixed_plugin_isolates_failures(self, caplog: pytest.LogCaptureFixture) -> None:
         """A failing module does not prevent others from loading."""
         with caplog.at_level(logging.WARNING):
             load_custom_validators("tests.features.validation.fixtures.mixed_plugin")
@@ -98,17 +94,13 @@ class TestLoadCustomValidators:
         assert "mixed_good_validator" in names
         assert "intentional" in " ".join(r.message for r in caplog.records)
 
-    def test_load_nonexistent_package_logs_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_load_nonexistent_package_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.WARNING):
             load_custom_validators("nonexistent.package.does.not.exist")
         assert any("Failed to load" in r.message for r in caplog.records)
         assert get_custom_validators() == []
 
-    def test_load_module_without_path_logs_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_load_module_without_path_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """When the import target is a module (not a package) a warning is logged."""
         with caplog.at_level(logging.WARNING):
             # `sys` is a top-level module without __path__.

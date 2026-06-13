@@ -48,7 +48,7 @@ def extract_field_data(
         raise ValueError(f"Unknown field type {field_type!r}; must be one of {_VALID_FIELD_TYPES}")
 
     obj: Any = decoded
-    for part in (field.split(".") if field is not None else []):
+    for part in field.split(".") if field is not None else []:
         try:
             obj = getattr(obj, part)
         except AttributeError as e:

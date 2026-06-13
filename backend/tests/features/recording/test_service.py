@@ -74,9 +74,7 @@ class TestStart:
         with pytest.raises(RecorderError, match="ros2 command not found"):
             recorder.start(topics=["/topic"])
 
-    def test_start_mkdir_oserror_raises(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_mkdir_oserror_raises(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """A failure to create the output directory raises RecorderError."""
         with (
             patch.object(Path, "mkdir", side_effect=OSError("Permission denied")),
@@ -136,9 +134,7 @@ class TestStartWithQoSOverrides:
 class TestStartDiscovery:
     """Tests for waiting on DDS discovery."""
 
-    def test_start_calls_wait_for_subscriptions(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_calls_wait_for_subscriptions(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """start() calls wait_for_subscriptions."""
         mock_record = mock_ros2.bag_record.return_value
         mock_record.wait_for_subscriptions.return_value = ["/topic"]
@@ -148,9 +144,7 @@ class TestStartDiscovery:
         mock_record.wait_for_subscriptions.assert_called_once_with(["/topic"], 10)
         mock_record.resume.assert_called_once()
 
-    def test_start_resumes_even_on_partial_discovery(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_resumes_even_on_partial_discovery(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """Starts recording even when only some topics could be subscribed."""
         mock_record = mock_ros2.bag_record.return_value
         mock_record.wait_for_subscriptions.return_value = ["/topic_a"]
@@ -160,9 +154,7 @@ class TestStartDiscovery:
         mock_record.resume.assert_called_once()
         assert recorder.is_recording is True
 
-    def test_start_skips_discovery_when_timeout_zero(
-        self, settings: MagicMock, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_skips_discovery_when_timeout_zero(self, settings: MagicMock, mock_ros2: MagicMock) -> None:
         """When discovery_timeout=0, recording starts immediately without waiting."""
         settings.recording_discovery_timeout = 0
         rec = ROS2BagRecorder(settings, mock_ros2)
@@ -177,9 +169,7 @@ class TestStartDiscovery:
 class TestStartDelay:
     """Tests for recording_start_delay_sec."""
 
-    def test_start_delay_sleeps_before_resume(
-        self, settings: MagicMock, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_delay_sleeps_before_resume(self, settings: MagicMock, mock_ros2: MagicMock) -> None:
         """When start_delay_sec > 0, time.sleep is called before resume."""
         settings.recording_start_delay_sec = 2.0
         rec = ROS2BagRecorder(settings, mock_ros2)
@@ -191,9 +181,7 @@ class TestStartDelay:
         mock_sleep.assert_called_once_with(2.0)
         mock_record.resume.assert_called_once()
 
-    def test_start_delay_zero_skips_sleep(
-        self, settings: MagicMock, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_delay_zero_skips_sleep(self, settings: MagicMock, mock_ros2: MagicMock) -> None:
         """When start_delay_sec = 0, time.sleep is not called."""
         settings.recording_start_delay_sec = 0.0
         rec = ROS2BagRecorder(settings, mock_ros2)
@@ -203,9 +191,7 @@ class TestStartDelay:
 
         mock_sleep.assert_not_called()
 
-    def test_start_delay_applies_after_discovery(
-        self, settings: MagicMock, mock_ros2: MagicMock
-    ) -> None:
+    def test_start_delay_applies_after_discovery(self, settings: MagicMock, mock_ros2: MagicMock) -> None:
         """start_delay_sec is applied after wait_for_subscriptions."""
         settings.recording_start_delay_sec = 1.5
         rec = ROS2BagRecorder(settings, mock_ros2)
@@ -307,9 +293,7 @@ class TestGetStatus:
 class TestMetaWrite:
     """Tests for writing recording_meta.json."""
 
-    def test_meta_written_on_start(
-        self, settings: MagicMock, mock_ros2: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_meta_written_on_start(self, settings: MagicMock, mock_ros2: MagicMock, tmp_path: Path) -> None:
         """On successful start(), recording_meta.json is written to the output folder."""
         settings.output_dir = tmp_path
 
@@ -367,9 +351,7 @@ class TestMetaWrite:
         data = json.loads((output / "recording_meta.json").read_text(encoding="utf-8"))
         assert data["recording_config_name"] == "myrobot"
 
-    def test_meta_write_failure_does_not_break_recording(
-        self, recorder: ROS2BagRecorder
-    ) -> None:
+    def test_meta_write_failure_does_not_break_recording(self, recorder: ROS2BagRecorder) -> None:
         """Recording continues even if writing recording_meta.json fails (output dir not created).
 
         conftest's output_dir=/tmp/test_output exists, but the mock bag_record does not
@@ -383,9 +365,7 @@ class TestMetaWrite:
 class TestDetectCrash:
     """Tests for detecting abnormal process termination."""
 
-    def test_crash_detected_on_get_status(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_crash_detected_on_get_status(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """Abnormal process termination is detected in get_status() and the state is reset."""
         mock_process = mock_ros2.bag_record.return_value.process
         recorder.start(topics=["/topic"])
@@ -397,9 +377,7 @@ class TestDetectCrash:
         status = recorder.get_status()
         assert status.is_recording is False
 
-    def test_crash_calls_cleanup(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_crash_calls_cleanup(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """The pty master is cleaned up when an abnormal exit is detected."""
         mock_record = mock_ros2.bag_record.return_value
         recorder.start(topics=["/topic"])
@@ -409,9 +387,7 @@ class TestDetectCrash:
         recorder.get_status()
         mock_record.cleanup.assert_called_once()
 
-    def test_crash_cleans_up_qos_file(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_crash_cleans_up_qos_file(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """The QoS file is also cleaned up when an abnormal exit is detected."""
         mock_record = mock_ros2.bag_record.return_value
         recorder.start(topics=["/topic"], qos_overrides={"/topic": "reliable"})
@@ -422,9 +398,7 @@ class TestDetectCrash:
         recorder.get_status()
         assert recorder._qos_file is None
 
-    def test_no_false_positive_while_running(
-        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
-    ) -> None:
+    def test_no_false_positive_while_running(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
         """poll()=None (still running) is not treated as an abnormal exit."""
         recorder.start(topics=["/topic"])
 

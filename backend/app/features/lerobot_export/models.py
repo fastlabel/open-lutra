@@ -26,12 +26,15 @@ class SourceConfig:
     Attributes:
         topic: ROS2 topic name.
         field: Dot-separated attribute path to extract (e.g.
-            "joint_state.position", "gripper_pos", "pose.position").
+            "joint_state.position", "gripper_pos", "pose.position"). None
+            means apply extraction directly to the decoded message itself
+            (used for struct types where the top-level message is the target,
+            e.g. geometry_msgs/Point published as a standalone topic).
         type: Value type at the resolved path.
             - "list": numeric sequence; `indices` is required.
             - "number": scalar float/int; wrapped as a 1-element array.
             - "struct": named-field object (e.g. geometry_msgs/Point);
-              `keys` is required.
+              `keys` is required. `field` may be None.
         indices: Elements to keep (required when type == "list"); out-of-range
             indices are filled with 0.0 to keep a fixed-length vector.
         keys: Attribute names to extract in order (required when
@@ -41,7 +44,7 @@ class SourceConfig:
     """
 
     topic: str
-    field: str
+    field: str | None
     type: FieldType
     indices: list[int] | None = None
     keys: list[str] | None = None

@@ -68,8 +68,7 @@ async def stream_topic_image(
                 yield (
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n"
-                    b"Content-Length: " + str(len(raw)).encode() + b"\r\n\r\n"
-                    + raw + b"\r\n"
+                    b"Content-Length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw + b"\r\n"
                 )
             # Live mode: 30fps, otherwise 2fps
             is_live = monitor.is_live(topic)

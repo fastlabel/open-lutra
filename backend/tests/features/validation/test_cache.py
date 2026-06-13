@@ -48,7 +48,5 @@ class TestSaveLoad:
 
     def test_load_invalid_schema_returns_none(self, tmp_path: Path) -> None:
         """Valid JSON but a schema mismatch yields None."""
-        (tmp_path / CACHE_FILENAME).write_text(
-            json.dumps({"unexpected": "field"}), encoding="utf-8"
-        )
+        (tmp_path / CACHE_FILENAME).write_text(json.dumps({"unexpected": "field"}), encoding="utf-8")
         assert load_report(tmp_path) is None

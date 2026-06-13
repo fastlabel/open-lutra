@@ -42,6 +42,7 @@ DATA_PATH_TEMPLATE = "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet
 VIDEO_PATH_TEMPLATE = "videos/{video_key}/chunk-{chunk_index:03d}/file-{file_index:03d}.mp4"
 EPISODES_PATH_TEMPLATE = "meta/episodes/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet"
 
+
 class FrameSink(Protocol):
     """Structural type for the per-camera video encoder (so tests can inject a fake)."""
 
