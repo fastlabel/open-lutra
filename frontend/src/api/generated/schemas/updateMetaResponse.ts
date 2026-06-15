@@ -11,6 +11,6 @@
  */
 export interface UpdateMetaResponse {
   task_name: string | null;
-  robot_config_name: string | null;
+  recording_config_name: string | null;
   tags: string[];
 }

@@ -22,7 +22,7 @@ from app.settings import Settings
 
 def _make_settings(**overrides: object) -> Settings:
     base: dict[str, object] = {
-        "robot_config": "config/simulator.yaml",
+        "recording_config": "config/simulator.yaml",
         "output_dir": "/tmp",
         "s3_bucket": "lutra-test",
         "s3_key_template": "uploads/{recording_name}.zip",

@@ -60,7 +60,7 @@ class FileEntry(BaseModel):
         ),
     )
     task_name: str | None
-    robot_config_name: str | None
+    recording_config_name: str | None
     tags: list[str]
 
 
@@ -98,5 +98,5 @@ class UpdateMetaResponse(BaseModel):
     """Response for PATCH /api/recordings/{name}."""
 
     task_name: str | None
-    robot_config_name: str | None
+    recording_config_name: str | None
     tags: list[str]

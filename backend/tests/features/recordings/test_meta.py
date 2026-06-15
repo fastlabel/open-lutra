@@ -25,13 +25,13 @@ class TestReadRecordingMeta:
     def test_valid_json(self, tmp_path: Path) -> None:
         """Reads valid JSON and returns a RecordingMeta."""
         (tmp_path / "recording_meta.json").write_text(
-            json.dumps({"task_name": "pick", "robot_config_name": "simulator", "tags": ["a", "b"]}),
+            json.dumps({"task_name": "pick", "recording_config_name": "simulator", "tags": ["a", "b"]}),
             encoding="utf-8",
         )
         meta = read_recording_meta(tmp_path)
         assert meta is not None
         assert meta.task_name == "pick"
-        assert meta.robot_config_name == "simulator"
+        assert meta.recording_config_name == "simulator"
         assert meta.tags == ["a", "b"]
 
     def test_invalid_json_returns_none(self, tmp_path: Path) -> None:
@@ -59,13 +59,13 @@ class TestWriteRecordingMeta:
 
     def test_write_creates_file(self, tmp_path: Path) -> None:
         """recording_meta.json is created."""
-        meta = RecordingMeta(task_name="task", robot_config_name="myrobot", tags=["t1"])
+        meta = RecordingMeta(task_name="task", recording_config_name="myrobot", tags=["t1"])
         write_recording_meta(tmp_path, meta)
 
         path = tmp_path / "recording_meta.json"
         assert path.exists()
         data = json.loads(path.read_text(encoding="utf-8"))
-        assert data == {"task_name": "task", "robot_config_name": "myrobot", "tags": ["t1"]}
+        assert data == {"task_name": "task", "recording_config_name": "myrobot", "tags": ["t1"]}
 
     def test_write_overwrites_existing(self, tmp_path: Path) -> None:
         """An existing file is overwritten."""
@@ -84,7 +84,7 @@ class TestUpdateRecordingMeta:
         result = update_recording_meta(tmp_path, task_name="new", tags=["a"])
 
         assert result.task_name == "new"
-        assert result.robot_config_name is None
+        assert result.recording_config_name is None
         assert result.tags == ["a"]
         # It is also written out as a file
         assert (tmp_path / "recording_meta.json").exists()
@@ -93,21 +93,21 @@ class TestUpdateRecordingMeta:
         """Unspecified fields are preserved."""
         write_recording_meta(
             tmp_path,
-            RecordingMeta(task_name="orig", robot_config_name="simulator", tags=["x"]),
+            RecordingMeta(task_name="orig", recording_config_name="simulator", tags=["x"]),
         )
 
         result = update_recording_meta(tmp_path, task_name="updated")
 
         assert result.task_name == "updated"
-        # robot_config_name and tags are preserved
-        assert result.robot_config_name == "simulator"
+        # recording_config_name and tags are preserved
+        assert result.recording_config_name == "simulator"
         assert result.tags == ["x"]
 
     def test_update_only_tags(self, tmp_path: Path) -> None:
         """When updating only tags, task_name is preserved."""
         write_recording_meta(
             tmp_path,
-            RecordingMeta(task_name="keep", robot_config_name="simulator", tags=["old"]),
+            RecordingMeta(task_name="keep", recording_config_name="simulator", tags=["old"]),
         )
 
         result = update_recording_meta(tmp_path, tags=["new1", "new2"])
@@ -127,16 +127,16 @@ class TestUpdateRecordingMeta:
         assert result.task_name == "orig"
         assert result.tags == ["a"]
 
-    def test_robot_config_name_not_overwritten(self, tmp_path: Path) -> None:
-        """robot_config_name is not changed by update_recording_meta (fixed at recording time)."""
+    def test_recording_config_name_not_overwritten(self, tmp_path: Path) -> None:
+        """recording_config_name is not changed by update_recording_meta (fixed at recording time)."""
         write_recording_meta(
             tmp_path,
-            RecordingMeta(task_name="t", robot_config_name="myrobot", tags=[]),
+            RecordingMeta(task_name="t", recording_config_name="myrobot", tags=[]),
         )
 
         result = update_recording_meta(tmp_path, task_name="t2", tags=["x"])
 
-        assert result.robot_config_name == "myrobot"
+        assert result.recording_config_name == "myrobot"
 
     def test_empty_string_clears_task_name(self, tmp_path: Path) -> None:
         """Passing an empty string updates task_name to an empty string (only None means \"unspecified\")."""

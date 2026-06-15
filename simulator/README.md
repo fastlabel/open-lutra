@@ -6,17 +6,19 @@ ROS2 topic simulator for development and testing. Lets you verify Recorder UI be
 
 | Topic | Message type | Frequency |
 |---------|-------------|--------|
-| `/robot_slave/states` | `sensor_msgs/JointState` | 100Hz |
-| `/robot_master/cmd` | `sensor_msgs/JointState` | 100Hz |
-| `/right_arm_depth_cam/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
-| `/right_arm_depth_cam_2/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
+| `/sim/slave_arm_left` | `sensor_msgs/JointState` | 100Hz |
+| `/sim/slave_arm_left/gripper` | `std_msgs/Float64` | 100Hz |
+| `/sim/slave_arm_left/pose` | `geometry_msgs/Point` | 100Hz |
+| `/sim/master_arm_left` | `sensor_msgs/JointState` | 100Hz |
+| `/sim/master_arm_left/hand` | `std_msgs/Float64` | 100Hz |
+| `/chest_depth_cam/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
+| `/head_depth_cam/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
 | `/left_arm_depth_cam/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
-| `/left_arm_depth_cam_2/color/image_raw/compressed` | `sensor_msgs/CompressedImage` | 30Hz |
 
 ## Behavior
 
-- **Joint data**: Replays the recorded trajectory in `joint_replay.json` (right arm, ~45 s) by indexing into it from a 100Hz timer based on elapsed time, looping at the end. The data is ~10Hz position samples (millidegrees → radians already converted). `/robot_master/cmd` is the actual master trajectory; `/robot_slave/states` barely moves because the slave was nearly stationary (~0 rad) in this recording.
-- **Camera data**: Loops per-camera JPEGs under `simulator/frames/<cam>/` (150 frames each / 5 seconds) at 30Hz. `right_arm` and `left_arm` use distinct footage; the `_2` mirrors republish the same bytes as their counterpart so four topics are available without bundling extra sample data.
+- **Joint data**: Replays the recorded trajectory in `joint_replay.json` (left arm, 5 s loop) by indexing into it from a 100Hz timer based on elapsed time, looping at the end. Slave joint positions are in radians; master positions are encoder counts. Gripper/hand are scalar floats (0.0 = closed). End-effector Cartesian position (pose) was solved by forward kinematics at record time.
+- **Camera data**: Loops per-camera JPEGs under `simulator/frames/<cam>/` (150 frames each / 5 seconds) at 30Hz for three cameras: `chest`, `head`, and `left_arm`.
 
 ## How to run
 
@@ -53,7 +55,7 @@ Switch modes via the `SIM_MODE` environment variable. Set it in `.env` or pass i
 | `SIM_DROP_RATE` | `0.1` | unstable, mixed | Message drop rate (0.0-1.0) |
 | `SIM_UNSTABLE_TOPICS` | `all` | unstable, mixed | Topics to drop (`all` for every topic, or a comma-separated list) |
 | `SIM_STOP_AFTER_SEC` | `15` | topic_stop, mixed | Seconds before publishing stops |
-| `SIM_STOP_TOPICS` | `/robot_slave/states,/robot_master/cmd` | topic_stop, mixed | Topics to stop (comma-separated) |
+| `SIM_STOP_TOPICS` | `/sim/slave_arm_left,/sim/master_arm_left` | topic_stop, mixed | Topics to stop (comma-separated) |
 | `SIM_EMPTY_CAMERA_INDICES` | `0` | camera_empty, mixed | Cameras to send empty frames for (0-based indices, comma-separated) |
 | `SIM_EMPTY_FRAME_RATE` | `0.3` | camera_empty, mixed | Empty-frame rate (0.0-1.0) |
 | `SIM_BURST_INTERVAL_SEC` | `10` | burst | Interval between bursts (seconds) |
@@ -69,7 +71,7 @@ SIM_MODE=unstable SIM_DROP_RATE=0.2 make restart-sim
 # Stop slave and master after 10 seconds
 SIM_MODE=topic_stop SIM_STOP_AFTER_SEC=10 make restart-sim
 
-# Send empty frames for 50% of right-arm camera messages
+# Send empty frames for 50% of chest camera messages
 SIM_MODE=camera_empty SIM_EMPTY_FRAME_RATE=0.5 make restart-sim
 
 # Every 5 seconds: 1s gap → burst of 30 messages
@@ -83,8 +85,8 @@ SIM_MODE=burst SIM_BURST_INTERVAL_SEC=5 SIM_BURST_GAP_SEC=1.0 SIM_BURST_COUNT=30
 | `robot_simulator.py` | ROS2 node itself (Publisher + Timer) |
 | `config.py` | Reads environment variables and defines defaults |
 | `fault_modes.py` | Fault-injection logic (ROS2-independent) |
-| `frames/<cam>/` | Per-camera sample JPEGs (extracted from real MCAP recordings, re-compressed with Pillow). Recorded in-house at FastLabel and bundled here under the project license. |
-| `joint_replay.json` | Right-arm master/slave position time series (radians) |
+| `frames/<cam>/` | Per-camera sample JPEGs for `chest`, `head`, and `left_arm` (extracted from a real MCAP recording at 30Hz, re-compressed with Pillow). Recorded in-house at FastLabel and bundled here under the project license. |
+| `joint_replay.json` | Left-arm trajectory: slave joint positions (radians), gripper scalar, end-effector Cartesian pose, master joint positions (encoder counts), hand scalar. 500 samples at 100Hz (5 s). |
 
 ## References
 

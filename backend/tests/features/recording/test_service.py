@@ -327,7 +327,7 @@ class TestMetaWrite:
         assert meta_path.exists()
         data = json.loads(meta_path.read_text(encoding="utf-8"))
         assert data["task_name"] == "pick-and-place"
-        assert data["robot_config_name"] == "simulator"  # stem of config/simulator.yaml
+        assert data["recording_config_name"] == "simulator"  # stem of config/simulator.yaml
         assert data["tags"] == []
 
     def test_meta_task_name_none_when_unspecified(
@@ -348,12 +348,12 @@ class TestMetaWrite:
         data = json.loads((output / "recording_meta.json").read_text(encoding="utf-8"))
         assert data["task_name"] is None
 
-    def test_meta_robot_config_name_uses_settings_stem(
+    def test_meta_recording_config_name_uses_settings_stem(
         self, settings: MagicMock, mock_ros2: MagicMock, tmp_path: Path
     ) -> None:
-        """robot_config_name uses the stem of settings.robot_config."""
+        """recording_config_name uses the stem of settings.recording_config."""
         settings.output_dir = tmp_path
-        settings.robot_config = "config/myrobot.yaml"
+        settings.recording_config = "config/myrobot.yaml"
 
         def fake_bag_record(output_path: Path, **_: object) -> MagicMock:
             output_path.mkdir(parents=True, exist_ok=True)
@@ -365,7 +365,7 @@ class TestMetaWrite:
         output = rec.start(topics=["/topic"])
 
         data = json.loads((output / "recording_meta.json").read_text(encoding="utf-8"))
-        assert data["robot_config_name"] == "myrobot"
+        assert data["recording_config_name"] == "myrobot"
 
     def test_meta_write_failure_does_not_break_recording(
         self, recorder: ROS2BagRecorder

@@ -52,14 +52,14 @@ This command performs the following:
 - Installs frontend dependencies (`cd frontend && pnpm install`)
 - Copies `.env.example` → `.env` (only if it does not already exist)
 
-### 3. Robot Configuration
+### 3. Recording Configuration
 
-Use `ROBOT_CONFIG` in `.env` to select a robot configuration. The topic list, expected Hz, and ROS_DOMAIN_ID are managed in YAML:
+Use `RECORDING_CONFIG` in `.env` to select a recording configuration. The topic list, expected Hz, validators, and ROS_DOMAIN_ID are managed in YAML:
 
 ```bash
 # .env
-ROBOT_CONFIG=config/simulator.yaml   # Required: use the bundled simulator config
-# ROBOT_CONFIG=config/myrobot.yaml   # Your own physical-robot config (copy simulator.yaml as a template)
+RECORDING_CONFIG=config/simulator.yaml   # Required: use the bundled simulator config
+# RECORDING_CONFIG=config/myrobot.yaml   # Your own physical-robot config (copy simulator.yaml as a template)
 ```
 
 ### 4. Start the Development Environment
@@ -141,7 +141,7 @@ Runs the Python (ruff) and TypeScript (biome) code formatters.
 ```bash
 # 1. Configure environment variables
 cp .env.example .env
-# Edit .env: set ROBOT_CONFIG to your physical-robot config (copy config/simulator.yaml as a template)
+# Edit .env: set RECORDING_CONFIG to your physical-robot config (copy config/simulator.yaml as a template)
 
 # 2. (Optional) Add custom ROS2 message packages
 # If your robot publishes topics that use custom message types, follow
@@ -168,9 +168,9 @@ In production, the environment starts with `network_mode: host`. This is require
 
 ## Configuration
 
-### Robot Configuration (YAML)
+### Recording Configuration (YAML)
 
-Robot-specific configuration is managed in YAML files under the `config/` directory. Use `ROBOT_CONFIG` in `.env` to choose the file.
+Recording-specific configuration is managed in YAML files under the `config/` directory. Use `RECORDING_CONFIG` in `.env` to choose the file.
 
 ```yaml
 # config/myrobot.yaml (example — copy config/simulator.yaml and adjust)
@@ -230,7 +230,7 @@ The `.env` file holds only infrastructure and connection settings:
 
 | Variable | Default | Description |
 |------|-----------|------|
-| `ROBOT_CONFIG` | _required_ | Path to the robot configuration YAML (startup fails if unset) |
+| `RECORDING_CONFIG` | _required_ | Path to the recording configuration YAML (startup fails if unset) |
 | `OUTPUT_DIR` | _required_ | Directory where recording data is stored (startup fails if unset) |
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `8000` | Server port number |

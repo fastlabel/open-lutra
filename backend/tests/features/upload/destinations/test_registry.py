@@ -7,7 +7,7 @@ from app.settings import Settings
 
 
 def _settings(**overrides: object) -> Settings:
-    base: dict[str, object] = {"robot_config": "config/simulator.yaml", "output_dir": "/tmp"}
+    base: dict[str, object] = {"recording_config": "config/simulator.yaml", "output_dir": "/tmp"}
     base.update(overrides)
     return Settings(**base)  # type: ignore[arg-type]
 

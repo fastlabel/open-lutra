@@ -201,7 +201,7 @@ class ValidationContext:
 | `report` | Full `QualityReport` (`backend/app/features/analysis/models.py`). Per-topic name, msg_type, message_count, measured Hz, loss events, size stats |
 | `recording_dir` | The recording folder. Use it to read sibling artifacts when needed |
 | `mcap_path` | Path to the recording's `.mcap` file. `None` if the file was deleted before validation ran. Open with `MCAPReader` from `app.infra.mcap` |
-| `recording_meta` | Parsed `recording_meta.json` (`task_name`, `robot_config_name`, `tags`). `None` for older recordings without the file |
+| `recording_meta` | Parsed `recording_meta.json` (`task_name`, `recording_config_name`, `tags`). `None` for older recordings without the file |
 
 ### `ValidationResult`
 

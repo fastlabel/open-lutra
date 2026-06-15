@@ -47,7 +47,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 - **Recording browser** — search, filter, and inspect recordings; per-topic timeline heatmap, loss events, and video/joint previews.
 - **MCAP → MP4 preview** — per-camera MP4s generated on demand from MCAP, streamed frame-by-frame through ffmpeg.
 - **Pluggable validation** — built-in validators plus a `@register_validator` extension point for custom per-recording rules. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md).
-- **Robot config as YAML** — topics, expected Hz, and `ROS_DOMAIN_ID` switched via the `ROBOT_CONFIG` environment variable.
+- **Recording config as YAML** — topics, expected Hz, validators, and `ROS_DOMAIN_ID` switched via the `RECORDING_CONFIG` environment variable.
 
 <!-- TBD: short feature screenshots (recording page, recordings list, MCAP detail view) -->
 

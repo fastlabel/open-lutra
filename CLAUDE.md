@@ -50,7 +50,7 @@ A **hybrid architecture** is used:
 
 - **Recording runs via subprocess**: `ros2 bag record -s mcap` runs in a separate process. No buffering on the Python side (for memory safety).
 - **Output format is MCAP**: Explicitly specified via the `-s mcap` option (not the default sqlite3).
-- **Robot configuration is YAML**: Topics, expected Hz, ROS_DOMAIN_ID, etc. are managed via YAML files in the `config/` directory. Switched via the `ROBOT_CONFIG` environment variable.
+- **Recording configuration is YAML**: Topics, expected Hz, ROS_DOMAIN_ID, validators, etc. are managed via YAML files in the `config/` directory. Switched via the `RECORDING_CONFIG` environment variable.
 - **Docker required**: Both development and production run via Docker Compose.
 - **Timestamps prefer header.stamp**: MCAP quality analysis, MP4 generation, and live quality (when `stamp_quality: true`) prefer `header.stamp`. This eliminates DDS delivery jitter for accurate quality evaluation. For message types without `header`, falls back to `log_time` (`backend/app/shared/stamp.py`).
 - **Loss detection is IQR-based**: Instead of a fixed multiplier, uses a statistical threshold (`Q3 + 1.5×IQR`) to detect per-frame losses. Recorded as `LossEvent` (severity=minor/major) and used for per-topic status determination.

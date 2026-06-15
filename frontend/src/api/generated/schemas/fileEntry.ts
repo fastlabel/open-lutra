@@ -34,6 +34,6 @@ export interface FileEntry {
   /** Latest upload status from upload_state.json (idle / uploading / uploaded / failed). null when no upload state exists. */
   upload_status: string | null;
   task_name: string | null;
-  robot_config_name: string | null;
+  recording_config_name: string | null;
   tags: string[];
 }

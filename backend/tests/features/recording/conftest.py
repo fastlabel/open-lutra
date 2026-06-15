@@ -16,7 +16,7 @@ def settings() -> MagicMock:
     s.default_topics = ["/joint_states", "/camera/color/image_raw/compressed"]
     s.recording_discovery_timeout = 10
     s.recording_start_delay_sec = 0.0
-    s.robot_config = "config/simulator.yaml"
+    s.recording_config = "config/simulator.yaml"
     return s
 
 

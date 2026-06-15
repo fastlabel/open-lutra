@@ -26,7 +26,7 @@ UNSTABLE_TOPICS = [] if UNSTABLE_TOPICS_ALL else _UNSTABLE_TOPICS_RAW.split(",")
 # Seconds before publishing stops
 STOP_AFTER_SEC = float(os.environ.get("SIM_STOP_AFTER_SEC", "15"))
 # Topics to stop
-STOP_TOPICS = os.environ.get("SIM_STOP_TOPICS", "/robot_slave/states,/robot_master/cmd").split(",")
+STOP_TOPICS = os.environ.get("SIM_STOP_TOPICS", "/sim/slave_arm_left,/sim/master_arm_left").split(",")
 
 # --- camera_empty ---
 # Camera indices that should emit empty frames (0-based)
