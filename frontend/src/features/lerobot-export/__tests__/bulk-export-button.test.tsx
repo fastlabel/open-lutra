@@ -25,7 +25,6 @@ vi.mock("@/hooks/use-api", () => ({
 
 // The dialog tracks the enqueued job via useJob; mock it (no QueryClient in this test).
 vi.mock("@/hooks/use-jobs-stream", () => ({ useJob: () => jobMock() }));
-vi.mock("@/hooks/use-topics-stream", () => ({ useAddLog: () => vi.fn() }));
 
 function renderButton() {
   const wrapper = ({ children }: { children: ReactNode }) => <TooltipProvider>{children}</TooltipProvider>;
@@ -120,6 +119,29 @@ describe("BulkExportButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(onExported).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("routes Escape through the same close handler as the Close button", () => {
+    mutateMock.mockImplementation((_vars, opts) => opts.onSuccess({ data: { job_id: "lex-1" } }));
+    jobMock.mockReturnValue({
+      job_id: "lex-1",
+      type: "lerobot_export",
+      folder: "ds_v1",
+      status: "completed",
+      progress: { step: "finalize", step_label: "Finalizing", current: 1, total: 1 },
+      error: null,
+    });
+    const onOpenChange = vi.fn();
+    const onExported = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => <TooltipProvider>{children}</TooltipProvider>;
+    render(<ExportDialog folders={["rec1"]} open onOpenChange={onOpenChange} onExported={onExported} />, { wrapper });
+
+    fireEvent.change(screen.getByLabelText("Output name"), { target: { value: "ds_v1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+
+    expect(onExported).toHaveBeenCalledTimes(1); // same as Close button: clears selection
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

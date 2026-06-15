@@ -124,7 +124,14 @@ export function ExportDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    // Route Escape / overlay clicks through handleClose so they behave exactly
+    // like the Close button (e.g. clearing the selection after a completed export).
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) handleClose();
+      }}
+    >
       <DialogContent onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>Export to LeRobot</DialogTitle>
