@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 
 from app.dependencies import require_dir
-from app.features.upload.schemas import UploadResponse
+from app.features.upload.schemas import BulkUploadRequest, BulkUploadResponse, UploadResponse
 from app.features.upload.service import get_upload_service
 
 logger = logging.getLogger(__name__)
@@ -36,3 +36,15 @@ async def start_upload(  # pragma: no cover
     uploaded object (no skip-if-cached, per issue #6).
     """
     return await get_upload_service().start(target)
+
+
+@router.post("/start-bulk", response_model=BulkUploadResponse, operation_id="startBulkUpload")
+async def start_bulk_upload(req: BulkUploadRequest) -> BulkUploadResponse:  # pragma: no cover
+    """Enqueue uploads for multiple recordings in one call.
+
+    Returns 400 when the upload feature is not fully configured (destination
+    missing or key template invalid). Per-folder errors (invalid path,
+    missing directory) are reported as ``failed`` entries inside ``results``
+    without aborting the rest of the batch.
+    """
+    return await get_upload_service().start_bulk(req.folders)

@@ -14,12 +14,18 @@ Benefits of using the job queue:
 import logging
 from pathlib import Path
 
+from fastapi import HTTPException, status
+
 from app.features.jobs.models import JobStatus
 from app.features.jobs.service import get_job_queue
 from app.features.upload.cache import load_state
 from app.features.upload.destinations import get_active_destination
 from app.features.upload.key_template import validate_template
-from app.features.upload.schemas import UploadResponse
+from app.features.upload.schemas import (
+    BulkUploadResponse,
+    BulkUploadResultItem,
+    UploadResponse,
+)
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -110,6 +116,46 @@ class UploadService:
 
         await queue.enqueue_upload(target)
         return UploadResponse(status="uploading", state=load_state(target), error=None)
+
+    async def start_bulk(self, folder_names: list[str]) -> BulkUploadResponse:
+        """Enqueue uploads for multiple recordings in one call.
+
+        Best-effort: per-folder enqueue errors (path traversal, missing
+        directory) are reported in the response without aborting the rest.
+        Order in ``results`` matches the request's ``folder_names``.
+
+        Global configuration errors (destination not set / key template
+        invalid) raise HTTP 400 — they would be identical for every folder,
+        so a single rejection is clearer than N copies of the same message.
+
+        The queue's per-folder dedup applies as in :meth:`start`: a folder
+        with an active upload is reported as ``uploading`` without being
+        re-enqueued.
+        """
+        settings = get_settings()
+        availability_err = _upload_availability_error(settings)
+        if availability_err is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=availability_err)
+
+        output_dir = settings.output_dir.resolve()
+        queue = get_job_queue()
+        results: list[BulkUploadResultItem] = []
+
+        for name in folder_names:
+            target = (output_dir / name).resolve()
+            if not target.is_relative_to(output_dir):
+                results.append(BulkUploadResultItem(folder=name, status="failed", error="Invalid path"))
+                continue
+            if not target.is_dir():
+                results.append(BulkUploadResultItem(folder=name, status="failed", error="Folder not found"))
+                continue
+
+            active = queue.get_active_upload_job(target)
+            if active is None or active.status not in (JobStatus.QUEUED, JobStatus.RUNNING):
+                await queue.enqueue_upload(target)
+            results.append(BulkUploadResultItem(folder=name, status="uploading", error=None))
+
+        return BulkUploadResponse(results=results)
 
 
 # ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from app.features.jobs.models import JobStatus, JobType, UploadJob
 from app.features.jobs.service import set_job_queue
@@ -17,10 +18,10 @@ from app.features.upload.service import UploadService, get_upload_service, is_up
 from app.settings import Settings
 
 
-def _make_settings(**overrides: object) -> Settings:
+def _make_settings(output_dir: Path | str = "/tmp", **overrides: object) -> Settings:
     base: dict[str, object] = {
         "robot_config": "config/simulator.yaml",
-        "output_dir": "/tmp",
+        "output_dir": str(output_dir),
         "s3_bucket": "lutra-test",
         "s3_key_template": "uploads/{recording_name}.zip",
     }
@@ -239,6 +240,135 @@ class TestUploadServiceStart:
         assert response.status == "failed"
         assert response.error is not None
         assert "unknown_placeholder" in response.error
+        mock_queue.enqueue_upload.assert_not_called()
+
+
+class TestUploadServiceStartBulk:
+    """``UploadService.start_bulk()`` — enqueue uploads for multiple folders."""
+
+    async def test_enqueues_each_folder_when_no_active_jobs(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        (tmp_path / "rec_a").mkdir()
+        (tmp_path / "rec_b").mkdir()
+        mock_queue.get_active_upload_job.return_value = None
+
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk(["rec_a", "rec_b"])
+
+        assert [r.folder for r in response.results] == ["rec_a", "rec_b"]
+        assert all(r.status == "uploading" and r.error is None for r in response.results)
+        assert mock_queue.enqueue_upload.await_count == 2
+
+    async def test_preserves_request_order(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        for name in ("first", "second", "third"):
+            (tmp_path / name).mkdir()
+        mock_queue.get_active_upload_job.return_value = None
+
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk(["third", "first", "second"])
+
+        assert [r.folder for r in response.results] == ["third", "first", "second"]
+
+    async def test_skips_enqueue_for_already_active_folder(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        (tmp_path / "rec_a").mkdir()
+        (tmp_path / "rec_b").mkdir()
+        active_target = (tmp_path / "rec_a").resolve()
+
+        def stub(target: Path) -> UploadJob | None:
+            return _make_job(active_target, JobStatus.RUNNING) if target == active_target else None
+
+        mock_queue.get_active_upload_job.side_effect = stub
+
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk(["rec_a", "rec_b"])
+
+        assert all(r.status == "uploading" for r in response.results)
+        # rec_a is already running, so only rec_b is enqueued
+        mock_queue.enqueue_upload.assert_awaited_once_with((tmp_path / "rec_b").resolve())
+
+    async def test_reports_missing_folder_without_aborting_batch(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        (tmp_path / "rec_a").mkdir()
+        mock_queue.get_active_upload_job.return_value = None
+
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk(["rec_a", "missing"])
+
+        assert response.results[0].folder == "rec_a"
+        assert response.results[0].status == "uploading"
+        assert response.results[1].folder == "missing"
+        assert response.results[1].status == "failed"
+        assert response.results[1].error == "Folder not found"
+        mock_queue.enqueue_upload.assert_awaited_once_with((tmp_path / "rec_a").resolve())
+
+    async def test_rejects_path_traversal_per_folder(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        (tmp_path / "ok").mkdir()
+        mock_queue.get_active_upload_job.return_value = None
+
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk(["ok", "../escape"])
+
+        assert response.results[0].status == "uploading"
+        assert response.results[1].status == "failed"
+        assert response.results[1].error == "Invalid path"
+
+    async def test_raises_400_when_destination_unconfigured(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        with patch(
+            "app.features.upload.service.get_settings",
+            return_value=_make_settings(output_dir=tmp_path, s3_bucket=None),
+        ), pytest.raises(HTTPException) as excinfo:
+            await UploadService().start_bulk(["rec_a"])
+
+        assert excinfo.value.status_code == 400
+        assert excinfo.value.detail == "S3_BUCKET is not configured"
+        mock_queue.enqueue_upload.assert_not_called()
+
+    async def test_raises_400_when_template_invalid(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        with patch(
+            "app.features.upload.service.get_settings",
+            return_value=_make_settings(output_dir=tmp_path, s3_key_template="x/{unknown}"),
+        ), pytest.raises(HTTPException) as excinfo:
+            await UploadService().start_bulk(["rec_a"])
+
+        assert excinfo.value.status_code == 400
+        assert "unknown" in str(excinfo.value.detail)
+        mock_queue.enqueue_upload.assert_not_called()
+
+    async def test_empty_folders_returns_empty_results(
+        self,
+        tmp_path: Path,
+        mock_queue: MagicMock,
+    ) -> None:
+        with patch("app.features.upload.service.get_settings", return_value=_make_settings(output_dir=tmp_path)):
+            response = await UploadService().start_bulk([])
+
+        assert response.results == []
         mock_queue.enqueue_upload.assert_not_called()
 
 
