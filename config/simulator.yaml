@@ -1,9 +1,9 @@
-# Robot configuration (default: simulator)
+# Recording configuration (default: simulator)
 #
-# Set ROBOT_CONFIG=config/simulator.yaml in .env to use this file.
+# Set RECORDING_CONFIG=config/simulator.yaml in .env to use this file.
 # Use it as a template for a physical robot: copy to e.g. config/myrobot.yaml,
 # adjust ros_domain_id / topic names / expected Hz / stamp_quality /
-# recording_start_delay_sec, then repoint ROBOT_CONFIG at the new file.
+# recording_start_delay_sec, then repoint RECORDING_CONFIG at the new file.
 
 robot_name: RobotSimulator
 ros_domain_id: 0

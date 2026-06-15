@@ -1,4 +1,4 @@
-"""Tests for application settings (Settings / RobotConfig)."""
+"""Tests for application settings (Settings / RecordingConfig)."""
 
 from __future__ import annotations
 
@@ -7,19 +7,19 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.settings import HzPattern, RobotConfig, Settings, ValidatorEntry, _load_robot_config, get_settings
+from app.settings import HzPattern, RecordingConfig, Settings, ValidatorEntry, _load_recording_config, get_settings
 
 # ---------------------------------------------------------------------------
-# RobotConfig
+# RecordingConfig
 # ---------------------------------------------------------------------------
 
 
-class TestRobotConfig:
-    """Tests for RobotConfig defaults and validation."""
+class TestRecordingConfig:
+    """Tests for RecordingConfig defaults and validation."""
 
     def test_defaults(self) -> None:
         """All fields have a default value defined."""
-        cfg = RobotConfig()
+        cfg = RecordingConfig()
         assert cfg.robot_name == "Robot"
         assert cfg.ros_domain_id == 0
         assert cfg.recording_discovery_timeout == 10
@@ -33,30 +33,30 @@ class TestRobotConfig:
     def test_recording_start_delay_sec_negative_rejected(self) -> None:
         """Negative start_delay_sec is rejected by the ge=0 constraint."""
         with pytest.raises(ValueError):
-            RobotConfig(recording_start_delay_sec=-1.0)
+            RecordingConfig(recording_start_delay_sec=-1.0)
 
     def test_recording_start_delay_sec_zero_allowed(self) -> None:
         """Zero is allowed."""
-        cfg = RobotConfig(recording_start_delay_sec=0.0)
+        cfg = RecordingConfig(recording_start_delay_sec=0.0)
         assert cfg.recording_start_delay_sec == 0.0
 
     def test_recording_start_delay_sec_positive(self) -> None:
         """Positive values are preserved as-is."""
-        cfg = RobotConfig(recording_start_delay_sec=2.5)
+        cfg = RecordingConfig(recording_start_delay_sec=2.5)
         assert cfg.recording_start_delay_sec == 2.5
 
 
 class TestResolveExpectedHz:
-    """Tests for RobotConfig.resolve_expected_hz()."""
+    """Tests for RecordingConfig.resolve_expected_hz()."""
 
     def test_no_patterns(self) -> None:
         """No patterns returns None."""
-        cfg = RobotConfig()
+        cfg = RecordingConfig()
         assert cfg.resolve_expected_hz("/foo") is None
 
     def test_glob_match(self) -> None:
         """Returns the Hz of the first matching glob pattern."""
-        cfg = RobotConfig(
+        cfg = RecordingConfig(
             expected_hz_patterns=[
                 HzPattern(pattern="**/compressed", hz=30.0),
                 HzPattern(pattern="/joint/*", hz=200.0),
@@ -67,7 +67,7 @@ class TestResolveExpectedHz:
 
     def test_first_match_wins(self) -> None:
         """When multiple patterns match, the first one takes precedence."""
-        cfg = RobotConfig(
+        cfg = RecordingConfig(
             expected_hz_patterns=[
                 HzPattern(pattern="/foo/*", hz=10.0),
                 HzPattern(pattern="/foo/bar", hz=20.0),
@@ -77,26 +77,26 @@ class TestResolveExpectedHz:
 
     def test_dynamic_learning_returns_none_hz(self) -> None:
         """A pattern with hz explicitly set to None returns None (dynamic learning)."""
-        cfg = RobotConfig(expected_hz_patterns=[HzPattern(pattern="/sensor/*", hz=None)])
+        cfg = RecordingConfig(expected_hz_patterns=[HzPattern(pattern="/sensor/*", hz=None)])
         assert cfg.resolve_expected_hz("/sensor/imu") is None
 
     def test_no_match(self) -> None:
         """No match returns None."""
-        cfg = RobotConfig(expected_hz_patterns=[HzPattern(pattern="/foo/*", hz=30.0)])
+        cfg = RecordingConfig(expected_hz_patterns=[HzPattern(pattern="/foo/*", hz=30.0)])
         assert cfg.resolve_expected_hz("/bar") is None
 
 
 # ---------------------------------------------------------------------------
-# _load_robot_config
+# _load_recording_config
 # ---------------------------------------------------------------------------
 
 
-class TestLoadRobotConfig:
-    """Tests for _load_robot_config()."""
+class TestLoadRecordingConfig:
+    """Tests for _load_recording_config()."""
 
     def test_loads_yaml(self, tmp_path: Path) -> None:
         """Loads a valid YAML file."""
-        yaml_path = tmp_path / "robot.yaml"
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text(
             """
 robot_name: TestBot
@@ -111,7 +111,7 @@ expected_hz_patterns:
 """,
             encoding="utf-8",
         )
-        cfg = _load_robot_config(str(yaml_path))
+        cfg = _load_recording_config(str(yaml_path))
         assert cfg.robot_name == "TestBot"
         assert cfg.ros_domain_id == 7
         assert cfg.recording_discovery_timeout == 5
@@ -123,7 +123,7 @@ expected_hz_patterns:
     def test_missing_file_raises(self, tmp_path: Path) -> None:
         """Raises FileNotFoundError when the file does not exist."""
         with pytest.raises(FileNotFoundError):
-            _load_robot_config(str(tmp_path / "nonexistent.yaml"))
+            _load_recording_config(str(tmp_path / "nonexistent.yaml"))
 
 
 # ---------------------------------------------------------------------------
@@ -148,11 +148,11 @@ class TestValidatorEntry:
         assert entry.params == {"min_sec": 5.0, "max_sec": 30.0}
 
 
-class TestRobotConfigValidators:
-    """Tests for the validators field on RobotConfig."""
+class TestRecordingConfigValidators:
+    """Tests for the validators field on RecordingConfig."""
 
     def test_loaded_from_yaml(self, tmp_path: Path) -> None:
-        yaml_path = tmp_path / "robot.yaml"
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text(
             "validators:\n"
             "  - name: required_topics_present\n"
@@ -163,7 +163,7 @@ class TestRobotConfigValidators:
             "    max_sec: 30\n",
             encoding="utf-8",
         )
-        cfg = _load_robot_config(str(yaml_path))
+        cfg = _load_recording_config(str(yaml_path))
         assert len(cfg.validators) == 2
         assert cfg.validators[0].name == "required_topics_present"
         assert cfg.validators[0].params == {"topics": ["/cam"]}
@@ -179,36 +179,36 @@ class TestRobotConfigValidators:
 class TestSettings:
     """Tests for the Settings class."""
 
-    def test_robot_uses_default_when_yaml_missing(self, tmp_path: Path) -> None:
-        """Returns the default RobotConfig when the YAML file does not exist."""
-        s = Settings(robot_config=str(tmp_path / "missing.yaml"), output_dir=tmp_path)
-        robot = s.robot
-        assert robot.robot_name == "Robot"
-        assert robot.ros_domain_id == 0
+    def test_recording_uses_default_when_yaml_missing(self, tmp_path: Path) -> None:
+        """Returns the default RecordingConfig when the YAML file does not exist."""
+        s = Settings(recording_config=str(tmp_path / "missing.yaml"), output_dir=tmp_path)
+        recording = s.recording
+        assert recording.robot_name == "Robot"
+        assert recording.ros_domain_id == 0
 
-    def test_robot_loads_yaml(self, tmp_path: Path) -> None:
+    def test_recording_loads_yaml(self, tmp_path: Path) -> None:
         """Loads the YAML file when one is present."""
-        yaml_path = tmp_path / "robot.yaml"
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text(
             "robot_name: MyBot\nros_domain_id: 99\nrecording_start_delay_sec: 2.0\n",
             encoding="utf-8",
         )
-        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
-        assert s.robot.robot_name == "MyBot"
-        assert s.robot.ros_domain_id == 99
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
+        assert s.recording.robot_name == "MyBot"
+        assert s.recording.ros_domain_id == 99
 
-    def test_robot_is_cached(self, tmp_path: Path) -> None:
-        """The robot property is loaded only on first access (cached)."""
-        yaml_path = tmp_path / "robot.yaml"
+    def test_recording_is_cached(self, tmp_path: Path) -> None:
+        """The recording property is loaded only on first access (cached)."""
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text("robot_name: Cached\n", encoding="utf-8")
-        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
-        first = s.robot
-        second = s.robot
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
+        first = s.recording
+        second = s.recording
         assert first is second  # Same instance
 
     def test_property_passthroughs(self, tmp_path: Path) -> None:
-        """Each property returns the corresponding RobotConfig value."""
-        yaml_path = tmp_path / "robot.yaml"
+        """Each property returns the corresponding RecordingConfig value."""
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text(
             """
 robot_name: PropTest
@@ -226,7 +226,7 @@ expected_hz_patterns:
 """,
             encoding="utf-8",
         )
-        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
         assert s.robot_name == "PropTest"
         assert s.ros_domain_id == 42
         assert s.recording_discovery_timeout == 8
@@ -237,23 +237,23 @@ expected_hz_patterns:
 
     def test_recording_start_delay_sec_default(self, tmp_path: Path) -> None:
         """Defaults to 0.0 when not specified in YAML."""
-        yaml_path = tmp_path / "robot.yaml"
+        yaml_path = tmp_path / "recording.yaml"
         yaml_path.write_text("robot_name: Foo\n", encoding="utf-8")
-        s = Settings(robot_config=str(yaml_path), output_dir=tmp_path)
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
         assert s.recording_start_delay_sec == 0.0
 
-    def test_missing_robot_config_raises(
+    def test_missing_recording_config_raises(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        """Raises ValidationError when ROBOT_CONFIG is not set."""
-        monkeypatch.delenv("ROBOT_CONFIG", raising=False)
+        """Raises ValidationError when RECORDING_CONFIG is not set."""
+        monkeypatch.delenv("RECORDING_CONFIG", raising=False)
         monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
-        with pytest.raises(ValidationError, match="robot_config"):
+        with pytest.raises(ValidationError, match="recording_config"):
             Settings(_env_file=None)  # type: ignore[call-arg]
 
     def test_missing_output_dir_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Raises ValidationError when OUTPUT_DIR is not set."""
-        monkeypatch.setenv("ROBOT_CONFIG", "config/simulator.yaml")
+        monkeypatch.setenv("RECORDING_CONFIG", "config/simulator.yaml")
         monkeypatch.delenv("OUTPUT_DIR", raising=False)
         with pytest.raises(ValidationError, match="output_dir"):
             Settings(_env_file=None)  # type: ignore[call-arg]
@@ -266,7 +266,7 @@ class TestGetSettings:
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         """Returns a Settings instance."""
-        monkeypatch.setenv("ROBOT_CONFIG", "config/simulator.yaml")
+        monkeypatch.setenv("RECORDING_CONFIG", "config/simulator.yaml")
         monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
         s = get_settings()
         assert isinstance(s, Settings)

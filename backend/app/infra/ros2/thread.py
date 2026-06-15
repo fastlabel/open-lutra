@@ -54,7 +54,7 @@ class TopicMonitorThread:
             log_manager=self._log_manager,
             gap_threshold_sec=self._settings.gap_threshold_sec,
             buffer_size=self._settings.monitor_buffer_size,
-            resolve_expected_hz=self._settings.robot.resolve_expected_hz,
+            resolve_expected_hz=self._settings.recording.resolve_expected_hz,
             stamp_quality=self._settings.stamp_quality,
         )
 

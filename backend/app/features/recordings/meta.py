@@ -1,9 +1,9 @@
 """Read and write recording_meta.json.
 
-Stores app-specific metadata (task_name / robot_config_name / tags) directly
-inside the recording folder, separately from the metadata.yaml that ROS2
-auto-generates. Returns None on read failure to stay backward-compatible
-with older recording folders that do not contain this file.
+Stores app-specific metadata (task_name / recording_config_name / tags)
+directly inside the recording folder, separately from the metadata.yaml
+that ROS2 auto-generates. Returns None on read failure to stay backward-
+compatible with older recording folders that do not contain this file.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class RecordingMeta(BaseModel):
     """App-specific metadata for a recording folder."""
 
     task_name: str | None = None
-    robot_config_name: str | None = None
+    recording_config_name: str | None = None
     tags: list[str] = Field(default_factory=list)
 
 
@@ -60,8 +60,8 @@ def update_recording_meta(
     Creates a new file from an empty meta if none exists (older recording
     folders). A None argument means "unspecified = leave unchanged"; an
     empty string or empty list explicitly overwrites the field with that
-    value. robot_config_name is fixed at recording time and is not updated
-    by this function.
+    value. recording_config_name is fixed at recording time and is not
+    updated by this function.
     """
     meta = read_recording_meta(directory) or RecordingMeta()
     if task_name is not None:

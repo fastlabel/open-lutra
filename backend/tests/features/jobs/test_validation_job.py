@@ -44,7 +44,7 @@ def _write_quality_report(directory: Path, *, duration_sec: float = 60.0) -> Non
 
 
 def _write_meta(directory: Path, *, task_name: str | None) -> None:
-    payload = {"task_name": task_name, "robot_config_name": None, "tags": []}
+    payload = {"task_name": task_name, "recording_config_name": None, "tags": []}
     (directory / "recording_meta.json").write_text(json.dumps(payload), encoding="utf-8")
 
 
@@ -84,7 +84,7 @@ class TestRunValidation:
         from unittest.mock import MagicMock
 
         mock_s = MagicMock()
-        mock_s.robot.validators = []
+        mock_s.recording.validators = []
         monkeypatch.setattr("app.features.validation.active_set.get_settings", lambda: mock_s)
 
         _write_quality_report(tmp_path)

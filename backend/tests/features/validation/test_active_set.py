@@ -9,14 +9,14 @@ from tests.features.validation.conftest import make_ctx
 
 
 def _settings_with_yaml(tmp_path: Path, content: str) -> Settings:
-    yaml_path = tmp_path / "robot.yaml"
+    yaml_path = tmp_path / "recording.yaml"
     yaml_path.write_text(content, encoding="utf-8")
-    return Settings(robot_config=str(yaml_path))
+    return Settings(recording_config=str(yaml_path))
 
 
 class TestGetBuiltinRecordingValidators:
     def test_empty_validators_returns_empty_list(self, tmp_path: Path) -> None:
-        s = Settings(robot_config=str(tmp_path / "missing.yaml"))
+        s = Settings(recording_config=str(tmp_path / "missing.yaml"))
         assert get_builtin_recording_validators(s) == []
 
     def test_required_topics_present(self, tmp_path: Path) -> None:

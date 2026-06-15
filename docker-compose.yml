@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     container_name: ros2-publisher-simulator
     environment:
-      - ROBOT_CONFIG=/app/config/simulator.yaml
+      - RECORDING_CONFIG=/app/config/simulator.yaml
       - CYCLONEDDS_URI=file:///cyclonedds.xml
       - SIM_MODE=${SIM_MODE:-normal}
       - SIM_DROP_RATE=${SIM_DROP_RATE:-0.1}
@@ -51,11 +51,11 @@ services:
     environment:
       - CYCLONEDDS_URI=file:///cyclonedds.xml
       - OUTPUT_DIR=/data/output
-      - ROBOT_CONFIG=${ROBOT_CONFIG:-config/simulator.yaml}
+      - RECORDING_CONFIG=${RECORDING_CONFIG:-config/simulator.yaml}
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=${DEBUG:-true}
-    command: ["bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && export ROS_DOMAIN_ID=$(python3 -c \"import yaml; print(yaml.safe_load(open('${ROBOT_CONFIG:-config/simulator.yaml}')).get('ros_domain_id', 0))\") && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app"]
+    command: ["bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && export ROS_DOMAIN_ID=$(python3 -c \"import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG:-config/simulator.yaml}')).get('ros_domain_id', 0))\") && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app"]
     volumes:
       - ./cyclonedds.xml:/cyclonedds.xml:ro
       - ./backend/app:/app/app

@@ -139,7 +139,7 @@ class TestValidationRunner:
         from app.settings import ValidatorEntry
 
         mock_s = MagicMock()
-        mock_s.robot.validators = [
+        mock_s.recording.validators = [
             ValidatorEntry(name="required_topics_present", topics=[]),
             ValidatorEntry(name="total_duration_sec"),
         ]

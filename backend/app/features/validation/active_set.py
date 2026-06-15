@@ -1,8 +1,8 @@
 """Active set (params) for builtin validators.
 
 Validators and their parameters are configured via the `validators:` section
-of the robot config YAML (e.g. `config/simulator.yaml`). This module reads
-that configuration and instantiates the corresponding builtin classes.
+of the recording config YAML (e.g. `config/simulator.yaml`). This module
+reads that configuration and instantiates the corresponding builtin classes.
 
 If you add a new builtin validator, register it in `_BUILTIN_REGISTRY` below.
 Custom validators (placed under `custom/` with `@register_validator`) are
@@ -38,7 +38,7 @@ def _make_config_error_validator(entry_name: str, message: str) -> RecordingVali
 
 
 def get_builtin_recording_validators(settings: Settings | None = None) -> list[RecordingValidator]:
-    """Return instantiated builtin validators from the robot config.
+    """Return instantiated builtin validators from the recording config.
 
     Each entry in `validators:` is looked up by name in `_BUILTIN_REGISTRY`
     and instantiated with the remaining fields as keyword arguments.
@@ -48,7 +48,7 @@ def get_builtin_recording_validators(settings: Settings | None = None) -> list[R
     """
     s = settings or get_settings()
     result: list[RecordingValidator] = []
-    for entry in s.robot.validators:
+    for entry in s.recording.validators:
         cls = _BUILTIN_REGISTRY.get(entry.name)
         if cls is None:
             result.append(

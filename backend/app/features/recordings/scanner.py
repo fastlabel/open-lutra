@@ -100,7 +100,7 @@ def _build_recording_entry(folder: Path, rel_root: Path) -> FileEntry | None:
         validation_overall_status=(validation_report.overall_status if validation_report else None),
         upload_status=upload_state.status if upload_state else None,
         task_name=meta.task_name if meta else None,
-        robot_config_name=meta.robot_config_name if meta else None,
+        recording_config_name=meta.recording_config_name if meta else None,
         tags=meta.tags if meta else [],
     )
 

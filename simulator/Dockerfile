@@ -17,13 +17,13 @@ COPY *.py .
 COPY frames/ ./frames/
 COPY joint_replay.json .
 
-# Entrypoint: read ROS_DOMAIN_ID from ROBOT_CONFIG and start ROS2
+# Entrypoint: read ROS_DOMAIN_ID from RECORDING_CONFIG and start ROS2
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e
 source /opt/ros/humble/setup.bash
-if [ -f "${ROBOT_CONFIG:-}" ]; then
-  export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${ROBOT_CONFIG}')).get('ros_domain_id', 0))")
+if [ -f "${RECORDING_CONFIG:-}" ]; then
+  export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG}')).get('ros_domain_id', 0))")
 fi
 exec python3 /simulator/robot_simulator.py
 EOF
