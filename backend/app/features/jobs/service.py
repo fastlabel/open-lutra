@@ -510,7 +510,6 @@ class JobQueue:
         from app.features.recordings.scanner import read_metadata_summary
         from app.features.upload.cache import save_state
         from app.features.upload.destinations import get_active_destination
-        from app.features.upload.key_template import render_key
         from app.features.upload.models import UploadState
         from app.features.upload.progress import ThrottledProgress
         from app.features.upload.zip_builder import build_zip
@@ -521,17 +520,13 @@ class JobQueue:
         err = destination.configuration_error()
         if err is not None:
             raise RuntimeError(err)
-        # configuration_error() guarantees these are set; assert for the type checker.
-        assert settings.s3_bucket is not None
-        assert settings.s3_key_template is not None
 
         _, recording_start_ns, _, _ = read_metadata_summary(target)
         if recording_start_ns is None:
             raise FileNotFoundError(
                 f"Cannot determine recording start time from metadata.yaml: {target.name}",
             )
-        key = render_key(
-            settings.s3_key_template,
+        destination_label, key = destination.prepare_target(
             recording_name=target.name,
             recording_start_ns=recording_start_ns,
         )
@@ -543,7 +538,7 @@ class JobQueue:
 
         state = UploadState(
             status="uploading",
-            destination=settings.s3_bucket,
+            destination=destination_label,
             key=key,
             etag=None,
             size_bytes=zip_size,

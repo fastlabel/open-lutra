@@ -1,10 +1,10 @@
 # Upload to a Destination
 
 > How recordings are shipped from the recording machine to a configured
-> upload destination (S3-compatible today; GCS / local-network destinations
-> on the roadmap).
+> upload destination (S3-compatible and local-network filesystem today;
+> GCS on the roadmap).
 >
-> Related: [Setup — S3 Upload](../SETUP.md#s3-upload-optional) | [Architecture](../ARCHITECTURE.md)
+> Related: [Setup — S3 Upload](../SETUP.md#s3-upload-optional) | [Setup — Local-Network Upload](../SETUP.md#local-network-upload-optional) | [Architecture](../ARCHITECTURE.md)
 
 ## Scope
 
@@ -21,9 +21,10 @@ What is in scope:
 - Persist a per-recording state file so reloads survive a refresh / a
   page navigation.
 - Stream byte-level progress over SSE while the upload runs.
-- Generic over the destination — S3 today via boto3, with an extension
-  point (`UploadDestination` protocol) so GCS / a local-network server
-  can be added later without touching the service / job queue layers.
+- Generic over the destination — S3 (via boto3) and a local-network
+  filesystem (via `shutil.copyfile` against a bind-mounted directory)
+  today; further destinations (GCS) plug in via the `UploadDestination`
+  protocol without touching the service / job queue layers.
 
 What is **not** in scope (out by design, per [issue #6](https://github.com/fastlabel/open-lutra/issues/6)):
 
@@ -44,8 +45,8 @@ design baked in yet — both decisions sit with whoever picks them up):
   endpoint that enqueues `N` jobs server-side) ends up serialized the
   same way — pick whichever fits the rest of the UI's mutation
   patterns better.
-- **Non-S3 destinations** (local-network server, GCS, …). See "The
-  destination abstraction" below for the extension recipe.
+- **Further destinations** (GCS, …). See "The destination abstraction"
+  below for the extension recipe.
 
 ## Lifecycle
 
@@ -94,6 +95,7 @@ app/features/upload/destinations/
   base.py        UploadDestination Protocol + UploadResult + ProgressCallback
   registry.py    get_active_destination(settings) → single active instance
   s3.py          S3Destination (boto3 + any S3-compatible endpoint)
+  local.py       LocalDestination (shutil.copyfile to a bind-mounted directory)
 ```
 
 The job runner only sees:
@@ -102,52 +104,58 @@ The job runner only sees:
 class UploadDestination(Protocol):
     name: str
     def configuration_error(self) -> str | None: ...
+    def prepare_target(self, recording_name, recording_start_ns) -> tuple[str, str]: ...
     def upload(self, local_path, key, progress) -> UploadResult: ...
 ```
 
-Adding a backend (e.g. a local-network server, GCS) is a small,
-well-bounded change:
+`prepare_target` returns `(destination_label, key)` — bucket + object
+key for S3, mount-dir path + relative path for local. `configuration_error`
+owns every check that must pass before an upload can be enqueued (env
+vars set, key/path template parses, etc.); the service layer never names
+destination-specific fields.
+
+Adding a backend (e.g. GCS) is a small, well-bounded change:
 
 1. **Implement the destination.** New module under `destinations/`
-   (e.g. `destinations/local.py`) with a class that fulfils the
-   `UploadDestination` Protocol. Set `name = "local"` on the class —
-   it is read by diagnostics and (eventually) by selection logic.
+   (e.g. `destinations/gcs.py`) with a class that fulfils the
+   `UploadDestination` Protocol. Set `name = "gcs"` on the class —
+   it is read by diagnostics and by selection logic.
 2. **Add settings.** Whatever env vars the backend needs (host /
    credentials / path prefix) go on `Settings` in
-   `backend/app/settings.py`. Follow the existing S3 pattern:
+   `backend/app/settings.py`. Follow the existing pattern:
    `str | None = None` for optional fields, no defaults on values
    the operator must supply.
-3. **Wire up selection.** `get_active_destination(settings)` in
-   `destinations/registry.py` currently hard-returns `S3Destination`.
-   Introduce `UPLOAD_DESTINATION` on `Settings` (allowed values:
-   `"s3"` / `"local"` / …; default `"s3"` so existing deployments
-   keep working) and switch on it.
-4. **Generalise the availability check.** `_upload_availability_error`
-   in `upload/service.py` today calls `validate_template(
-   settings.s3_key_template)` directly — that lives outside the
-   Protocol because S3 happens to use a key template. If the new
-   destination does not use a key template, push that validation into
-   the destination's `configuration_error()` (or a similar Protocol
-   method) so the service layer stops naming S3 fields.
+3. **Extend the destination selector.** Widen `UPLOAD_DESTINATION` on
+   `Settings` (today `Literal["s3", "local"]`) to include the new
+   value, and add a branch in `get_active_destination(settings)` in
+   `destinations/registry.py`.
+4. **Cover every precondition in `configuration_error()`.** Validate
+   env vars, the path / key template (use
+   `app.features.upload.key_template.validate_template` if you reuse
+   the standard placeholders), and any other start-time checks. Avoid
+   probing the network — `configuration_error()` runs on every
+   `/api/upload/start` and on `/api/config`, so it must not block.
 5. **Mirror the tests.** Drop a sibling test file under
    `backend/tests/features/upload/destinations/` named after the
-   destination (e.g. `test_local.py`), following `test_s3.py` for the
-   test-class layout (`TestConfigurationError`, `TestUpload`, plus
-   any private-helper tests). 100% coverage on the new module is
-   expected — see `docs/DEVELOPMENT.md` for the coverage gate.
+   destination (e.g. `test_gcs.py`), following `test_s3.py` /
+   `test_local.py` for the test-class layout (`TestConfigurationError`,
+   `TestPrepareTarget`, `TestUpload`, plus any private-helper tests).
+   100% coverage on the new module is expected — see
+   `docs/DEVELOPMENT.md` for the coverage gate.
 6. **Update operator-facing docs.** Add an env-var table for the new
-   destination to `docs/SETUP.md` (mirror the S3 Upload section) so
-   the operator knows what to set.
+   destination to `docs/SETUP.md` (mirror the S3 / Local-Network Upload
+   sections) so the operator knows what to set.
 
 The service layer, the job queue, the UI, and the persisted
 `upload_state.json` are all destination-agnostic — `state.destination`
-holds a bucket / container / host string and `state.key` holds the
+holds a bucket / mount-dir / host string and `state.key` holds the
 object path within it.
 
 ## Key template
 
-The destination key is computed at upload time by rendering
-`S3_KEY_TEMPLATE` with these placeholders:
+The destination key is computed at upload time by rendering the
+destination's template (`S3_KEY_TEMPLATE` for S3,
+`LOCAL_UPLOAD_PATH_TEMPLATE` for local) with these placeholders:
 
 | Placeholder | Source | Example |
 |---|---|---|
@@ -156,38 +164,48 @@ The destination key is computed at upload time by rendering
 
 ```env
 S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_name}.zip
+LOCAL_UPLOAD_PATH_TEMPLATE=operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 ```
 
 `task_name` is **deliberately not a placeholder.** Task names are
 user-editable and may contain spaces or other characters that would
-require percent-encoding in an S3 key; keeping them out of the key
-keeps the convention "the key is composed of immutable identifiers
-only". `task_name` is still recorded in `recording_meta.json` inside
-the zip, so it travels with the upload — it just does not appear in
-the destination key.
+require percent-encoding in an S3 key or filesystem-path quoting;
+keeping them out of the key keeps the convention "the key is composed
+of immutable identifiers only". `task_name` is still recorded in
+`recording_meta.json` inside the zip, so it travels with the upload —
+it just does not appear in the destination key.
 
 `validate_template` rejects unknown placeholders and unbalanced braces
 at start-time (so the operator sees the error in the UploadResponse
-rather than discovering it after a long zip).
+rather than discovering it after a long zip). Each destination calls
+the validator from inside its own `configuration_error()`.
 
 ## Failure modes
 
 Every failure is recorded on `upload_state.json` and surfaced through
 `GET /api/upload` + the UploadBadge + the UploadButton's inline error
-message. The four sources of a `status="failed"` response are:
+message. The sources of a `status="failed"` response are:
 
 | Source | Where it is raised | What the user sees |
 |---|---|---|
 | `S3_BUCKET` / `S3_KEY_TEMPLATE` not set | `S3Destination.configuration_error()` (start-path early-reject) | "S3_BUCKET is not configured" (UI: red badge) |
-| Invalid template syntax | `validate_template` (start-path early-reject) | "Unknown placeholder: …" |
+| `LOCAL_UPLOAD_DIR` not set / missing / not writable | `LocalDestination.configuration_error()` (start-path early-reject) | "LOCAL_UPLOAD_DIR is not configured" / "LOCAL_UPLOAD_DIR does not exist: …" / "LOCAL_UPLOAD_DIR is not writable: …" |
+| Invalid template syntax | `validate_template` via `configuration_error()` (start-path early-reject) | "Unknown placeholder: …" / "Unbalanced braces: …" |
 | Recording missing `metadata.yaml` start time | `_run_upload` (job worker) | "Cannot determine recording start time from metadata.yaml: …" |
-| Network / S3 SDK error | `destination.upload()` raises through `_run_upload` | The boto3 error message verbatim (e.g. `EndpointConnectionError`, `NoSuchBucket`) |
+| Network / S3 SDK error | `S3Destination.upload()` raises through `_run_upload` | The boto3 error message verbatim (e.g. `EndpointConnectionError`, `NoSuchBucket`) |
+| Local-filesystem error (mount unresponsive, disk full, permission denied) | `LocalDestination.upload()` raises through `_run_upload` | The OS error message verbatim (e.g. `OSError: No space left on device`, `PermissionError`) |
 
 Start-path early-rejects do not enqueue a job and do not write
 `upload_state.json` — the failure is only carried in the
-`UploadResponse`. The runtime-side failures (the last two rows above)
+`UploadResponse`. The runtime-side failures (the last three rows above)
 always leave a `failed` state file behind, so a refresh still shows the
 error and the user can hit "Retry upload" without losing context.
+
+> `LocalDestination.configuration_error()` deliberately does not probe
+> the share for network responsiveness — that check runs on every
+> `/api/upload/start` and on `/api/config`, so blocking on a stuck NFS
+> mount would freeze the UI. An unresponsive mount surfaces as an
+> exception on the actual `shutil.copyfile` call instead.
 
 ## UI integration
 
@@ -200,14 +218,17 @@ Both components return `null` when `useConfig().upload_enabled === false`,
 so a machine with no destination configured renders no upload affordances
 at all.
 
-`upload_enabled` is true only when both checks pass: the destination's
-`configuration_error()` returns `None` **and** `validate_template`
-succeeds on the configured `S3_KEY_TEMPLATE`. That keeps the UI from
-showing a button that would always immediately fail.
+`upload_enabled` is true exactly when the active destination's
+`configuration_error()` returns `None` — every precondition (env vars,
+template parses, directory exists / is writable, etc.) lives inside
+that method. That keeps the UI from showing a button that would always
+immediately fail.
 
 ## Operator setup
 
-See [Setup — S3 Upload](../SETUP.md#s3-upload-optional) for the
+See [Setup — S3 Upload](../SETUP.md#s3-upload-optional) for the S3
 environment variables (env-var-auth vs. profile-auth, TransferConfig
-overrides) and [Setup — Local Testing with MinIO](../SETUP.md#local-testing-with-minio)
-for spinning up the local MinIO sandbox.
+overrides), [Setup — Local Testing with MinIO](../SETUP.md#local-testing-with-minio)
+for spinning up the local MinIO sandbox, and
+[Setup — Local-Network Upload](../SETUP.md#local-network-upload-optional)
+for the NFS / SMB bind-mount recipe.
