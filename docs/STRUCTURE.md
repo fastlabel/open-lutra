@@ -84,6 +84,7 @@ backend/app/
 │   │   ├── destinations/      # Pluggable upload-destination backends
 │   │   │   ├── base.py        # UploadDestination Protocol + UploadResult + ProgressCallback
 │   │   │   ├── registry.py    # get_active_destination(settings) — switches on UPLOAD_DESTINATION
+│   │   │   ├── disabled.py    # DisabledDestination (returned when UPLOAD_DESTINATION is unset)
 │   │   │   ├── s3.py          # S3Destination (boto3 + S3-compatible endpoints incl. MinIO)
 │   │   │   └── local.py       # LocalDestination (shutil.copyfile to a bind-mounted directory)
 │   │   ├── zip_builder.py     # Zip the recording folder (mtime-keyed reuse)

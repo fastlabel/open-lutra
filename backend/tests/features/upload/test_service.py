@@ -22,6 +22,7 @@ def _make_settings(output_dir: Path | str = "/tmp", **overrides: object) -> Sett
     base: dict[str, object] = {
         "recording_config": "config/simulator.yaml",
         "output_dir": str(output_dir),
+        "upload_destination": "s3",
         "s3_bucket": "lutra-test",
         "s3_key_template": "uploads/{recording_name}.zip",
     }
@@ -382,6 +383,9 @@ class TestIsUploadEnabled:
 
     def test_true_when_destination_and_template_valid(self) -> None:
         assert is_upload_enabled(_make_settings()) is True
+
+    def test_false_when_upload_destination_unset(self) -> None:
+        assert is_upload_enabled(_make_settings(upload_destination=None)) is False
 
     def test_false_when_bucket_missing(self) -> None:
         assert is_upload_enabled(_make_settings(s3_bucket=None)) is False

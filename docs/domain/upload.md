@@ -94,6 +94,7 @@ across time.
 app/features/upload/destinations/
   base.py        UploadDestination Protocol + UploadResult + ProgressCallback
   registry.py    get_active_destination(settings) → single active instance
+  disabled.py    DisabledDestination (returned when UPLOAD_DESTINATION is unset; keeps the feature off)
   s3.py          S3Destination (boto3 + any S3-compatible endpoint)
   local.py       LocalDestination (shutil.copyfile to a bind-mounted directory)
 ```
@@ -126,8 +127,9 @@ Adding a backend (e.g. GCS) is a small, well-bounded change:
    `str | None = None` for optional fields, no defaults on values
    the operator must supply.
 3. **Extend the destination selector.** Widen `UPLOAD_DESTINATION` on
-   `Settings` (today `Literal["s3", "local"]`) to include the new
-   value, and add a branch in `get_active_destination(settings)` in
+   `Settings` (today `Literal["s3", "local"] | None` with the default
+   ``None`` meaning the upload feature is off) to include the new value,
+   and add a branch in `get_active_destination(settings)` in
    `destinations/registry.py`.
 4. **Cover every precondition in `configuration_error()`.** Validate
    env vars, the path / key template (use
@@ -188,6 +190,7 @@ message. The sources of a `status="failed"` response are:
 
 | Source | Where it is raised | What the user sees |
 |---|---|---|
+| `UPLOAD_DESTINATION` not set | `DisabledDestination.configuration_error()` (start-path early-reject) | "UPLOAD_DESTINATION is not configured" (UI: upload affordances hidden) |
 | `S3_BUCKET` / `S3_KEY_TEMPLATE` not set | `S3Destination.configuration_error()` (start-path early-reject) | "S3_BUCKET is not configured" (UI: red badge) |
 | `LOCAL_UPLOAD_DIR` not set / missing / not writable | `LocalDestination.configuration_error()` (start-path early-reject) | "LOCAL_UPLOAD_DIR is not configured" / "LOCAL_UPLOAD_DIR does not exist: …" / "LOCAL_UPLOAD_DIR is not writable: …" |
 | Invalid template syntax | `validate_template` via `configuration_error()` (start-path early-reject) | "Unknown placeholder: …" / "Unbalanced braces: …" |

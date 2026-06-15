@@ -246,12 +246,13 @@ The `.env` file holds only infrastructure and connection settings:
 
 ## S3 Upload (optional)
 
-Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The feature stays disabled until both `S3_BUCKET` and `S3_KEY_TEMPLATE` are set in `.env`.
+Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The feature stays disabled until `UPLOAD_DESTINATION=s3` **and** both `S3_BUCKET` and `S3_KEY_TEMPLATE` are set in `.env`.
 
-`UPLOAD_DESTINATION` selects which backend is active per machine — defaults to `s3`, leave unset (or set to `s3`) when uploading to S3. Set it to `local` to upload to a directory on the backend container's filesystem instead; see [Local-Network Upload (optional)](#local-network-upload-optional).
+`UPLOAD_DESTINATION` selects which backend is active per machine. When unset, the upload feature is disabled — `/api/upload/start` refuses to enqueue and the UI hides its affordances. Set it to `s3` to upload to S3, or `local` to upload to a directory on the backend container's filesystem instead; see [Local-Network Upload (optional)](#local-network-upload-optional).
 
 | Variable | Required | Description |
 |------|------|------|
+| `UPLOAD_DESTINATION` | yes | Set to `s3`. Selects the active destination; when unset the upload feature is disabled |
 | `S3_BUCKET` | yes | Destination bucket name |
 | `S3_KEY_TEMPLATE` | yes | Object-key template. Supports `{recording_name}` and `{yyyymmddhhmmss}` placeholders |
 | `AWS_REGION` | yes\* | AWS region |
@@ -269,6 +270,7 @@ Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The fea
 Example `.env` snippet (env-var auth):
 
 ```env
+UPLOAD_DESTINATION=s3
 S3_BUCKET=lutra-recordings
 S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 AWS_REGION=ap-northeast-1
@@ -293,6 +295,7 @@ make minio-down  # Stop MinIO
 `.env` snippet to point the backend at the local MinIO (used alongside `make up`):
 
 ```env
+UPLOAD_DESTINATION=s3
 S3_BUCKET=lutra-recordings
 S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 AWS_REGION=us-east-1
@@ -317,7 +320,7 @@ Recordings can be copied to a directory on the backend container's filesystem in
 
 | Variable | Required | Description |
 |------|------|------|
-| `UPLOAD_DESTINATION` | yes | Set to `local`. Selects the active destination; defaults to `s3` |
+| `UPLOAD_DESTINATION` | yes | Set to `local`. Selects the active destination; when unset the upload feature is disabled |
 | `LOCAL_UPLOAD_DIR` | yes | Absolute path inside the container where the share is mounted (e.g. `/mnt/recordings`) |
 | `LOCAL_UPLOAD_PATH_TEMPLATE` | yes | Relative path template under `LOCAL_UPLOAD_DIR`. Supports the same `{recording_name}` and `{yyyymmddhhmmss}` placeholders as `S3_KEY_TEMPLATE` |
 
