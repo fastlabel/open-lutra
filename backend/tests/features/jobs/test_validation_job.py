@@ -79,14 +79,18 @@ class TestEnqueueValidation:
 class TestRunValidation:
     """Direct invocation of JobQueue._run_validation()."""
 
-    async def test_writes_validation_result(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """A successful run produces validation_result.json."""
+    @pytest.fixture(autouse=True)
+    def _stub_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Stub get_settings() so active_set.get_builtin_recording_validators
+        does not need real env vars (RECORDING_CONFIG / OUTPUT_DIR)."""
         from unittest.mock import MagicMock
 
         mock_s = MagicMock()
         mock_s.recording.validators = []
         monkeypatch.setattr("app.features.validation.active_set.get_settings", lambda: mock_s)
 
+    async def test_writes_validation_result(self, tmp_path: Path) -> None:
+        """A successful run produces validation_result.json."""
         _write_quality_report(tmp_path)
         _write_meta(tmp_path, task_name="my_task")
 
