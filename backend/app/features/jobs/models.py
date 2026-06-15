@@ -34,6 +34,7 @@ class JobType(str, Enum):
     TIMELINE = "timeline"  # timeline_data.json generation
     VALIDATION = "validation"  # validation_result.json generation
     LEROBOT_EXPORT = "lerobot_export"  # LeRobot v3.0 dataset export (spans multiple recordings)
+    UPLOAD = "upload"  # zip + upload to the configured UploadDestination
 
 
 @dataclass
@@ -135,3 +136,15 @@ class LeRobotExportJob(Job):
 
     target_path: Path | None = None
     source_paths: list[Path] = field(default_factory=list)
+
+
+@dataclass
+class UploadJob(Job):
+    """Upload execution job.
+
+    Zips the recording folder and sends the archive to the configured
+    `UploadDestination` (today: S3). Persists progress in
+    `upload_state.json` so the UI can survive page reloads mid-upload.
+    """
+
+    target_path: Path | None = None

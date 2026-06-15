@@ -9,15 +9,13 @@ export default defineConfig({
       schemas: "src/api/generated/schemas",
       client: "react-query",
       httpClient: "fetch",
-      mock: true,
+      mock: {
+        generators: [{ type: "msw" }],
+      },
       override: {
         mutator: {
           path: "src/api/fetch-client.ts",
           name: "fetchClient",
-        },
-        query: {
-          useQuery: true,
-          useMutation: true,
         },
       },
     },

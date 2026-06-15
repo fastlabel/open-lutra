@@ -7,6 +7,8 @@ Job types:
   - `GenerateMediaJob`: MCAP -> MP4 + telemetry.json conversion
   - `QualityJob`:       quality_report.json generation
   - `TimelineJob`:      timeline_data.json generation
+  - `ValidationJob`:    validation_result.json generation
+  - `UploadJob`:        zip recording + ship to the configured upload destination
 """
 
 import asyncio
@@ -29,6 +31,7 @@ from app.features.jobs.models import (
     LeRobotExportJob,
     QualityJob,
     TimelineJob,
+    UploadJob,
     ValidationJob,
 )
 from app.features.jobs.schemas import JobChangeEvent, JobEvent, JobSchema, QueueSnapshotData, QueueSnapshotEvent
@@ -79,6 +82,7 @@ class JobQueue:
             JobType.TIMELINE: {},
             JobType.VALIDATION: {},
             JobType.LEROBOT_EXPORT: {},
+            JobType.UPLOAD: {},
         }
         self._subscribers: set[asyncio.Queue[JobEvent]] = set()
         self._worker_task: asyncio.Task[None] | None = None
@@ -180,6 +184,33 @@ class JobQueue:
         await self._queue.put(job)
         await self._broadcast(EVENT_JOB_ADDED, job)
         logger.info("ValidationJob added: %s (%s)", job.job_id, folder.name)
+        return job
+
+    async def enqueue_upload(self, folder: Path) -> UploadJob:
+        """Enqueue an upload job (zip + ship to the configured destination).
+
+        If an active job already exists for the same folder, return it (prevents
+        duplicate execution).
+        """
+        async with self._lock:
+            existing_id = self._active_folders[JobType.UPLOAD].get(str(folder))
+            if existing_id and existing_id in self._jobs:
+                existing = self._jobs[existing_id]
+                if isinstance(existing, UploadJob):
+                    return existing
+
+            job = UploadJob(
+                job_id=f"upl_{uuid.uuid4().hex[:12]}",
+                type=JobType.UPLOAD,
+                folder=folder.name,
+                progress=JobProgress(step="queued", step_label="Waiting", current=0, total=1),
+                target_path=folder,
+            )
+            self._register_active(JobType.UPLOAD, folder, job)
+
+        await self._queue.put(job)
+        await self._broadcast(EVENT_JOB_ADDED, job)
+        logger.info("UploadJob added: %s (%s)", job.job_id, folder.name)
         return job
 
     async def enqueue_timeline(self, folder: Path) -> TimelineJob:
@@ -287,6 +318,10 @@ class JobQueue:
         """Return the in-progress/queued validation job for the specified folder."""
         return self._get_active_job(JobType.VALIDATION, folder)
 
+    def get_active_upload_job(self, folder: Path) -> Job | None:
+        """Return the in-progress/queued upload job for the specified folder."""
+        return self._get_active_job(JobType.UPLOAD, folder)
+
     def list_jobs(self) -> list[Job]:
         """Return active jobs combined with recent history."""
         active = [j for j in self._jobs.values() if j.status in (JobStatus.QUEUED, JobStatus.RUNNING)]
@@ -356,6 +391,8 @@ class JobQueue:
                 await self._run_validation(job)
             elif isinstance(job, LeRobotExportJob):
                 await self._run_lerobot_export(job)
+            elif isinstance(job, UploadJob):
+                await self._run_upload(job)
             else:  # pragma: no cover
                 raise ValueError(f"Unknown job type: {job.type}")
 
@@ -500,6 +537,101 @@ class JobQueue:
             recording_meta=meta,
         )
         await asyncio.to_thread(save_validation_report, target, report)
+
+    async def _run_upload(self, job: UploadJob) -> None:
+        """Zip the recording folder and ship it to the configured destination.
+
+        Persists `upload_state.json` at every stage (uploading -> uploaded /
+        failed) so reloads mid-upload recover gracefully. Per issue #6, this
+        path always overwrites (no skip-if-cached); duplicate dispatches are
+        prevented one level up by `enqueue_upload`.
+        """
+        target = job.target_path
+        if target is None:  # pragma: no cover
+            raise ValueError(f"UploadJob.target_path is not set: {job.job_id}")
+
+        from app.features.recordings.scanner import read_metadata_summary
+        from app.features.upload.cache import save_state
+        from app.features.upload.destinations import get_active_destination
+        from app.features.upload.key_template import render_key
+        from app.features.upload.models import UploadState
+        from app.features.upload.progress import ThrottledProgress
+        from app.features.upload.zip_builder import build_zip
+        from app.settings import get_settings
+
+        settings = get_settings()
+        destination = get_active_destination(settings)
+        err = destination.configuration_error()
+        if err is not None:
+            raise RuntimeError(err)
+        # configuration_error() guarantees these are set; assert for the type checker.
+        assert settings.s3_bucket is not None
+        assert settings.s3_key_template is not None
+
+        _, recording_start_ns, _, _ = read_metadata_summary(target)
+        if recording_start_ns is None:
+            raise FileNotFoundError(
+                f"Cannot determine recording start time from metadata.yaml: {target.name}",
+            )
+        key = render_key(
+            settings.s3_key_template,
+            recording_name=target.name,
+            recording_start_ns=recording_start_ns,
+        )
+
+        job.progress = JobProgress(step="zip", step_label="Building zip", current=0, total=1)
+        await self._broadcast(EVENT_JOB_PROGRESS, job)
+        zip_path = await asyncio.to_thread(build_zip, target)
+        zip_size = zip_path.stat().st_size
+
+        state = UploadState(
+            status="uploading",
+            destination=settings.s3_bucket,
+            key=key,
+            etag=None,
+            size_bytes=zip_size,
+            bytes_transferred=0,
+            uploaded_at=None,
+            error=None,
+        )
+        await asyncio.to_thread(save_state, target, state)
+
+        loop = asyncio.get_running_loop()
+
+        def on_progress(bytes_transferred: int) -> None:
+            """Throttled progress callback invoked from boto3 worker threads."""
+            state.bytes_transferred = bytes_transferred
+            save_state(target, state)
+            job.progress = JobProgress(
+                step="upload",
+                step_label="Uploading",
+                current=bytes_transferred,
+                total=max(zip_size, 1),
+            )
+            asyncio.run_coroutine_threadsafe(
+                self._broadcast(EVENT_JOB_PROGRESS, job),
+                loop,
+            )
+
+        throttled = ThrottledProgress(on_progress)
+
+        try:
+            result = await asyncio.to_thread(destination.upload, zip_path, key, throttled)
+            throttled.close()
+            final = state.model_copy(
+                update={
+                    "status": "uploaded",
+                    "etag": result.etag,
+                    "size_bytes": result.size_bytes,
+                    "bytes_transferred": result.size_bytes,
+                    "uploaded_at": datetime.now(timezone.utc),
+                },
+            )
+            await asyncio.to_thread(save_state, target, final)
+        except Exception as e:
+            failed = state.model_copy(update={"status": "failed", "error": str(e) or e.__class__.__name__})
+            await asyncio.to_thread(save_state, target, failed)
+            raise
 
     async def _run_timeline(self, job: TimelineJob) -> None:
         """Run timeline data generation (`build_and_save_timeline`).
