@@ -43,3 +43,19 @@ def test_parse_config_missing_key(missing: str) -> None:
     data = {k: v for k, v in _VALID.items() if k != missing}
     with pytest.raises(ValueError, match=missing):
         parse_config(data)
+
+
+def test_parse_config_invalid_time_range() -> None:
+    with pytest.raises(ValueError, match="time_range"):
+        parse_config({**_VALID, "time_range": "middle"})
+
+
+def test_parse_config_observation_not_a_mapping() -> None:
+    # Structural error (observation is a list) must normalize to ValueError, not 500.
+    with pytest.raises(ValueError, match="Malformed"):
+        parse_config({**_VALID, "observation": [{"topic": "/state"}]})
+
+
+def test_parse_config_source_missing_topic() -> None:
+    with pytest.raises(ValueError, match="Malformed"):
+        parse_config({**_VALID, "action": [{"field": "position"}]})

@@ -7,7 +7,9 @@ import logging
 import re
 from pathlib import Path
 
-from app.features.lerobot_export import EXPORTS_DIRNAME
+# Import the constant directly (not via the package __init__) to avoid eagerly
+# importing the export writer's pandas/numpy stack at recordings-scan time.
+from app.features.lerobot_export.exports import EXPORTS_DIRNAME
 from app.features.recordings.meta import read_recording_meta
 from app.features.recordings.schemas import FileEntry
 from app.features.validation.cache import load_report as load_validation_report

@@ -104,13 +104,15 @@ def run_export(
             raise ValueError("No frames were exported: every selected recording had no usable/overlapping data.")
         progress("finalize", len(usable), len(usable))
         writer.close()
+        # Promote the completed dataset; inside the try so a failed rename
+        # (e.g. the destination appeared via TOCTOU) also cleans up the temp dir.
+        work_dir.rename(output_dir)
     except BaseException:
         # Clean up without masking the original error (abort swallows encoder errors).
         writer.abort()
         shutil.rmtree(work_dir, ignore_errors=True)
         raise
 
-    work_dir.rename(output_dir)
     return ExportResult(
         output_dir=output_dir,
         total_episodes=writer.total_episodes,

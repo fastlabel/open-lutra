@@ -70,9 +70,11 @@ def test_zero_message_topic_is_flagged(tmp_path: Path) -> None:
     assert "/cmd" in problems[0]
 
 
-def test_missing_metadata_is_skipped(tmp_path: Path) -> None:
-    # No metadata.yaml -> structure cannot be checked -> not reported as a mismatch.
-    assert find_structure_mismatches([tmp_path], _config()) == []
+def test_missing_metadata_is_rejected(tmp_path: Path) -> None:
+    # No metadata.yaml (e.g. still recording) -> rejected, not silently exported.
+    problems = find_structure_mismatches([tmp_path], _config())
+    assert len(problems) == 1
+    assert "metadata.yaml" in problems[0]
 
 
 def test_validate_recordings_raises(tmp_path: Path) -> None:

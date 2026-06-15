@@ -13,6 +13,7 @@ ffmpeg subprocess I/O is excluded from coverage.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import subprocess
 import threading
@@ -49,17 +50,47 @@ class VideoSink:  # pragma: no cover
         proc.stdin.write(np.ascontiguousarray(image, dtype=np.uint8).tobytes())
 
     def close(self) -> None:
-        """Close all stdin pipes and wait for the encoders to finish."""
+        """Finalize all encoders: close every stdin, wait, then check exit codes.
+
+        All stdins are closed up front so one slow/broken encoder cannot leave the
+        others blocked on input. A wait timeout escalates to kill() for that
+        process. Raises a single error summarizing any non-zero exits.
+        """
         for proc in self._procs.values():
             if proc.stdin is not None:
-                proc.stdin.close()
-            proc.wait(timeout=120)
+                with contextlib.suppress(OSError):
+                    proc.stdin.close()
+
+        errors: list[str] = []
+        for camera, proc in self._procs.items():
+            try:
+                proc.wait(timeout=120)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+                errors.append(f"{camera}: ffmpeg timed out")
+
         for thread in self._stderr_threads:
             thread.join(timeout=5)
+
         for camera, proc in self._procs.items():
-            if proc.returncode != 0:
+            if proc.returncode:  # non-zero / non-None
                 stderr = b"".join(self._stderr_chunks[camera]).decode("utf-8", errors="replace")
-                raise RuntimeError(f"ffmpeg failed for camera {camera} (code={proc.returncode}): {stderr}")
+                errors.append(f"{camera}: ffmpeg exited {proc.returncode}: {stderr}")
+        if errors:
+            raise RuntimeError("Video encoding failed:\n" + "\n".join(errors))
+
+    def kill(self) -> None:
+        """Terminate all encoders immediately without waiting (failure cleanup).
+
+        Best-effort and never raises, so it can run while another exception
+        propagates. Closes stdins and kills every process.
+        """
+        for proc in self._procs.values():
+            with contextlib.suppress(Exception):
+                if proc.stdin is not None:
+                    proc.stdin.close()
+                proc.kill()
 
     def _spawn(self, output_path: Path, width: int, height: int, fps: int) -> subprocess.Popen[bytes]:
         cmd = [

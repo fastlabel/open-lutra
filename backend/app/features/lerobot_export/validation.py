@@ -51,19 +51,19 @@ def read_recorded_topic_counts(recording_dir: Path) -> dict[str, int]:
 
 
 def find_structure_mismatches(source_dirs: list[Path], config: ExportConfig) -> list[str]:
-    """Return one message per recording whose config topics are missing or empty.
+    """Return one message per recording that cannot be exported as-is.
 
-    A config topic that is absent from `metadata.yaml`, or present with
-    `message_count == 0`, would silently contribute zero frames, so both are
-    reported. Recordings without a readable `metadata.yaml` are skipped (their
-    structure cannot be verified from the manifest).
+    A recording is rejected when its `metadata.yaml` is missing/unreadable (e.g.
+    an in-progress recording — its MCAP is still being written), or when a config
+    topic is absent from it / present with `message_count == 0` (which would
+    silently contribute zero frames).
     """
     required = config.all_topics()
     problems: list[str] = []
     for recording_dir in source_dirs:
         counts = read_recorded_topic_counts(recording_dir)
         if not counts:
-            logger.warning("Skipping structure check for %s: no readable metadata.yaml", recording_dir.name)
+            problems.append(f"{recording_dir.name}: metadata.yaml is missing or unreadable (still recording?)")
             continue
         bad = [topic for topic in required if counts.get(topic, 0) == 0]
         if bad:

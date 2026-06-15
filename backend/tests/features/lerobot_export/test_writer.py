@@ -19,12 +19,16 @@ class FakeSink:
         self.output_paths = output_paths
         self.writes: dict[str, int] = dict.fromkeys(output_paths, 0)
         self.closed = False
+        self.killed = False
 
     def write(self, camera: str, image: np.ndarray) -> None:
         self.writes[camera] += 1
 
     def close(self) -> None:
         self.closed = True
+
+    def kill(self) -> None:
+        self.killed = True
 
 
 def _spec() -> FeatureSpec:
@@ -161,6 +165,34 @@ def test_add_frame_rejects_image_shape_mismatch(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="shape mismatch"):
         writer.add_frame(mismatched)
+
+
+def test_add_frame_rejects_action_dim_mismatch(tmp_path: Path) -> None:
+    # spec action_dim is 2; a 3-length action would write a ragged parquet column.
+    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer.open()
+    bad = Frame(
+        camera_images={"cam": np.zeros((2, 2, 3), dtype=np.uint8)},
+        observations={"state": np.array([0.0, 1.0])},
+        action=np.array([1.0, 2.0, 3.0]),  # expected (2,)
+        task="pick",
+    )
+    with pytest.raises(ValueError, match="action dimension mismatch"):
+        writer.add_frame(bad)
+
+
+def test_add_frame_rejects_observation_dim_mismatch(tmp_path: Path) -> None:
+    # spec observation "state" dim is 2; a 1-length vector must be rejected.
+    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer.open()
+    bad = Frame(
+        camera_images={"cam": np.zeros((2, 2, 3), dtype=np.uint8)},
+        observations={"state": np.array([0.0])},  # expected (2,)
+        action=np.array([0.0, 1.0]),
+        task="pick",
+    )
+    with pytest.raises(ValueError, match=r"observation\.state dimension mismatch"):
+        writer.add_frame(bad)
 
 
 def test_warn_if_oversized(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:

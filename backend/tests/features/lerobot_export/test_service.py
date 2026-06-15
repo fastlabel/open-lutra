@@ -26,6 +26,9 @@ class FakeSink:
     def close(self) -> None:
         pass
 
+    def kill(self) -> None:
+        pass
+
 
 def _config(**overrides: object) -> ExportConfig:
     base: dict = {

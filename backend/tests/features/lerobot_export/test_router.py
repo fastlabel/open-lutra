@@ -56,18 +56,16 @@ def test_resolve_source_dirs_missing(tmp_path: Path) -> None:
         router.resolve_source_dirs(["ghost"], tmp_path)
 
 
-def test_resolve_dataset_dir(tmp_path: Path) -> None:
-    out = router.resolve_dataset_dir("my_dataset", tmp_path)
+@pytest.mark.parametrize("name", ["my_dataset", "ds-v1.2", "A1"])
+def test_resolve_dataset_dir_valid(tmp_path: Path, name: str) -> None:
+    out = router.resolve_dataset_dir(name, tmp_path)
     assert out.parent.name == EXPORTS_DIRNAME
-    assert out.name == "my_dataset"
+    assert out.name == name
 
 
-def test_resolve_dataset_dir_empty(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="must not be empty"):
-        router.resolve_dataset_dir("   ", tmp_path)
-
-
-@pytest.mark.parametrize("bad", ["a/b", "a\\b", "../x"])
-def test_resolve_dataset_dir_separators(tmp_path: Path, bad: str) -> None:
-    with pytest.raises(ValueError, match="path separators"):
+@pytest.mark.parametrize("bad", ["", "   ", ".", "..", ".foo", "_foo", "a/b", "a\\b", "../x", "a b"])
+def test_resolve_dataset_dir_rejected(tmp_path: Path, bad: str) -> None:
+    # Notably "." (collapses onto the exports root) and leading "." (invisible to
+    # list_exports) must be rejected, not just path separators.
+    with pytest.raises(ValueError):
         router.resolve_dataset_dir(bad, tmp_path)

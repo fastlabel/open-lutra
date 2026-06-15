@@ -48,18 +48,29 @@ def parse_config(data: dict[str, Any]) -> ExportConfig:
         if key not in data:
             raise ValueError(f"lerobot_export mapping must contain {key!r}")
 
-    observation = {
-        field_name: [_parse_source(s) for s in sources] for field_name, sources in data["observation"].items()
-    }
+    time_range = data.get("time_range", "intersection")
+    if time_range not in ("intersection", "union"):
+        raise ValueError(f"lerobot_export 'time_range' must be 'intersection' or 'union', got {time_range!r}")
+
+    # Normalize structural errors (observation not a mapping, source missing
+    # 'topic', etc.) to ValueError so the API returns 400 rather than 500.
+    try:
+        observation = {
+            field_name: [_parse_source(s) for s in sources] for field_name, sources in data["observation"].items()
+        }
+        action = [_parse_source(s) for s in data["action"]]
+    except (AttributeError, KeyError, TypeError) as e:
+        raise ValueError(f"Malformed lerobot_export mapping: {e}") from e
+
     return ExportConfig(
         images=data["images"],
         observation=observation,
-        action=[_parse_source(s) for s in data["action"]],
+        action=action,
         fps=data.get("fps", 0),
         robot_type=data.get("robot_type", "custom"),
         sync_tolerance_ms=data.get("sync_tolerance_ms", 50.0),
         image_tolerance_ms=data.get("image_tolerance_ms", 200.0),
-        time_range=data.get("time_range", "intersection"),
+        time_range=time_range,
     )
 
 

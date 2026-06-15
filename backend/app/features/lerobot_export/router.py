@@ -1,6 +1,7 @@
 """API endpoints for exporting recordings to LeRobot datasets."""
 
 import logging
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
@@ -102,17 +103,24 @@ def resolve_source_dirs(folders: list[str], output_dir: Path) -> list[Path]:
     return resolved
 
 
+# Dataset names must start with an alphanumeric and contain only [A-Za-z0-9._-].
+# This rejects "", path separators, "..", and leading "." / "." itself — a leading
+# dot would make the export invisible to list_exports, and "." collapses onto the
+# exports root (Path / "." == exports_root), letting a rename clobber it.
+_OUTPUT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
 def resolve_dataset_dir(output_name: str, output_dir: Path) -> Path:
     """Resolve a safe dataset directory under _lerobot_exports/.
 
     Raises:
-        ValueError: If the name is empty or contains path separators.
+        ValueError: If the name is empty or not an allowed dataset name.
     """
     from app.features.lerobot_export.exports import exports_root
 
     name = output_name.strip()
-    if not name:
-        raise ValueError("Export name must not be empty")
-    if "/" in name or "\\" in name or ".." in name:
-        raise ValueError("Export name must not contain path separators")
+    if not _OUTPUT_NAME_RE.match(name):
+        raise ValueError(
+            "Export name must start with a letter or digit and use only letters, digits, '.', '_', '-'"
+        )
     return exports_root(output_dir) / name

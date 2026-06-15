@@ -14,7 +14,6 @@ shard exceeds the default thresholds). Spec verified against huggingface/lerobot
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 from collections.abc import Callable
@@ -49,6 +48,8 @@ class FrameSink(Protocol):
     def write(self, camera: str, image: NDArray[np.uint8]) -> None: ...
 
     def close(self) -> None: ...
+
+    def kill(self) -> None: ...
 
 
 # Factory signature: (output_paths, image_shapes, fps) -> sink. Default is VideoSink.
@@ -143,11 +144,25 @@ class LeRobotV30Writer:
             self._global_stats[f"observation.images.{camera}"].add(image)
             self._ep_stats[f"observation.images.{camera}"].add(image)
 
+        # Vector dims are probed once from the first recording; a later recording
+        # with a different-length vector would write a ragged parquet column that
+        # LeRobot cannot read. Fail loudly, symmetric with the image-shape check.
+        if frame.action.shape != (self._spec.action_dim,):
+            raise ValueError(
+                f"action dimension mismatch: got {tuple(frame.action.shape)}, expected ({self._spec.action_dim},). "
+                "All recordings must produce the same action vector length."
+            )
         action = frame.action.astype(np.float32)
         self._actions.append(action)
         self._global_stats["action"].add(frame.action)
         self._ep_stats["action"].add(frame.action)
         for field_name, values in frame.observations.items():
+            expected_dim = self._spec.observation_fields[field_name][0]
+            if values.shape != (expected_dim,):
+                raise ValueError(
+                    f"observation.{field_name} dimension mismatch: got {tuple(values.shape)}, "
+                    f"expected ({expected_dim},). All recordings must produce the same vector length."
+                )
             self._obs[field_name].append(values.astype(np.float32))
             self._global_stats[f"observation.{field_name}"].add(values)
             self._ep_stats[f"observation.{field_name}"].add(values)
@@ -189,14 +204,14 @@ class LeRobotV30Writer:
         self._ep_stats = self._new_accumulators()
 
     def abort(self) -> None:
-        """Close the encoders without writing metadata (failure cleanup).
+        """Kill the encoders without writing metadata (failure cleanup).
 
-        Swallows encoder errors so it never masks the original export exception;
-        the caller discards the (incomplete) output directory afterwards.
+        Uses kill() (best-effort, never raises) so it cannot mask the original
+        export exception or block on a stuck encoder; the caller discards the
+        (incomplete) output directory afterwards.
         """
         if self._sink is not None:
-            with contextlib.suppress(Exception):
-                self._sink.close()
+            self._sink.kill()
             self._sink = None
 
     def close(self) -> None:
