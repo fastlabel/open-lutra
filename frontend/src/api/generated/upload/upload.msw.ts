@@ -18,6 +18,7 @@ import type {
 } from 'msw';
 
 import type {
+  BulkUploadResponse,
   UploadResponse
 } from '../schemas';
 
@@ -25,6 +26,8 @@ import type {
 export const getGetUploadResponseMock = (overrideResponse: Partial<Extract<UploadResponse, object>> = {}): UploadResponse => ({status: faker.helpers.fromRegExp("^(idle|uploading|uploaded|failed|not_found)$"), state: faker.helpers.arrayElement([{status: faker.helpers.arrayElement(['idle','uploading','uploaded','failed'] as const), destination: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), key: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), etag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), size_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), bytes_transferred: faker.number.int(), uploaded_at: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z',null,]), error: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,])},null,]), error: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), ...overrideResponse})
 
 export const getStartUploadResponseMock = (overrideResponse: Partial<Extract<UploadResponse, object>> = {}): UploadResponse => ({status: faker.helpers.fromRegExp("^(idle|uploading|uploaded|failed|not_found)$"), state: faker.helpers.arrayElement([{status: faker.helpers.arrayElement(['idle','uploading','uploaded','failed'] as const), destination: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), key: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), etag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), size_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), bytes_transferred: faker.number.int(), uploaded_at: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + 'Z',null,]), error: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,])},null,]), error: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), ...overrideResponse})
+
+export const getStartBulkUploadResponseMock = (overrideResponse: Partial<Extract<BulkUploadResponse, object>> = {}): BulkUploadResponse => ({results: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({folder: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.helpers.fromRegExp("^(uploading|failed)$"), error: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,])})), ...overrideResponse})
 
 
 export const getGetUploadMockHandler = (overrideResponse?: UploadResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<UploadResponse> | UploadResponse), options?: RequestHandlerOptions) => {
@@ -50,7 +53,20 @@ export const getStartUploadMockHandler = (overrideResponse?: UploadResponse | ((
       })
   }, options)
 }
+
+export const getStartBulkUploadMockHandler = (overrideResponse?: BulkUploadResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<BulkUploadResponse> | BulkUploadResponse), options?: RequestHandlerOptions) => {
+  return http.post('*/api/upload/start-bulk', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getStartBulkUploadResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
 export const getUploadMock = () => [
   getGetUploadMockHandler(),
-  getStartUploadMockHandler()
+  getStartUploadMockHandler(),
+  getStartBulkUploadMockHandler()
 ]

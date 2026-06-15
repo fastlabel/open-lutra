@@ -25,6 +25,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BulkUploadRequest,
+  BulkUploadResponse,
   GetUploadParams,
   HTTPValidationError,
   StartUploadParams,
@@ -266,4 +268,98 @@ export const useStartUpload = <TError = HTTPValidationError,
         TContext
       > => {
       return useMutation(getStartUploadMutationOptions(options), queryClient);
+    }
+    export type startBulkUploadResponse200 = {
+  data: BulkUploadResponse
+  status: 200
+}
+
+export type startBulkUploadResponse422 = {
+  data: HTTPValidationError
+  status: 422
+}
+
+export type startBulkUploadResponseSuccess = (startBulkUploadResponse200) & {
+  headers: Headers;
+};
+export type startBulkUploadResponseError = (startBulkUploadResponse422) & {
+  headers: Headers;
+};
+
+export type startBulkUploadResponse = (startBulkUploadResponseSuccess | startBulkUploadResponseError)
+
+export const getStartBulkUploadUrl = () => {
+
+
+
+
+  return `/api/upload/start-bulk`
+}
+
+/**
+ * Enqueue uploads for multiple recordings in one call.
+ *
+ * Returns 400 when the upload feature is not fully configured (destination
+ * missing or key template invalid). Per-folder errors (invalid path,
+ * missing directory) are reported as ``failed`` entries inside ``results``
+ * without aborting the rest of the batch.
+ * @summary Start Bulk Upload
+ */
+export const startBulkUpload = async (bulkUploadRequest: BulkUploadRequest, options?: RequestInit): Promise<startBulkUploadResponse> => {
+
+  return fetchClient<startBulkUploadResponse>(getStartBulkUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkUploadRequest)
+  }
+);}
+
+
+
+
+export const getStartBulkUploadMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startBulkUpload>>, TError,{data: BulkUploadRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+): UseMutationOptions<Awaited<ReturnType<typeof startBulkUpload>>, TError,{data: BulkUploadRequest}, TContext> => {
+
+const mutationKey = ['startBulkUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startBulkUpload>>, {data: BulkUploadRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startBulkUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartBulkUploadMutationResult = NonNullable<Awaited<ReturnType<typeof startBulkUpload>>>
+    export type StartBulkUploadMutationBody = BulkUploadRequest
+    export type StartBulkUploadMutationError = HTTPValidationError
+
+    /**
+ * @summary Start Bulk Upload
+ */
+export const useStartBulkUpload = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startBulkUpload>>, TError,{data: BulkUploadRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startBulkUpload>>,
+        TError,
+        {data: BulkUploadRequest},
+        TContext
+      > => {
+      return useMutation(getStartBulkUploadMutationOptions(options), queryClient);
     }

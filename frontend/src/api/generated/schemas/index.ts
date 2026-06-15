@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './bulkUploadRequest.ts';
+export * from './bulkUploadResponse.ts';
+export * from './bulkUploadResultItem.ts';
 export * from './configResponse.ts';
 export * from './deleteRequest.ts';
 export * from './deleteResponse.ts';
