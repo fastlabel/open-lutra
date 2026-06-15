@@ -10,6 +10,7 @@ import { Search } from "lucide-react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BulkDeleteButton, RecordingListItem, useRecordingsStore } from "@/features/recordings";
+import { BulkUploadButton } from "@/features/upload";
 import { useRecordingsTableStore } from "./store";
 import { TaskFilter } from "./ui/task-filter";
 import { applySearchAndFilter } from "./utils";
@@ -75,6 +76,7 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
           />
         </div>
         <div className="flex items-center gap-1">
+          <BulkUploadButton />
           <BulkDeleteButton />
         </div>
       </div>
