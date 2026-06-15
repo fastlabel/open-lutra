@@ -42,12 +42,14 @@ default_topics:
 validators:
   - name: required_topics_present
     topics:
+      - /chest_depth_cam/color/image_raw/compressed
+      - /head_depth_cam/color/image_raw/compressed
       - /left_arm_depth_cam/color/image_raw/compressed
-      - /right_arm_depth_cam/color/image_raw/compressed
-      - /left_arm_depth_cam_2/color/image_raw/compressed
-      - /right_arm_depth_cam_2/color/image_raw/compressed
-      - /robot_master/cmd
-      - /robot_slave/states
+      - /sim/slave_arm_left
+      - /sim/slave_arm_left/gripper
+      - /sim/slave_arm_left/pose
+      - /sim/master_arm_left
+      - /sim/master_arm_left/hand
   - name: total_duration_sec
     min_sec: 5
     max_sec: 30
