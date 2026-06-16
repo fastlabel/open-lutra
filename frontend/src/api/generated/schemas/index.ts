@@ -37,8 +37,6 @@ export * from './jointTopicsResponse.ts';
 export * from './latestMessageResponse.ts';
 export * from './latestMessageResponseMessage.ts';
 export * from './leRobotConfigResponse.ts';
-export * from './leRobotExportEntry.ts';
-export * from './leRobotExportsResponse.ts';
 export * from './liveToggleResponse.ts';
 export * from './lossEvent.ts';
 export * from './memoryInfo.ts';

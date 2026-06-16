@@ -8,13 +8,10 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.features.jobs.service import get_job_queue
 from app.features.lerobot_export.config_loader import has_active_config, load_active_config
-from app.features.lerobot_export.exports import list_exports
 from app.features.lerobot_export.schemas import (
     ExportRequest,
     ExportResponse,
     LeRobotConfigResponse,
-    LeRobotExportEntry,
-    LeRobotExportsResponse,
 )
 from app.features.lerobot_export.validation import StructureMismatchError, validate_recordings
 from app.settings import get_settings
@@ -53,17 +50,6 @@ async def start_export(req: ExportRequest) -> ExportResponse:  # pragma: no cove
     queue = get_job_queue()
     job = await queue.enqueue_lerobot_export(source_dirs=source_dirs, output_dir=dataset_dir)
     return ExportResponse(job_id=job.job_id, output_name=req.output_name, status=job.status.value)
-
-
-@router.get("/exports", response_model=LeRobotExportsResponse, operation_id="getLeRobotExports")
-def get_exports() -> LeRobotExportsResponse:  # pragma: no cover
-    """List datasets already exported under _lerobot_exports/."""
-    output_dir = get_settings().output_dir
-    entries = [
-        LeRobotExportEntry(name=info.name, total_episodes=info.total_episodes, total_frames=info.total_frames)
-        for info in list_exports(output_dir)
-    ]
-    return LeRobotExportsResponse(exports=entries)
 
 
 # ---------------------------------------------------------------------------
@@ -105,8 +91,9 @@ def resolve_source_dirs(folders: list[str], output_dir: Path) -> list[Path]:
 
 # Dataset names must start with an alphanumeric and contain only [A-Za-z0-9._-].
 # This rejects "", path separators, "..", and leading "." / "." itself — a leading
-# dot would make the export invisible to list_exports, and "." collapses onto the
-# exports root (Path / "." == exports_root), letting a rename clobber it.
+# dot collides with the in-progress temp-dir convention (`.<name>.*.tmp`), and "."
+# collapses onto the exports root (Path / "." == exports_root), letting a rename
+# clobber it.
 _OUTPUT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 

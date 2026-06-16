@@ -1,9 +1,8 @@
 """Interpolation strategies for resampling state/action sources onto the fps timebase.
 
-Ported and adapted from the reference `mcap_to_lerobot` tool. Each strategy maps
-a series of timestamped vectors to a value per reference timestamp. Values
-outside the source range are held at the boundary (no extrapolation); `nearest`
-returns None when no source point lies within tolerance.
+Each strategy maps a series of timestamped vectors to a value per reference
+timestamp. Values outside the source range are held at the boundary (no
+extrapolation); `nearest` returns None when no source point lies within tolerance.
 """
 
 from __future__ import annotations

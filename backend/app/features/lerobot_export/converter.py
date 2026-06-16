@@ -1,13 +1,12 @@
 """MCAP → frame-stream conversion.
 
-Reproduces the reference `mcap_to_lerobot` pipeline: read per-topic messages,
-build a uniform fps timebase over each recording, align images (nearest +
-forward-fill) and interpolate state/action sources, then emit synchronized
-frames. A frame is dropped if any image or any source has no value at its
-timestamp.
+Reads per-topic messages, builds a uniform fps timebase over each recording,
+aligns images (nearest + forward-fill) and interpolates state/action sources,
+then emits synchronized frames. A frame is dropped if any image or any source
+has no value at its timestamp.
 
-This deviates from the reference in one way: timestamps come from the project's
-`header.stamp`-preferred `resolve_timestamp_ns`, not raw `log_time`.
+Timestamps come from the project's `header.stamp`-preferred `resolve_timestamp_ns`
+rather than raw `log_time`, consistent with the rest of the codebase.
 
 The message-reading entry point touches MCAP I/O (pragma: no cover); the
 alignment / resampling / framing logic is pure and unit-tested.

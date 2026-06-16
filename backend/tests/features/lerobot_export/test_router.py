@@ -65,7 +65,7 @@ def test_resolve_dataset_dir_valid(tmp_path: Path, name: str) -> None:
 
 @pytest.mark.parametrize("bad", ["", "   ", ".", "..", ".foo", "_foo", "a/b", "a\\b", "../x", "a b"])
 def test_resolve_dataset_dir_rejected(tmp_path: Path, bad: str) -> None:
-    # Notably "." (collapses onto the exports root) and leading "." (invisible to
-    # list_exports) must be rejected, not just path separators.
+    # Notably "." (collapses onto the exports root) and leading "." (collides with
+    # the in-progress temp-dir convention) must be rejected, not just path separators.
     with pytest.raises(ValueError):
         router.resolve_dataset_dir(bad, tmp_path)

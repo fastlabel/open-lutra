@@ -19,16 +19,13 @@ import type {
 
 import type {
   ExportResponse,
-  LeRobotConfigResponse,
-  LeRobotExportsResponse
+  LeRobotConfigResponse
 } from '../schemas';
 
 
 export const getGetLeRobotConfigResponseMock = (overrideResponse: Partial<Extract<LeRobotConfigResponse, object>> = {}): LeRobotConfigResponse => ({configured: faker.datatype.boolean(), robot_type: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), cameras: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), ...overrideResponse})
 
 export const getStartLeRobotExportResponseMock = (overrideResponse: Partial<Extract<ExportResponse, object>> = {}): ExportResponse => ({job_id: faker.string.alpha({length: {min: 10, max: 20}}), output_name: faker.string.alpha({length: {min: 10, max: 20}}), status: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
-
-export const getGetLeRobotExportsResponseMock = (overrideResponse: Partial<Extract<LeRobotExportsResponse, object>> = {}): LeRobotExportsResponse => ({exports: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({name: faker.string.alpha({length: {min: 10, max: 20}}), total_episodes: faker.helpers.arrayElement([faker.number.int(),null,]), total_frames: faker.helpers.arrayElement([faker.number.int(),null,])})), ...overrideResponse})
 
 
 export const getGetLeRobotConfigMockHandler = (overrideResponse?: LeRobotConfigResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<LeRobotConfigResponse> | LeRobotConfigResponse), options?: RequestHandlerOptions) => {
@@ -54,20 +51,7 @@ export const getStartLeRobotExportMockHandler = (overrideResponse?: ExportRespon
       })
   }, options)
 }
-
-export const getGetLeRobotExportsMockHandler = (overrideResponse?: LeRobotExportsResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<LeRobotExportsResponse> | LeRobotExportsResponse), options?: RequestHandlerOptions) => {
-  return http.get('*/api/lerobot/exports', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-
-
-    return HttpResponse.json(overrideResponse !== undefined
-    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
-    : getGetLeRobotExportsResponseMock(),
-      { status: 200
-      })
-  }, options)
-}
 export const getLerobotMock = () => [
   getGetLeRobotConfigMockHandler(),
-  getStartLeRobotExportMockHandler(),
-  getGetLeRobotExportsMockHandler()
+  getStartLeRobotExportMockHandler()
 ]

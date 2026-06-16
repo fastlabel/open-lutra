@@ -24,17 +24,3 @@ class ExportResponse(BaseModel):
     job_id: str
     output_name: str
     status: str = Field(..., description="Job status (queued / running / completed / failed)")
-
-
-class LeRobotExportEntry(BaseModel):
-    """One existing exported dataset under _lerobot_exports/."""
-
-    name: str = Field(..., description="Dataset directory name")
-    total_episodes: int | None
-    total_frames: int | None
-
-
-class LeRobotExportsResponse(BaseModel):
-    """Response for GET /api/lerobot/exports."""
-
-    exports: list[LeRobotExportEntry]
