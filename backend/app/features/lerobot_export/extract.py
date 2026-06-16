@@ -29,10 +29,12 @@ def extract_field_data(
     When `field` is None, the vector is detected by structure: joint positions
     via `extract_joint_positions` (which also handles nested `joint_state` and
     composite `neck_joint_state` custom messages), falling back to a `data`
-    field (Float*MultiArray). Set `field` to override (e.g. "velocity",
-    "effort", "data", or a custom attribute).
+    field (Float*MultiArray or scalar std_msgs/Float64). Set `field` to override
+    (e.g. "velocity", "effort", "data", or a custom attribute).
 
-    Out-of-range `indices` are filled with 0.0 to keep a fixed-length vector.
+    Scalar sources (e.g. a `std_msgs/Float64` gripper value) are normalized to a
+    length-1 vector. Out-of-range `indices` are filled with 0.0 to keep a
+    fixed-length vector.
 
     Raises:
         ValueError: When no vector can be extracted, or `field` is absent.
@@ -41,14 +43,16 @@ def extract_field_data(
         raw: Any = extract_joint_positions(decoded)
         if not len(raw) and hasattr(decoded, "data"):
             raw = decoded.data
-        if not len(raw):
-            raise ValueError("Cannot extract a vector (no joint position or 'data' field); set 'field' in the config")
     else:
         raw = getattr(decoded, field, None)
         if raw is None:
             raise ValueError(f"Message has no field {field!r}")
 
-    arr = np.asarray(list(raw), dtype=np.float64)
+    # np.atleast_1d normalizes scalars (std_msgs/Float64 .data) to shape (1,)
+    # while leaving list/array sources as a flat vector.
+    arr = np.atleast_1d(np.asarray(raw, dtype=np.float64))
+    if field is None and arr.size == 0:
+        raise ValueError("Cannot extract a vector (no joint position or 'data' field); set 'field' in the config")
     if indices is None:
         return arr
     return np.array([arr[i] if 0 <= i < len(arr) else 0.0 for i in indices], dtype=np.float64)

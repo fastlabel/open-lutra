@@ -85,12 +85,18 @@ lerobot_export:
   fps: 30
   robot_type: robot_simulator
   images:
-    right_arm: /right_arm_depth_cam/color/image_raw/compressed
+    chest: /chest_depth_cam/color/image_raw/compressed
+    head: /head_depth_cam/color/image_raw/compressed
     left_arm: /left_arm_depth_cam/color/image_raw/compressed
-    right_arm2: /right_arm_depth_cam2/color/image_raw/compressed
-    left_arm2: /left_arm_depth_cam_2/color/image_raw/compressed
   observation:
     state:
-      - topic: /robot_slave/states
+      - topic: /sim/master_arm_left
+        field: position
+        names: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
+    hand:
+      - topic: /sim/master_arm_left/hand
+        field: data
   action:
-    - topic: /robot_master/cmd
+    - topic: /sim/slave_arm_left
+      field: position
+      names: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]

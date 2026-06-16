@@ -18,7 +18,7 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import numpy as np
 import pandas as pd
@@ -141,8 +141,13 @@ class LeRobotV30Writer:
                     f"expected {expected}. All recordings must share the same camera resolution."
                 )
             self._sink.write(camera, image)
-            self._global_stats[f"observation.images.{camera}"].add(image)
-            self._ep_stats[f"observation.images.{camera}"].add(image)
+            # Compute the per-channel histogram once and fold it into both the
+            # global and per-episode accumulators (the reduction dominates a
+            # large export, so do it a single time rather than once per scope).
+            key = f"observation.images.{camera}"
+            histogram = ImageStats.histogram(image, expected[2])
+            cast("ImageStats", self._global_stats[key]).fold(histogram)
+            cast("ImageStats", self._ep_stats[key]).fold(histogram)
 
         # Vector dims are probed once from the first recording; a later recording
         # with a different-length vector would write a ragged parquet column that

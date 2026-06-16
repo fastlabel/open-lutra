@@ -44,6 +44,17 @@ def test_extract_explicit_field_missing() -> None:
         extract_field_data(FakeJointState(position=[0.0]), field="effort")
 
 
+def test_extract_explicit_scalar_field() -> None:
+    # std_msgs/Float64 .data is a scalar (e.g. gripper openness) → length-1 vector.
+    msg = SimpleNamespace(data=0.55)
+    assert extract_field_data(msg, field="data").tolist() == [0.55]
+
+
+def test_extract_default_scalar_data() -> None:
+    # Structure detection falls back to a scalar `data` field.
+    assert extract_field_data(SimpleNamespace(data=0.55), field=None).tolist() == [0.55]
+
+
 def test_decode_compressed_image() -> None:
     msg = make_image_message(height=3, width=4, value=200)
     out = decode_ros_image(msg)
