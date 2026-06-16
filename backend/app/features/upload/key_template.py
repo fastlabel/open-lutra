@@ -1,18 +1,20 @@
-"""S3 object key template rendering.
+"""Destination key/path template rendering.
 
-The key template comes from the `S3_KEY_TEMPLATE` env var and supports the
-following placeholders:
+The template comes from a destination-specific env var (e.g.
+``S3_KEY_TEMPLATE`` for S3, ``LOCAL_UPLOAD_PATH_TEMPLATE`` for local) and
+supports the following placeholders, shared across destinations:
 
     {recording_name}   — the recording folder name
     {yyyymmddhhmmss}   — recording start time (UTC), 14-digit string
 
 `task_name` is intentionally NOT a placeholder. Future task names may
-contain spaces or other characters that are awkward inside an S3 key
-(URL-encoding, CLI quoting), so the key composition is kept ASCII-safe.
+contain spaces or other characters that are awkward inside an object key
+or filesystem path (URL-encoding, CLI quoting), so the key composition is
+kept ASCII-safe.
 
 Template validation rejects unknown placeholders and unbalanced braces so
 that misconfiguration surfaces as a clear upload-time error rather than
-silently producing a corrupt S3 key.
+silently producing a corrupt key.
 """
 
 from __future__ import annotations
@@ -34,13 +36,13 @@ def validate_template(template: str) -> None:
     Raises KeyTemplateError on any issue.
     """
     if template.count("{") != template.count("}"):
-        raise KeyTemplateError(f"Unbalanced braces in S3 key template: {template!r}")
+        raise KeyTemplateError(f"Unbalanced braces in key template: {template!r}")
 
     for match in _PLACEHOLDER_RE.finditer(template):
         name = match.group(1)
         if name not in _ALLOWED_PLACEHOLDERS:
             raise KeyTemplateError(
-                f"Unknown placeholder {{{name}}} in S3 key template. "
+                f"Unknown placeholder {{{name}}} in key template. "
                 f"Allowed: {sorted(_ALLOWED_PLACEHOLDERS)}"
             )
 

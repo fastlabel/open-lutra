@@ -28,11 +28,50 @@ class TestConfigurationError:
         destination = S3Destination(_settings(s3_bucket="lutra"))
         assert destination.configuration_error() == "S3_KEY_TEMPLATE is not configured"
 
+    def test_template_with_unknown_placeholder(self) -> None:
+        destination = S3Destination(
+            _settings(s3_bucket="lutra", s3_key_template="x/{unknown}.zip"),
+        )
+        err = destination.configuration_error()
+        assert err is not None
+        assert "unknown" in err
+
+    def test_template_with_unbalanced_braces(self) -> None:
+        destination = S3Destination(
+            _settings(s3_bucket="lutra", s3_key_template="x/{recording_name.zip"),
+        )
+        err = destination.configuration_error()
+        assert err is not None
+        assert "Unbalanced braces" in err
+
     def test_both_set(self) -> None:
         destination = S3Destination(
             _settings(s3_bucket="lutra", s3_key_template="x/{recording_name}.zip"),
         )
         assert destination.configuration_error() is None
+
+
+class TestPrepareTarget:
+    def test_returns_bucket_and_rendered_key(self) -> None:
+        destination = S3Destination(
+            _settings(
+                s3_bucket="lutra",
+                s3_key_template="lutra/{yyyymmddhhmmss}/{recording_name}.zip",
+            ),
+        )
+        # 1_700_000_000 s since epoch = 2023-11-14T22:13:20 UTC.
+        label, key = destination.prepare_target(
+            recording_name="rec_001",
+            recording_start_ns=1_700_000_000_000_000_000,
+        )
+        assert label == "lutra"
+        assert key == "lutra/20231114221320/rec_001.zip"
+
+    def test_raises_when_settings_missing(self) -> None:
+        """Defensive guard: ``prepare_target`` refuses if configuration was bypassed."""
+        destination = S3Destination(_settings())
+        with pytest.raises(RuntimeError, match="not configured"):
+            destination.prepare_target(recording_name="r", recording_start_ns=0)
 
 
 class TestUpload:

@@ -78,13 +78,15 @@ backend/app/
 │   │   ├── cache.py           # Load / save validation_result.json
 │   │   ├── models.py          # Domain models (ValidationReport, ValidationResult, ValidationStatus)
 │   │   └── schemas.py         # API schemas (ValidationResponse)
-│   ├── upload/                # Recording → zip → upload destination (S3 / future GCS / local)
+│   ├── upload/                # Recording → zip → upload destination (S3 / local; future GCS)
 │   │   ├── router.py          # API endpoints (/api/upload, /api/upload/start)
 │   │   ├── service.py         # UploadService + is_upload_enabled (API facade; delegates to JobQueue)
 │   │   ├── destinations/      # Pluggable upload-destination backends
 │   │   │   ├── base.py        # UploadDestination Protocol + UploadResult + ProgressCallback
-│   │   │   ├── registry.py    # get_active_destination(settings)
-│   │   │   └── s3.py          # S3Destination (boto3 + S3-compatible endpoints incl. MinIO)
+│   │   │   ├── registry.py    # get_active_destination(settings) — switches on UPLOAD_DESTINATION
+│   │   │   ├── disabled.py    # DisabledDestination (returned when UPLOAD_DESTINATION is unset)
+│   │   │   ├── s3.py          # S3Destination (boto3 + S3-compatible endpoints incl. MinIO)
+│   │   │   └── local.py       # LocalDestination (shutil.copyfile to a bind-mounted directory)
 │   │   ├── zip_builder.py     # Zip the recording folder (mtime-keyed reuse)
 │   │   ├── key_template.py    # Render the destination key from {recording_name} / {yyyymmddhhmmss}
 │   │   ├── progress.py        # ThrottledProgress callback (boto3 → SSE / state-file, 1 Hz)

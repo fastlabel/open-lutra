@@ -10,6 +10,7 @@
 - [Production Deployment](#production-deployment)
 - [Configuration](#configuration)
 - [S3 Upload (optional)](#s3-upload-optional)
+- [Local-Network Upload (optional)](#local-network-upload-optional)
 - [Simulator](#simulator)
 - [Troubleshooting](#troubleshooting)
 
@@ -245,10 +246,13 @@ The `.env` file holds only infrastructure and connection settings:
 
 ## S3 Upload (optional)
 
-Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The feature stays disabled until both `S3_BUCKET` and `S3_KEY_TEMPLATE` are set in `.env`.
+Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The feature stays disabled until `UPLOAD_DESTINATION=s3` **and** both `S3_BUCKET` and `S3_KEY_TEMPLATE` are set in `.env`.
+
+`UPLOAD_DESTINATION` selects which backend is active per machine. When unset, the upload feature is disabled — `/api/upload/start` refuses to enqueue and the UI hides its affordances. Set it to `s3` to upload to S3, or `local` to upload to a directory on the backend container's filesystem instead; see [Local-Network Upload (optional)](#local-network-upload-optional).
 
 | Variable | Required | Description |
 |------|------|------|
+| `UPLOAD_DESTINATION` | yes | Set to `s3`. Selects the active destination; when unset the upload feature is disabled |
 | `S3_BUCKET` | yes | Destination bucket name |
 | `S3_KEY_TEMPLATE` | yes | Object-key template. Supports `{recording_name}` and `{yyyymmddhhmmss}` placeholders |
 | `AWS_REGION` | yes\* | AWS region |
@@ -266,6 +270,7 @@ Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The fea
 Example `.env` snippet (env-var auth):
 
 ```env
+UPLOAD_DESTINATION=s3
 S3_BUCKET=lutra-recordings
 S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 AWS_REGION=ap-northeast-1
@@ -290,6 +295,7 @@ make minio-down  # Stop MinIO
 `.env` snippet to point the backend at the local MinIO (used alongside `make up`):
 
 ```env
+UPLOAD_DESTINATION=s3
 S3_BUCKET=lutra-recordings
 S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 AWS_REGION=us-east-1
@@ -305,6 +311,53 @@ After editing `.env`, restart the backend so the new values are picked up — `e
 ```bash
 make restart
 ```
+
+---
+
+## Local-Network Upload (optional)
+
+Recordings can be copied to a directory on the backend container's filesystem instead of being shipped to S3 — typically an NFS or SMB share that the operator has mounted on the host and bind-mounted into the container. The feature stays disabled until `UPLOAD_DESTINATION=local` **and** both `LOCAL_UPLOAD_DIR` and `LOCAL_UPLOAD_PATH_TEMPLATE` are set in `.env`.
+
+| Variable | Required | Description |
+|------|------|------|
+| `UPLOAD_DESTINATION` | yes | Set to `local`. Selects the active destination; when unset the upload feature is disabled |
+| `LOCAL_UPLOAD_DIR` | yes | Absolute path inside the container where the share is mounted (e.g. `/mnt/recordings`) |
+| `LOCAL_UPLOAD_PATH_TEMPLATE` | yes | Relative path template under `LOCAL_UPLOAD_DIR`. Supports the same `{recording_name}` and `{yyyymmddhhmmss}` placeholders as `S3_KEY_TEMPLATE` |
+
+Example `.env` snippet:
+
+```env
+UPLOAD_DESTINATION=local
+LOCAL_UPLOAD_DIR=/mnt/recordings
+LOCAL_UPLOAD_PATH_TEMPLATE=operation-files/{yyyymmddhhmmss}/{recording_name}.zip
+```
+
+### Mounting the share into the container
+
+The backend container does not run NFS / SMB clients itself — it just reads and writes a directory. Mount the share on the **host**, then bind-mount the host path into the container at `LOCAL_UPLOAD_DIR`.
+
+Example host-side NFS mount (`/etc/fstab`):
+
+```fstab
+nfs-server.local:/exports/recordings  /mnt/recordings  nfs  defaults,_netdev  0  0
+```
+
+Bind-mount into the backend container via `docker-compose.yml`:
+
+```yaml
+services:
+  backend:
+    volumes:
+      - /mnt/recordings:/mnt/recordings
+```
+
+Match `LOCAL_UPLOAD_DIR` in `.env` to the container-side path of the bind-mount.
+
+> **Permissions** — NFS / SMB servers usually export with specific uid/gid. The backend container runs as a non-root user; ensure the share is writable by that user (NFS: `anonuid` / `anongid` or matching uid mapping; SMB: `uid=` / `gid=` mount options). If the mount becomes unwritable at runtime, `LocalDestination.upload()` raises the underlying `PermissionError` and the failure is recorded on `upload_state.json`.
+
+### Failure modes
+
+`configuration_error()` runs only local checks (env vars set, directory exists, directory writable, template parses); it deliberately does not probe the share for network responsiveness because that would block `/api/upload/start`. A mount that is present but unresponsive surfaces as an exception on the actual `shutil.copyfile` call and ends up as `status="failed"` in `upload_state.json` with the OS error message.
 
 ---
 

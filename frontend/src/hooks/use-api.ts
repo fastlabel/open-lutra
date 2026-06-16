@@ -53,6 +53,7 @@ import {
 import {
   getGetUploadQueryKey,
   useGetUpload,
+  useStartBulkUpload as useStartBulkUploadGenerated,
   useStartUpload as useStartUploadGenerated,
 } from "@/api/generated/upload/upload";
 import {
@@ -337,6 +338,16 @@ export function useStartUpload() {
       },
     },
   });
+}
+
+/** Enqueue uploads for multiple recordings in one call.
+ *
+ * Per-folder progress flows through the SSE job stream (live percent on
+ * UploadBadge) and the recordings list query is invalidated when each job
+ * completes, so this hook does not write per-folder cache entries itself.
+ */
+export function useStartBulkUpload() {
+  return useStartBulkUploadGenerated();
 }
 
 /** Mutation that starts MP4 video generation (idempotent).

@@ -6,7 +6,7 @@ settings come from a YAML file (RECORDING_CONFIG).
 
 import fnmatch
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -124,9 +124,15 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = False
 
-    # S3 upload destination. When either field is unset, the upload feature
-    # is disabled (the eventual /api/upload/start endpoint refuses to enqueue
+    # Upload destination selector. One destination is active per machine; see
+    # docs/domain/upload.md for the extension recipe. When unset, the upload
+    # feature is disabled (the /api/upload/start endpoint refuses to enqueue
     # and the UI hides its affordances).
+    upload_destination: Literal["s3", "local"] | None = None
+
+    # S3 upload destination. When either field is unset, the upload feature
+    # is disabled (the /api/upload/start endpoint refuses to enqueue and the
+    # UI hides its affordances).
     s3_bucket: str | None = None
     s3_key_template: str | None = None  # see app/features/upload/key_template.py
 
@@ -142,6 +148,13 @@ class Settings(BaseSettings):
     s3_multipart_threshold_mb: int | None = None  # boto3 default: 8 MB
     s3_multipart_chunksize_mb: int | None = None  # boto3 default: 8 MB
     s3_max_concurrency: int | None = None  # boto3 default: 10
+
+    # Local-filesystem upload destination. Intended for a local-network share
+    # (NFS / SMB) bind-mounted into the backend container at
+    # `local_upload_dir`. When either field is unset and
+    # `upload_destination="local"`, the upload feature is disabled.
+    local_upload_dir: Path | None = None
+    local_upload_path_template: str | None = None  # see app/features/upload/key_template.py
 
     # --- Recording-specific settings loaded from YAML (cached) ---
     _recording: RecordingConfig | None = None

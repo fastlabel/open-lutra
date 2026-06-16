@@ -20,7 +20,6 @@ from app.features.jobs.models import JobStatus
 from app.features.jobs.service import get_job_queue
 from app.features.upload.cache import load_state
 from app.features.upload.destinations import get_active_destination
-from app.features.upload.key_template import validate_template
 from app.features.upload.schemas import (
     BulkUploadResponse,
     BulkUploadResultItem,
@@ -35,19 +34,11 @@ def _upload_availability_error(settings: Settings) -> str | None:
     """Return why the upload feature is not usable, or ``None`` when fully configured.
 
     Powers both ``UploadService.start()``'s early-rejection path and the
-    ``/api/config`` ``upload_enabled`` flag.
+    ``/api/config`` ``upload_enabled`` flag. The destination owns every
+    check (env vars set, template parses, etc.) — see
+    :meth:`UploadDestination.configuration_error`.
     """
-    destination = get_active_destination(settings)
-    err = destination.configuration_error()
-    if err is not None:
-        return err
-    # configuration_error() guarantees the template is set; assert for the type checker.
-    assert settings.s3_key_template is not None
-    try:
-        validate_template(settings.s3_key_template)
-    except ValueError as e:
-        return str(e)
-    return None
+    return get_active_destination(settings).configuration_error()
 
 
 def is_upload_enabled(settings: Settings) -> bool:
@@ -99,11 +90,9 @@ class UploadService:
         the existing job's status without enqueueing a second one.
 
         Early rejections (returns ``status="failed"`` without touching the
-        queue):
-
-        * Destination is not configured (S3_BUCKET / S3_KEY_TEMPLATE unset).
-        * Key template syntax is invalid (unknown placeholder, unbalanced
-          braces).
+        queue): anything the destination's
+        :meth:`UploadDestination.configuration_error` flags (missing env
+        vars, malformed key/path template, etc.).
         """
         err = _upload_availability_error(get_settings())
         if err is not None:

@@ -40,8 +40,26 @@ class UploadDestination(Protocol):
     def configuration_error(self) -> str | None:
         """Return a human-readable error if the destination is not usable, else ``None``.
 
-        Drives both the ``/api/upload/start`` early-rejection check and the
-        UI's "hide upload affordances when not configured" toggle.
+        Covers every check that must pass before an upload can be enqueued
+        (env vars set, key/path template parses, etc.). Drives both the
+        ``/api/upload/start`` early-rejection path and the UI's "hide upload
+        affordances when not configured" toggle.
+        """
+        ...
+
+    def prepare_target(self, recording_name: str, recording_start_ns: int) -> tuple[str, str]:
+        """Resolve the ``(destination_label, key)`` pair for this upload.
+
+        ``destination_label`` is what gets persisted to
+        ``UploadState.destination`` (bucket name for S3, mounted-dir path for
+        local, container name for GCS). ``key`` is the object / path key
+        within that destination, rendered from the destination's configured
+        template.
+
+        Called once per upload before transfer begins. Raises if the template
+        cannot be rendered — but ``configuration_error()`` should already have
+        rejected unusable templates, so this path is reserved for runtime
+        inputs (e.g. ``recording_start_ns``).
         """
         ...
 

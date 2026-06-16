@@ -1,4 +1,4 @@
-"""Tests for the S3 key template renderer."""
+"""Tests for the destination key template renderer."""
 
 from datetime import datetime, timezone
 

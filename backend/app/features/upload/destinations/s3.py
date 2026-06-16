@@ -20,6 +20,7 @@ import boto3
 from boto3.s3.transfer import TransferConfig
 
 from app.features.upload.destinations.base import ProgressCallback, UploadResult
+from app.features.upload.key_template import KeyTemplateError, render_key, validate_template
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,7 +41,25 @@ class S3Destination:
             return "S3_BUCKET is not configured"
         if not self._settings.s3_key_template:
             return "S3_KEY_TEMPLATE is not configured"
+        try:
+            validate_template(self._settings.s3_key_template)
+        except KeyTemplateError as e:
+            return str(e)
         return None
+
+    def prepare_target(self, recording_name: str, recording_start_ns: int) -> tuple[str, str]:
+        bucket = self._settings.s3_bucket
+        template = self._settings.s3_key_template
+        if bucket is None or template is None:
+            # Defensive: configuration_error() should have rejected this upload
+            # before prepare_target() is reached.
+            raise RuntimeError("S3 destination is not configured")
+        key = render_key(
+            template,
+            recording_name=recording_name,
+            recording_start_ns=recording_start_ns,
+        )
+        return bucket, key
 
     def upload(
         self,

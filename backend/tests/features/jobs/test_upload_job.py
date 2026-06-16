@@ -90,6 +90,10 @@ class TestRunUpload:
 
         destination = MagicMock()
         destination.configuration_error.return_value = None
+        destination.prepare_target.return_value = (
+            "lutra-test",
+            f"uploads/{tmp_path.name}.zip",
+        )
         destination.upload.return_value = UploadResult(size_bytes=4096, etag='"abc-1"')
 
         queue = JobQueue()
@@ -129,6 +133,10 @@ class TestRunUpload:
 
         destination = MagicMock()
         destination.configuration_error.return_value = None
+        destination.prepare_target.return_value = (
+            "lutra-test",
+            f"uploads/{tmp_path.name}.zip",
+        )
         destination.upload.side_effect = RuntimeError("network unreachable")
 
         queue = JobQueue()
@@ -176,12 +184,16 @@ class TestRunUpload:
         assert load_state(tmp_path) is None
 
     async def test_raises_when_metadata_missing_start_time(self, tmp_path: Path) -> None:
-        """`render_key` requires recording_start_ns; fail if metadata.yaml does not carry it."""
+        """Key rendering requires recording_start_ns; fail if metadata.yaml does not carry it."""
         _seed_recording(tmp_path)
         _write_metadata_yaml(tmp_path, start_ns=None)
 
         destination = MagicMock()
         destination.configuration_error.return_value = None
+        destination.prepare_target.return_value = (
+            "lutra-test",
+            f"uploads/{tmp_path.name}.zip",
+        )
 
         queue = JobQueue()
         job = await queue.enqueue_upload(tmp_path)
@@ -206,6 +218,10 @@ class TestRunUpload:
 
         destination = MagicMock()
         destination.configuration_error.return_value = None
+        destination.prepare_target.return_value = (
+            "lutra-test",
+            f"uploads/{tmp_path.name}.zip",
+        )
 
         def fake_upload(local_path: Path, key: str, progress: object) -> UploadResult:
             # Simulate boto3 invoking the callback with byte-deltas.
