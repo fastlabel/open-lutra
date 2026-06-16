@@ -14,4 +14,5 @@ export interface ConfigResponse {
   robot_name: string;
   default_topics: string[];
   stamp_quality: boolean;
+  upload_enabled: boolean;
 }

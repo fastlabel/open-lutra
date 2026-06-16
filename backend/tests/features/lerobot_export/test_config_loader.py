@@ -3,7 +3,7 @@
 import pytest
 
 from app.features.lerobot_export.config_loader import has_active_config, load_active_config, parse_config
-from app.settings import RobotConfig
+from app.settings import RecordingConfig
 
 _VALID = {
     "fps": 20,
@@ -15,12 +15,12 @@ _VALID = {
 
 
 def test_has_active_config() -> None:
-    assert has_active_config(RobotConfig(lerobot_export=_VALID)) is True
-    assert has_active_config(RobotConfig()) is False
+    assert has_active_config(RecordingConfig(lerobot_export=_VALID)) is True
+    assert has_active_config(RecordingConfig()) is False
 
 
 def test_load_active_config() -> None:
-    config = load_active_config(RobotConfig(lerobot_export=_VALID))
+    config = load_active_config(RecordingConfig(lerobot_export=_VALID))
     assert config.fps == 20
     assert config.robot_type == "demo"
     assert config.images == {"cam": "/img"}
@@ -30,12 +30,12 @@ def test_load_active_config() -> None:
 
 def test_load_active_config_not_configured() -> None:
     with pytest.raises(ValueError, match="No `lerobot_export`"):
-        load_active_config(RobotConfig())
+        load_active_config(RecordingConfig())
 
 
 def test_load_active_config_malformed() -> None:
     with pytest.raises(ValueError, match="images"):
-        load_active_config(RobotConfig(lerobot_export={"observation": {}, "action": []}))
+        load_active_config(RecordingConfig(lerobot_export={"observation": {}, "action": []}))
 
 
 @pytest.mark.parametrize("missing", ["images", "observation", "action"])

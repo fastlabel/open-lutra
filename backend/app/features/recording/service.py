@@ -48,7 +48,7 @@ class ROS2BagRecorder:
         self._start_delay_sec = settings.recording_start_delay_sec
         # Stem of the YAML file path (e.g. "config/simulator.yaml" -> "simulator").
         # Captured at startup and recorded into metadata at recording time.
-        self._robot_config_name = Path(settings.robot_config).stem
+        self._recording_config_name = Path(settings.recording_config).stem
         self._ros2 = ros2
 
         self._record: RecordProcess | None = None
@@ -141,7 +141,7 @@ class ROS2BagRecorder:
                 output_path,
                 RecordingMeta(
                     task_name=task_name,
-                    robot_config_name=self._robot_config_name,
+                    recording_config_name=self._recording_config_name,
                     tags=[],
                 ),
             )

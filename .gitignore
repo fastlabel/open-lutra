@@ -37,3 +37,4 @@ frontend/.pnpm-store/
 
 # OS
 .DS_Store
+.idea/

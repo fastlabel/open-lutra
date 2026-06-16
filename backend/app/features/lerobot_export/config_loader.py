@@ -1,9 +1,9 @@
-"""Load the LeRobot export mapping from the active robot config.
+"""Load the LeRobot export mapping from the active recording config.
 
-The mapping is declared under the `lerobot_export:` key of the robot YAML config
-(`config/<robot>.yaml`, selected via `ROBOT_CONFIG`) — not in a separate file —
-so a recording's robot and its export layout stay together. See
-`config/lerobot/README.md` for the schema.
+The mapping is declared under the `lerobot_export:` key of the recording YAML
+config (`config/<robot>.yaml`, selected via `RECORDING_CONFIG`) — not in a
+separate file — so a recording's config and its export layout stay together.
+See `config/lerobot/README.md` for the schema.
 """
 
 from __future__ import annotations
@@ -14,28 +14,28 @@ from app.features.lerobot_export.models import ExportConfig, SourceConfig
 from app.settings import get_settings
 
 if TYPE_CHECKING:
-    from app.settings import RobotConfig
+    from app.settings import RecordingConfig
 
 
-def has_active_config(robot: RobotConfig | None = None) -> bool:
-    """Return True if the active robot config declares a `lerobot_export` mapping."""
-    robot = robot if robot is not None else get_settings().robot
-    return robot.lerobot_export is not None
+def has_active_config(recording: RecordingConfig | None = None) -> bool:
+    """Return True if the active recording config declares a `lerobot_export` mapping."""
+    recording = recording if recording is not None else get_settings().recording
+    return recording.lerobot_export is not None
 
 
-def load_active_config(robot: RobotConfig | None = None) -> ExportConfig:
-    """Build the ExportConfig from the active robot config's `lerobot_export` section.
+def load_active_config(recording: RecordingConfig | None = None) -> ExportConfig:
+    """Build the ExportConfig from the active recording config's `lerobot_export` section.
 
     Args:
-        robot: Robot config to read (defaults to the active `ROBOT_CONFIG`).
+        recording: Recording config to read (defaults to the active `RECORDING_CONFIG`).
 
     Raises:
         ValueError: If no `lerobot_export` mapping is configured, or it is malformed.
     """
-    robot = robot if robot is not None else get_settings().robot
-    if robot.lerobot_export is None:
-        raise ValueError("No `lerobot_export` mapping is configured for the active robot config")
-    return parse_config(robot.lerobot_export)
+    recording = recording if recording is not None else get_settings().recording
+    if recording.lerobot_export is None:
+        raise ValueError("No `lerobot_export` mapping is configured for the active recording config")
+    return parse_config(recording.lerobot_export)
 
 
 def parse_config(data: dict[str, Any]) -> ExportConfig:

@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './bulkUploadRequest.ts';
+export * from './bulkUploadResponse.ts';
+export * from './bulkUploadResultItem.ts';
 export * from './configResponse.ts';
 export * from './deleteRequest.ts';
 export * from './deleteResponse.ts';
@@ -20,6 +23,7 @@ export * from './getQualityParams.ts';
 export * from './getTimelineMessagesParams.ts';
 export * from './getTimelineParams.ts';
 export * from './getTopicMessageParams.ts';
+export * from './getUploadParams.ts';
 export * from './getValidationParams.ts';
 export * from './getVideoFileParams.ts';
 export * from './getVideoStatusParams.ts';
@@ -52,6 +56,7 @@ export * from './renameResponse.ts';
 export * from './startLiveParams.ts';
 export * from './startQualityAnalysisParams.ts';
 export * from './startTimelineAnalysisParams.ts';
+export * from './startUploadParams.ts';
 export * from './startValidationParams.ts';
 export * from './startVideoGenerationParams.ts';
 export * from './stopLiveParams.ts';
@@ -70,6 +75,9 @@ export * from './topicQuality.ts';
 export * from './topicsResponse.ts';
 export * from './updateMetaRequest.ts';
 export * from './updateMetaResponse.ts';
+export * from './uploadResponse.ts';
+export * from './uploadState.ts';
+export * from './uploadStateStatus.ts';
 export * from './validationError.ts';
 export * from './validationErrorCtx.ts';
 export * from './validationReport.ts';

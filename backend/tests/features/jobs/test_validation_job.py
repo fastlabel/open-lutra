@@ -44,7 +44,7 @@ def _write_quality_report(directory: Path, *, duration_sec: float = 60.0) -> Non
 
 
 def _write_meta(directory: Path, *, task_name: str | None) -> None:
-    payload = {"task_name": task_name, "robot_config_name": None, "tags": []}
+    payload = {"task_name": task_name, "recording_config_name": None, "tags": []}
     (directory / "recording_meta.json").write_text(json.dumps(payload), encoding="utf-8")
 
 
@@ -79,6 +79,16 @@ class TestEnqueueValidation:
 class TestRunValidation:
     """Direct invocation of JobQueue._run_validation()."""
 
+    @pytest.fixture(autouse=True)
+    def _stub_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Stub get_settings() so active_set.get_builtin_recording_validators
+        does not need real env vars (RECORDING_CONFIG / OUTPUT_DIR)."""
+        from unittest.mock import MagicMock
+
+        mock_s = MagicMock()
+        mock_s.recording.validators = []
+        monkeypatch.setattr("app.features.validation.active_set.get_settings", lambda: mock_s)
+
     async def test_writes_validation_result(self, tmp_path: Path) -> None:
         """A successful run produces validation_result.json."""
         _write_quality_report(tmp_path)
@@ -91,7 +101,6 @@ class TestRunValidation:
         report = load_report(tmp_path)
         assert report is not None
         assert report.task_name == "my_task"
-        # The builtin active_set has no-op defaults → overall pass.
         assert report.overall_status == "pass"
 
     async def test_skips_when_cache_exists(self, tmp_path: Path) -> None:

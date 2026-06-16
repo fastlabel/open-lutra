@@ -27,8 +27,8 @@ teaching and teleoperation workflows.
 - On-demand MCAP → MP4 preview for recorded camera topics.
 - Recordings browser with search, filter, per-topic timeline heatmap, and
   video / joint previews.
-- YAML-based robot configuration switchable via the `ROBOT_CONFIG` environment
-  variable.
+- YAML-based recording configuration switchable via the `RECORDING_CONFIG`
+  environment variable.
 - Docker Compose-based dev environment with a built-in simulator (`make up`)
   and a host-network production profile (`make prod-up`).
 - Reference snippets in [`examples/`](./examples/), including how to plug in

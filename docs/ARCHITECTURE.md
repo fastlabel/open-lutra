@@ -197,7 +197,8 @@ JobQueue (asyncio.Queue + single worker)
   ├─ media     : MCAP → MP4 (all cameras) + joint_data.json
   ├─ timeline  : MCAP → timeline_data.json
   ├─ quality   : MCAP → quality_report.json
-  └─ validation: QualityReport → validation_result.json
+  ├─ validation: QualityReport → validation_result.json
+  └─ upload    : recording folder → zip → ship to UploadDestination
 ```
 
 - **Single worker**: At most one job runs concurrently. Running multiple CPU-bound MCAP conversions/analyses at once would actually slow things down
@@ -349,6 +350,8 @@ Clicking the details panel header navigates to the MCAP detail page (`/recording
 - Return to "All" or clear the search → clear all checks.
 - This makes "filter or search to narrow down, then bulk-delete with one button" possible with minimal operations.
 - The count on each filter tab updates in real time to reflect the breakdown within the current search hits.
+
+**Where bulk actions live**: bulk-action buttons are individual components under `frontend/src/features/recordings/ui/bulk-*.tsx` (today: `bulk-delete-button.tsx`) and mounted inside `features/recordings-table/recordings-table.tsx`. They read the selected set from `useRecordingsStore.checkedFolders` (a Zustand store inside the `recordings` feature). Add new bulk actions by mirroring this pattern.
 
 #### MCAP detail page (`/recordings/:folder`) — integrated timeline view
 

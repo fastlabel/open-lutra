@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.features.config.memory_reader import read_limit_bytes, read_usage_bytes
 from app.features.config.schemas import ConfigResponse, HealthResponse, MemoryInfo
+from app.features.upload.service import is_upload_enabled
 from app.settings import get_settings
 
 router = APIRouter(prefix="/api", tags=["config"])
@@ -24,6 +25,7 @@ async def get_config() -> ConfigResponse:
         robot_name=settings.robot_name,
         default_topics=settings.default_topics,
         stamp_quality=settings.stamp_quality,
+        upload_enabled=is_upload_enabled(settings),
     )
 
 

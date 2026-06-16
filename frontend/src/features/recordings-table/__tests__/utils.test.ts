@@ -44,8 +44,9 @@ describe("applySearchAndFilter", () => {
     message_count: null,
     has_quality_report: false,
     validation_overall_status: null,
+    upload_status: null,
     task_name: null,
-    robot_config_name: null,
+    recording_config_name: null,
     tags: [],
     ...overrides,
   });

@@ -92,7 +92,7 @@ def update_recording_meta_endpoint(name: str, req: UpdateMetaRequest) -> UpdateM
     updated = update_recording_meta(target, task_name=req.task_name, tags=req.tags)
     return UpdateMetaResponse(
         task_name=updated.task_name,
-        robot_config_name=updated.robot_config_name,
+        recording_config_name=updated.recording_config_name,
         tags=updated.tags,
     )
 

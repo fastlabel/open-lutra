@@ -1,8 +1,8 @@
 /** Dialog for editing task_name / tags.
  *
  * Provides chip-style tag input (commit with Enter / Tab / Comma; Backspace removes the trailing tag)
- * and a single-line task_name input. robot_config_name is fixed at recording time and is not editable;
- * it is shown for reference only.
+ * and a single-line task_name input. recording_config_name is fixed at recording time and is not
+ * editable; it is shown for reference only.
  */
 
 import { X } from "lucide-react";
@@ -136,11 +136,11 @@ export function MetaEditDialog({
             </div>
           </div>
 
-          {/* robot_config_name (read-only) */}
-          {entry.robot_config_name && (
+          {/* recording_config_name (read-only) */}
+          {entry.recording_config_name && (
             <div className="space-y-1.5">
-              <Label>Robot config (fixed at recording time)</Label>
-              <div className="text-sm text-muted-foreground">{entry.robot_config_name}</div>
+              <Label>Recording config (fixed at recording time)</Label>
+              <div className="text-sm text-muted-foreground">{entry.recording_config_name}</div>
             </div>
           )}
         </div>

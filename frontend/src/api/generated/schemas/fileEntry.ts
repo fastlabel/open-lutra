@@ -31,7 +31,9 @@ export interface FileEntry {
   has_quality_report: boolean;
   /** Overall validation status from validation_result.json (pass / warn / fail / error). null when no validation report exists. */
   validation_overall_status: string | null;
+  /** Latest upload status from upload_state.json (idle / uploading / uploaded / failed). null when no upload state exists. */
+  upload_status: string | null;
   task_name: string | null;
-  robot_config_name: string | null;
+  recording_config_name: string | null;
   tags: string[];
 }

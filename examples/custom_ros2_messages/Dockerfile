@@ -66,15 +66,15 @@ ENV OUTPUT_DIR=/data/output
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
-# Entrypoint script: read ROS_DOMAIN_ID from ROBOT_CONFIG and launch ROS2
+# Entrypoint script: read ROS_DOMAIN_ID from RECORDING_CONFIG and launch ROS2
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e
 source /opt/ros/humble/setup.bash
 # The custom-message workspace is always present in this sample image.
 source /ros2_ws/install/setup.bash
-if [ -f "${ROBOT_CONFIG:-}" ]; then
-  export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${ROBOT_CONFIG}')).get('ros_domain_id', 0))")
+if [ -f "${RECORDING_CONFIG:-}" ]; then
+  export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG}')).get('ros_domain_id', 0))")
 fi
 exec uv run --offline uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
 EOF

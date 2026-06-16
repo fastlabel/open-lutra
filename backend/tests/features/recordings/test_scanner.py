@@ -184,6 +184,7 @@ class TestScanOutputDir:
 
         assert entries[0].has_quality_report is False
         assert entries[0].validation_overall_status is None
+        assert entries[0].upload_status is None
 
     def test_validation_overall_status_loaded(self, tmp_path: Path) -> None:
         """When validation_result.json exists, its overall_status is reflected in FileEntry."""
@@ -201,6 +202,27 @@ class TestScanOutputDir:
         entries = scan_output_dir(tmp_path)
 
         assert entries[0].validation_overall_status == "warn"
+
+    def test_upload_status_loaded(self, tmp_path: Path) -> None:
+        """When upload_state.json exists, its status is reflected in FileEntry."""
+        state = {
+            "status": "uploaded",
+            "destination": "lutra-test",
+            "key": "uploads/rec.zip",
+            "etag": '"abc"',
+            "size_bytes": 1024,
+            "bytes_transferred": 1024,
+            "uploaded_at": "2026-05-25T12:00:00+00:00",
+            "error": None,
+        }
+        _make_recording(
+            tmp_path / "rec",
+            files={"upload_state.json": json.dumps(state).encode("utf-8")},
+        )
+
+        entries = scan_output_dir(tmp_path)
+
+        assert entries[0].upload_status == "uploaded"
 
     def test_metadata_summary_included(self, tmp_path: Path) -> None:
         """When metadata.yaml is present, topic_count/recording_start_ns/duration_ns/message_count are filled in."""
@@ -319,27 +341,27 @@ class TestScanOutputDir:
             assert scan_output_dir(restricted) == []
 
     def test_recording_meta_included(self, tmp_path: Path) -> None:
-        """When recording_meta.json exists, task_name / robot_config_name / tags are filled in."""
+        """When recording_meta.json exists, task_name / recording_config_name / tags are filled in."""
         rec = _make_recording(tmp_path / "rec")
         (rec / "recording_meta.json").write_text(
-            json.dumps({"task_name": "pick", "robot_config_name": "simulator", "tags": ["t1", "t2"]}),
+            json.dumps({"task_name": "pick", "recording_config_name": "simulator", "tags": ["t1", "t2"]}),
             encoding="utf-8",
         )
 
         entries = scan_output_dir(tmp_path)
 
         assert entries[0].task_name == "pick"
-        assert entries[0].robot_config_name == "simulator"
+        assert entries[0].recording_config_name == "simulator"
         assert entries[0].tags == ["t1", "t2"]
 
     def test_recording_meta_absent_defaults(self, tmp_path: Path) -> None:
-        """For legacy recording folders without recording_meta.json, task_name=None / robot_config_name=None / tags=[]."""
+        """For legacy recording folders without recording_meta.json, task_name=None / recording_config_name=None / tags=[]."""
         _make_recording(tmp_path / "rec")
 
         entries = scan_output_dir(tmp_path)
 
         assert entries[0].task_name is None
-        assert entries[0].robot_config_name is None
+        assert entries[0].recording_config_name is None
         assert entries[0].tags == []
 
 
@@ -348,7 +370,7 @@ def _make_recording_with_task(folder: Path, task_name: str | None, *, mtime: flo
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "recording_0.mcap").write_bytes(b"x")
     (folder / "recording_meta.json").write_text(
-        json.dumps({"task_name": task_name, "robot_config_name": None, "tags": []}),
+        json.dumps({"task_name": task_name, "recording_config_name": None, "tags": []}),
         encoding="utf-8",
     )
     if mtime is not None:

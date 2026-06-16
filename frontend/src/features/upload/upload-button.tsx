@@ -1,0 +1,68 @@
+/** Upload action button shown in the recording-detail header.
+ *
+ * Stateful label that reflects the current upload phase
+ * (Upload / Uploading N% / Re-upload / Retry) and shows the failure
+ * message inline when the last attempt failed. Driven by
+ * `useUploadStatus(folderPath)`; clicks fire `POST /api/upload/start`
+ * which always overwrites the previously uploaded object (per issue #6).
+ *
+ * Hidden entirely when `upload_enabled` is false on `/api/config`.
+ */
+
+import { AlertCircle, CloudCheck, CloudUpload, Loader2 } from "lucide-react";
+import type { ComponentType } from "react";
+import { Button } from "@/components/ui/button";
+import { useConfig, useStartUpload } from "@/hooks/use-api";
+import { type UploadStatus, useUploadStatus } from "@/hooks/use-upload-status";
+
+type IconComponent = ComponentType<{ size?: number; className?: string }>;
+
+function buildLabel(
+  status: UploadStatus,
+  percent: number | null,
+): { Icon: IconComponent; text: string; spin?: boolean } {
+  switch (status) {
+    case "uploading":
+      return { Icon: Loader2, text: percent === null ? "Uploading…" : `Uploading ${percent}%`, spin: true };
+    case "uploaded":
+      return { Icon: CloudCheck, text: "Re-upload" };
+    case "failed":
+      return { Icon: AlertCircle, text: "Retry upload" };
+    default:
+      return { Icon: CloudUpload, text: "Upload" };
+  }
+}
+
+export function UploadButton({ folderPath }: { folderPath: string }) {
+  // --- Server state ---
+  const { data: config } = useConfig();
+  const { status, percent, error } = useUploadStatus(folderPath);
+  const { mutate: startUpload, isPending } = useStartUpload();
+
+  if (!config?.upload_enabled) return null;
+
+  const disabled = status === "uploading" || isPending;
+  const { Icon, text, spin } = buildLabel(status, percent);
+  const failed = status === "failed";
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant={failed ? "destructive" : "outline"}
+        disabled={disabled}
+        onClick={() => startUpload({ params: { path: folderPath } })}
+        title={failed ? (error ?? "Upload failed") : text}
+      >
+        <Icon size={14} className={spin ? "animate-spin" : undefined} />
+        <span>{text}</span>
+      </Button>
+      {failed && error && (
+        <span className="max-w-[18rem] truncate text-[13px] text-red-300" title={error}>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
