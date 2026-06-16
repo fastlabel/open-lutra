@@ -1,7 +1,7 @@
 """Load the LeRobot export mapping from the active recording config.
 
 The mapping is declared under the `lerobot_export:` key of the recording YAML
-config (`config/<robot>.yaml`, selected via `RECORDING_CONFIG`) — not in a
+config (`config/<recording>.yaml`, selected via `RECORDING_CONFIG`) — not in a
 separate file — so a recording's config and its export layout stay together.
 See `config/lerobot/README.md` for the schema.
 """
