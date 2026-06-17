@@ -138,12 +138,17 @@ class Settings(BaseSettings):
 
     # S3 client settings.
     #
-    # Credentials are NOT declared here — boto3 picks AWS_ACCESS_KEY_ID /
-    # AWS_SECRET_ACCESS_KEY (or AWS_PROFILE) directly from the process env.
-    # Declaring them in pydantic would shadow that lookup. The remaining knobs
-    # are only set when the operator overrides the boto3 defaults.
+    # Credentials are loaded from .env and forwarded to boto3 explicitly when
+    # set (env-var auth). aws_session_token covers STS temporary credentials.
+    # When the credential fields are unset, boto3 falls back to its own
+    # discovery chain (AWS_PROFILE, shared config files, instance metadata).
+    # The remaining knobs are only applied when the operator overrides the
+    # boto3 defaults.
     aws_region: str | None = None
     aws_profile: str | None = None
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+    aws_session_token: str | None = None  # for STS temporary credentials
     aws_endpoint_url: str | None = None  # e.g. http://minio:9000 for local testing
     s3_multipart_threshold_mb: int | None = None  # boto3 default: 8 MB
     s3_multipart_chunksize_mb: int | None = None  # boto3 default: 8 MB

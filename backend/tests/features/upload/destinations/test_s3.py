@@ -140,6 +140,49 @@ class TestBuildClient:
         session.client.assert_called_once_with("s3", region_name="us-west-2")
         boto3_mock.client.assert_not_called()
 
+    def test_explicit_credentials_forwarded(self) -> None:
+        with patch("app.features.upload.destinations.s3.boto3") as boto3_mock:
+            _build_client(
+                _settings(
+                    aws_access_key_id="AKIAEXAMPLE",
+                    aws_secret_access_key="secret",
+                    aws_session_token="session-token",
+                ),
+            )
+        boto3_mock.client.assert_called_once_with(
+            "s3",
+            aws_access_key_id="AKIAEXAMPLE",
+            aws_secret_access_key="secret",
+            aws_session_token="session-token",
+        )
+
+    def test_session_token_omitted_when_unset(self) -> None:
+        with patch("app.features.upload.destinations.s3.boto3") as boto3_mock:
+            _build_client(
+                _settings(aws_access_key_id="AKIAEXAMPLE", aws_secret_access_key="secret"),
+            )
+        boto3_mock.client.assert_called_once_with(
+            "s3",
+            aws_access_key_id="AKIAEXAMPLE",
+            aws_secret_access_key="secret",
+        )
+
+    def test_profile_takes_precedence_over_explicit_credentials(self) -> None:
+        with patch("app.features.upload.destinations.s3.boto3") as boto3_mock:
+            session = MagicMock()
+            boto3_mock.Session.return_value = session
+            _build_client(
+                _settings(
+                    aws_profile="dev",
+                    aws_access_key_id="AKIAEXAMPLE",
+                    aws_secret_access_key="secret",
+                    aws_session_token="session-token",
+                ),
+            )
+        boto3_mock.Session.assert_called_once_with(profile_name="dev")
+        session.client.assert_called_once_with("s3")
+        boto3_mock.client.assert_not_called()
+
     def test_endpoint_url_applied(self) -> None:
         with patch("app.features.upload.destinations.s3.boto3") as boto3_mock:
             _build_client(_settings(aws_endpoint_url="http://localhost:4566"))

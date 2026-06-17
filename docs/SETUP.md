@@ -258,6 +258,7 @@ Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The fea
 | `AWS_REGION` | yes\* | AWS region |
 | `AWS_ACCESS_KEY_ID` | \*\* | Access key (env-var auth) |
 | `AWS_SECRET_ACCESS_KEY` | \*\* | Secret key (env-var auth) |
+| `AWS_SESSION_TOKEN` | no | Session token for STS temporary credentials (env-var auth) |
 | `AWS_PROFILE` | \*\* | Named profile (profile auth; mutually exclusive with the access-key pair) |
 | `AWS_ENDPOINT_URL` | no | Custom S3 endpoint (MinIO / R2 / LocalStack) |
 | `S3_MULTIPART_THRESHOLD_MB` | no | `boto3` TransferConfig override (default 8 MB) |
@@ -265,7 +266,7 @@ Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The fea
 | `S3_MAX_CONCURRENCY` | no | `boto3` TransferConfig override (default 10) |
 
 \* `AWS_REGION` may be resolved from the profile when using `AWS_PROFILE`.
-\*\* Exactly one of the two auth paths (env-var keys **or** profile) must be configured.
+\*\* Exactly one of the two auth paths (env-var keys **or** profile) must be configured. With env-var auth, add `AWS_SESSION_TOKEN` when the access key is a temporary STS credential.
 
 Example `.env` snippet (env-var auth):
 
@@ -276,6 +277,7 @@ S3_KEY_TEMPLATE=lutra-recordings/operation-files/{yyyymmddhhmmss}/{recording_nam
 AWS_REGION=ap-northeast-1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
+# AWS_SESSION_TOKEN=...   # only for temporary STS credentials
 ```
 
 ### Local Testing with MinIO

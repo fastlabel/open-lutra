@@ -4,12 +4,14 @@ Wraps boto3's S3 client and managed-transfer API into the
 :class:`UploadDestination` protocol. Also supports any S3-compatible
 endpoint (MinIO, Cloudflare R2, LocalStack) via ``AWS_ENDPOINT_URL``.
 
-Credential discovery is delegated to boto3:
+Credential resolution:
 
 * When ``aws_profile`` is set, build via a :class:`boto3.Session` bound to
   that profile.
-* Otherwise build a default client; boto3 picks credentials up from the
-  process env vars (``AWS_ACCESS_KEY_ID`` / ``AWS_SECRET_ACCESS_KEY``).
+* Otherwise build a default client, forwarding ``aws_access_key_id`` /
+  ``aws_secret_access_key`` / ``aws_session_token`` from settings when set
+  (the session token covers STS temporary credentials). When the credential
+  fields are unset, boto3 falls back to its own discovery chain.
 """
 
 from __future__ import annotations
@@ -101,6 +103,16 @@ def _build_client(settings: Settings) -> Any:
     if settings.aws_profile:
         session = boto3.Session(profile_name=settings.aws_profile)
         return session.client("s3", **kwargs)
+
+    # Explicit env-var credentials. Each is forwarded only when set so that
+    # boto3 falls back to its own discovery chain (shared config files,
+    # instance metadata, …) when the operator does not supply keys here.
+    if settings.aws_access_key_id:
+        kwargs["aws_access_key_id"] = settings.aws_access_key_id
+    if settings.aws_secret_access_key:
+        kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
+    if settings.aws_session_token:
+        kwargs["aws_session_token"] = settings.aws_session_token
     return boto3.client("s3", **kwargs)
 
 
