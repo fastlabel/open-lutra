@@ -8,7 +8,7 @@
  * The dataset is written under <output_dir>/_lerobot_exports/<name>/.
  */
 
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, Loader2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStartLeRobotExport } from "@/api/generated/lerobot/lerobot";
 import type { ExportResponse, JobSchema, LeRobotConfigResponse } from "@/api/generated/schemas";
@@ -39,12 +39,22 @@ function MappingInfo({ config, loading }: { config: LeRobotConfigResponse | unde
 /** Live progress / result of the running export job. */
 function ExportProgress({ job, outputName }: { job: JobSchema | undefined; outputName: string }) {
   if (job?.status === "completed") {
+    // A plain <a download> (user-gesture triggered) zips and streams the dataset
+    // straight to the browser's download folder — no popup blocker, no blob in memory.
     return (
-      <div className="flex items-start gap-2 text-sm">
-        <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-green-500" />
-        <span>
-          Export completed: <code>_lerobot_exports/{outputName}/</code>
-        </span>
+      <div className="space-y-3">
+        <div className="flex items-start gap-2 text-sm">
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-green-500" />
+          <span>
+            Export completed: <code>_lerobot_exports/{outputName}/</code>
+          </span>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <a href={`/api/lerobot/exports/${encodeURIComponent(outputName)}/download`} download>
+            <Download size={16} />
+            Download .zip
+          </a>
+        </Button>
       </div>
     );
   }

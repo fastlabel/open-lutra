@@ -95,6 +95,11 @@ describe("BulkExportButton", () => {
     expect(screen.getByText(/Export completed/)).toBeInTheDocument();
     expect(screen.getByText("_lerobot_exports/ds_v1/")).toBeInTheDocument();
     expect(screen.queryByLabelText("Output name")).not.toBeInTheDocument(); // form replaced by status
+
+    // A native download link points at the zip endpoint for the exported dataset.
+    const link = screen.getByRole("link", { name: /Download \.zip/ });
+    expect(link).toHaveAttribute("href", "/api/lerobot/exports/ds_v1/download");
+    expect(link).toHaveAttribute("download");
   });
 
   it("closes the dialog (open=false) when a completed export is dismissed", () => {

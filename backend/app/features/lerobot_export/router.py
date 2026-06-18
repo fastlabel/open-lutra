@@ -1,13 +1,23 @@
 """API endpoints for exporting recordings to LeRobot datasets."""
 
+import asyncio
 import logging
-import re
+import os
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.features.jobs.service import get_job_queue
+from app.features.lerobot_export.archive import build_export_zip
 from app.features.lerobot_export.config_loader import has_active_config, load_active_config
+from app.features.lerobot_export.exports import (
+    exports_root,
+    resolve_existing_dataset_dir,
+    validate_dataset_name,
+)
 from app.features.lerobot_export.schemas import (
     ExportRequest,
     ExportResponse,
@@ -52,6 +62,34 @@ async def start_export(req: ExportRequest) -> ExportResponse:  # pragma: no cove
     return ExportResponse(job_id=job.job_id, output_name=req.output_name, status=job.status.value)
 
 
+@router.get("/exports/{name}/download", operation_id="downloadLeRobotExport")
+async def download_export(name: str) -> FileResponse:  # pragma: no cover
+    """Bundle an exported dataset into a single zip and stream it for download."""
+    output_dir = get_settings().output_dir
+    try:
+        dataset_dir = resolve_existing_dataset_dir(name, output_dir)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+    # Build the zip in the reserved exports root (same filesystem as the data and
+    # skipped by the recordings scanner); the leading dot keeps it from being read
+    # as a dataset. BackgroundTask deletes it once the response has been sent.
+    fd, tmp_name = tempfile.mkstemp(
+        dir=exports_root(output_dir), prefix=f".{dataset_dir.name}.", suffix=".zip.tmp"
+    )
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+    await asyncio.to_thread(build_export_zip, dataset_dir, tmp_path)
+    return FileResponse(
+        tmp_path,
+        media_type="application/zip",
+        filename=f"{dataset_dir.name}.zip",
+        background=BackgroundTask(tmp_path.unlink, missing_ok=True),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Pure helpers (tested directly; endpoints above are HTTP glue)
 # ---------------------------------------------------------------------------
@@ -89,25 +127,10 @@ def resolve_source_dirs(folders: list[str], output_dir: Path) -> list[Path]:
     return resolved
 
 
-# Dataset names must start with an alphanumeric and contain only [A-Za-z0-9._-].
-# This rejects "", path separators, "..", and leading "." / "." itself — a leading
-# dot collides with the in-progress temp-dir convention (`.<name>.*.tmp`), and "."
-# collapses onto the exports root (Path / "." == exports_root), letting a rename
-# clobber it.
-_OUTPUT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-
-
 def resolve_dataset_dir(output_name: str, output_dir: Path) -> Path:
     """Resolve a safe dataset directory under _lerobot_exports/.
 
     Raises:
         ValueError: If the name is empty or not an allowed dataset name.
     """
-    from app.features.lerobot_export.exports import exports_root
-
-    name = output_name.strip()
-    if not _OUTPUT_NAME_RE.match(name):
-        raise ValueError(
-            "Export name must start with a letter or digit and use only letters, digits, '.', '_', '-'"
-        )
-    return exports_root(output_dir) / name
+    return exports_root(output_dir) / validate_dataset_name(output_name)
