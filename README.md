@@ -3,13 +3,13 @@
 # OpenLUTRA
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](#release-status)
+[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](#release-status)
 [![Status: Beta](https://img.shields.io/badge/status-beta-yellow.svg)](#release-status)
 [![CI](https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml/badge.svg)](https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml)
 
 **A ROS2 data-recording system for robot teaching — record topics from ROS2-compatible robots and persist them as MCAP, all driven from a web UI.**
 
-> **Release status — pre-1.0 (v0.1.0, beta).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
+> **Release status — pre-1.0 (v0.2.0, beta).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
 
 [Quickstart](#quickstart) · [Documentation](#documentation) · [Issues](https://github.com/fastlabel/open-lutra/issues) · [Security](./SECURITY.md)
 
@@ -120,7 +120,7 @@ Set the task name (for example `pick-and-place`) from the inline editor in the h
 
 ## Release status
 
-OpenLUTRA is currently **v0.1.0 (beta)** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
+OpenLUTRA is currently **v0.2.0 (beta)** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
 
 Docker images are **not** published at this stage; the project is distributed as source.
 
@@ -128,7 +128,6 @@ Docker images are **not** published at this stage; the project is distributed as
 
 Nothing on this list is committed — these are directions we are currently exploring.
 
-- **LeRobot-format export** — conversion and output of recordings to the [LeRobot](https://github.com/huggingface/lerobot) dataset format.
 - **Richer validation and quality analysis** — expand the set of built-in validators and quality metrics, and surface more actionable diagnostics in the UI.
 - **Recording labeling** — attach labels, tags, and review status to recordings to organize datasets for downstream training.
 - **Seamless storage integrations** — first-class support for shipping recorded files to various storage backends (object stores, dataset platforms, etc.).
