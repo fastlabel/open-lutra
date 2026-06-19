@@ -4,6 +4,7 @@ import { useLiveTopicsStore } from "@/features/live-topics";
 import { useIsRecording } from "@/hooks/use-api";
 import { useConnectionStatus } from "@/hooks/use-topics-stream";
 import { useRecordingStore } from "./store";
+import { useRecordShortcut } from "./use-record-shortcut";
 
 export function RecordButton() {
   const isRecording = useIsRecording();
@@ -20,6 +21,10 @@ export function RecordButton() {
   const cannotStart = !active && (connectionStatus !== "connected" || !hasSelectedTopics);
   const disabled = loading || cannotStart;
 
+  // --- Side effects ---
+  // Space toggles recording (keyboard / foot-pedal), mirroring this button. See use-record-shortcut.
+  useRecordShortcut();
+
   return (
     // Show and pulse the outer gray border only while recording. pulse-border animates border-color only,
     // not the children's opacity (so the inner STOP icon and text do not pulse).
@@ -32,6 +37,7 @@ export function RecordButton() {
         type="button"
         disabled={disabled}
         onClick={active ? stopRecording : startRecording}
+        title={active ? "Stop recording (Space)" : "Start recording (Space)"}
         aria-label={label}
         aria-pressed={active}
         className={`flex h-20 w-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-white text-[14px] font-bold tracking-wider text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${

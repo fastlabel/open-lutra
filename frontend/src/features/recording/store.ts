@@ -8,7 +8,9 @@ import { devtools, persist } from "zustand/middleware";
 import { getGetRecordingStatusQueryKey } from "@/api/generated/recording/recording";
 import type { RecordingStatus } from "@/api/generated/schemas";
 import { useLiveTopicsStore } from "@/features/live-topics";
+import type { SseConnectionStatus } from "@/hooks/use-topics-stream";
 import { queryClient } from "@/lib/query-client";
+import { sseKeys } from "@/lib/query-keys";
 import { createTimer } from "./create-timer";
 import { clearMessageTimer, showMessage, startRecordingMutation, stopRecordingMutation } from "./mutations";
 
@@ -78,6 +80,11 @@ function getIsRecording(): boolean {
   return resp?.status === 200 ? resp.data.is_recording : false;
 }
 
+/** Read the SSE connection status synchronously from the TanStack Query cache. */
+function getConnectionStatus(): SseConnectionStatus | undefined {
+  return queryClient.getQueryData<SseConnectionStatus>(sseKeys.connectionStatus());
+}
+
 /** Countdown one-second tick (recursive setTimeout). */
 function tick() {
   const { countdownSec } = useRecordingStore.getState();
@@ -132,12 +139,21 @@ export const useRecordingStore = create<RecordingStore>()(
         toggle: () => {
           const { isStarting, isStopping, countdownSec, stopRecording, startRecording } = get();
           if (isStarting || isStopping) return;
-          const isRecording = getIsRecording();
-          if (isRecording || countdownSec !== null) {
+          if (getIsRecording() || countdownSec !== null) {
             stopRecording();
-          } else {
-            startRecording();
+            return;
           }
+          // Mirror the record button's start preconditions (record-button.tsx): require a live
+          // connection and at least one selected topic, with feedback when a start is refused.
+          if (getConnectionStatus() !== "connected") {
+            showMessage("Cannot start recording while disconnected", "error");
+            return;
+          }
+          if (useLiveTopicsStore.getState().selectedTopics.size === 0) {
+            showMessage("Select at least one topic to record", "error");
+            return;
+          }
+          startRecording();
         },
 
         clearMessage: () => {

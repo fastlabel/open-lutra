@@ -2,15 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock setup (initialized via vi.hoisted before vi.mock) ---
 
-const { mockMutateStart, mockMutateStop, mockShowMessage, mockClearMessageTimer, mockGetQueryData } = vi.hoisted(
-  () => ({
-    mockMutateStart: vi.fn(),
-    mockMutateStop: vi.fn(),
-    mockShowMessage: vi.fn(),
-    mockClearMessageTimer: vi.fn(),
-    mockGetQueryData: vi.fn((): unknown => undefined),
-  }),
-);
+const {
+  mockMutateStart,
+  mockMutateStop,
+  mockShowMessage,
+  mockClearMessageTimer,
+  mockGetQueryData,
+  mockSelectedTopics,
+} = vi.hoisted(() => ({
+  mockMutateStart: vi.fn(),
+  mockMutateStop: vi.fn(),
+  mockShowMessage: vi.fn(),
+  mockClearMessageTimer: vi.fn(),
+  mockGetQueryData: vi.fn((_key?: unknown): unknown => undefined),
+  mockSelectedTopics: { current: new Set<string>(["/topic_a", "/topic_b"]) },
+}));
 
 vi.mock("zustand/middleware", () => ({
   persist: (fn: unknown) => fn,
@@ -37,7 +43,7 @@ vi.mock("@/api/generated/recording/recording", () => ({
 vi.mock("@/features/live-topics", () => ({
   useLiveTopicsStore: {
     getState: vi.fn(() => ({
-      selectedTopics: new Set(["/topic_a", "/topic_b"]),
+      selectedTopics: mockSelectedTopics.current,
     })),
   },
 }));
@@ -66,6 +72,8 @@ describe("useRecordingStore", () => {
       message: null,
       finishedRecording: null,
     });
+    mockSelectedTopics.current = new Set(["/topic_a", "/topic_b"]);
+    mockGetQueryData.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -247,23 +255,43 @@ describe("useRecordingStore", () => {
       expect(mockShowMessage).toHaveBeenCalledWith("Countdown canceled", "error");
     });
 
-    it("calls startRecording when not recording or counting down", () => {
-      mockGetQueryData.mockReturnValue({
-        data: { is_recording: false },
-        status: 200,
-      });
+    it("starts recording when idle, connected, and a topic is selected", () => {
+      // getIsRecording reads the recording-status key; getConnectionStatus reads the SSE key.
+      mockGetQueryData.mockImplementation((key?: unknown) =>
+        Array.isArray(key) && key[0] === "recording-status"
+          ? { data: { is_recording: false }, status: 200 }
+          : "connected",
+      );
 
       useRecordingStore.getState().toggle();
 
       expect(mockMutateStart).toHaveBeenCalled();
     });
 
-    it("calls startRecording when queryData is undefined", () => {
-      mockGetQueryData.mockReturnValue(undefined);
+    it("does not start when disconnected, and shows a message", () => {
+      // recording-status undefined -> not recording; connection status -> disconnected.
+      mockGetQueryData.mockImplementation((key?: unknown) =>
+        Array.isArray(key) && key[0] === "recording-status" ? undefined : "disconnected",
+      );
 
       useRecordingStore.getState().toggle();
 
-      expect(mockMutateStart).toHaveBeenCalled();
+      expect(mockMutateStart).not.toHaveBeenCalled();
+      expect(mockShowMessage).toHaveBeenCalledWith("Cannot start recording while disconnected", "error");
+    });
+
+    it("does not start when no topic is selected, and shows a message", () => {
+      mockSelectedTopics.current = new Set();
+      mockGetQueryData.mockImplementation((key?: unknown) =>
+        Array.isArray(key) && key[0] === "recording-status"
+          ? { data: { is_recording: false }, status: 200 }
+          : "connected",
+      );
+
+      useRecordingStore.getState().toggle();
+
+      expect(mockMutateStart).not.toHaveBeenCalled();
+      expect(mockShowMessage).toHaveBeenCalledWith("Select at least one topic to record", "error");
     });
   });
 
