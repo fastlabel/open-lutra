@@ -62,7 +62,7 @@ services:
       - ./backend/tests:/app/tests
       - ./config:/app/config:ro
       - ./backend/pyproject.toml:/app/pyproject.toml:ro
-      - ./output:/data/output
+      - ${OUTPUT_DIR:-./output}:/data/output
     ports:
       - "8000:8000"
     restart: unless-stopped
