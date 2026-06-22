@@ -24,8 +24,8 @@ validation and configuration improvements.
   destination is pluggable and selected per machine via `UPLOAD_DESTINATION`;
   the feature stays disabled until configured. See
   [docs/domain/upload.md](docs/domain/upload.md) and the
-  [S3](docs/SETUP.md#s3-upload-optional) and
-  [local-network](docs/SETUP.md#local-network-upload-optional) setup guides.
+  [S3](docs/SETUP.md#amazon-s3) and
+  [local-network](docs/SETUP.md#local-network-filesystem) setup guides.
 - Export selected recordings to the
   [LeRobot v3.0](https://huggingface.co/docs/lerobot/en/lerobot-dataset-v3)
   dataset format (parquet + per-camera H.264 MP4) and download the result as a

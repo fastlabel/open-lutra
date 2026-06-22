@@ -9,8 +9,7 @@
 - [Local Development Tools](#local-development-tools)
 - [Production Deployment](#production-deployment)
 - [Configuration](#configuration)
-- [S3 Upload (optional)](#s3-upload-optional)
-- [Local-Network Upload (optional)](#local-network-upload-optional)
+- [Upload (optional)](#upload-optional)
 - [Simulator](#simulator)
 - [Troubleshooting](#troubleshooting)
 
@@ -244,11 +243,17 @@ The `.env` file holds only infrastructure and connection settings:
 
 ---
 
-## S3 Upload (optional)
+## Upload (optional)
 
-Recordings can be uploaded to Amazon S3 (or any S3-compatible endpoint). The feature stays disabled until `UPLOAD_DESTINATION=s3` **and** both `S3_BUCKET` and `S3_KEY_TEMPLATE` are set in `.env`.
+Recordings can be shipped from the recording machine to an external storage backend with one click on the recording detail page. Two backends are available today: **Amazon S3** (or any S3-compatible endpoint) and a **local-network filesystem** (an NFS / SMB share mounted on the host).
 
-`UPLOAD_DESTINATION` selects which backend is active per machine. When unset, the upload feature is disabled — `/api/upload/start` refuses to enqueue and the UI hides its affordances. Set it to `s3` to upload to S3, or `local` to upload to a directory on the backend container's filesystem instead; see [Local-Network Upload (optional)](#local-network-upload-optional).
+`UPLOAD_DESTINATION` in `.env` selects which backend is active per machine — `s3` or `local`. When unset, the upload feature is disabled: `/api/upload/start` refuses to enqueue and the UI hides its affordances.
+
+> This section covers only operator configuration — what to set in `.env` and how to mount a share. For how uploads work end to end (lifecycle, the destination abstraction, key-template rules, and failure modes), see [Upload to a destination](domain/upload.md).
+
+### Amazon S3
+
+Set `UPLOAD_DESTINATION=s3` and configure the bucket and key template. Authenticate either with env-var keys or a named profile (exactly one of the two paths).
 
 | Variable | Required | Description |
 |------|------|------|
@@ -280,7 +285,7 @@ AWS_SECRET_ACCESS_KEY=...
 # AWS_SESSION_TOKEN=...   # only for temporary STS credentials
 ```
 
-### Local Testing with MinIO
+#### Local testing with MinIO
 
 A `pgsty/minio` container is wired into `docker-compose.yml` behind the `s3` profile so the upload feature can be tested without touching real AWS. A one-shot `minio-init` container auto-creates the bucket on startup.
 
@@ -314,11 +319,9 @@ After editing `.env`, restart the backend so the new values are picked up — `e
 make restart
 ```
 
----
+### Local-network filesystem
 
-## Local-Network Upload (optional)
-
-Recordings can be copied to a directory on the backend container's filesystem instead of being shipped to S3 — typically an NFS or SMB share that the operator has mounted on the host and bind-mounted into the container. The feature stays disabled until `UPLOAD_DESTINATION=local` **and** both `LOCAL_UPLOAD_DIR` and `LOCAL_UPLOAD_PATH_TEMPLATE` are set in `.env`.
+Set `UPLOAD_DESTINATION=local` to copy recordings to a directory on the backend container's filesystem instead of shipping them to S3 — typically an NFS or SMB share that the operator has mounted on the host and bind-mounted into the container.
 
 | Variable | Required | Description |
 |------|------|------|
@@ -334,7 +337,7 @@ LOCAL_UPLOAD_DIR=/mnt/recordings
 LOCAL_UPLOAD_PATH_TEMPLATE=operation-files/{yyyymmddhhmmss}/{recording_name}.zip
 ```
 
-### Mounting the share into the container
+#### Mounting the share into the container
 
 The backend container does not run NFS / SMB clients itself — it just reads and writes a directory. Mount the share on the **host**, then bind-mount the host path into the container at `LOCAL_UPLOAD_DIR`.
 
@@ -355,11 +358,7 @@ services:
 
 Match `LOCAL_UPLOAD_DIR` in `.env` to the container-side path of the bind-mount.
 
-> **Permissions** — NFS / SMB servers usually export with specific uid/gid. The backend container runs as a non-root user; ensure the share is writable by that user (NFS: `anonuid` / `anongid` or matching uid mapping; SMB: `uid=` / `gid=` mount options). If the mount becomes unwritable at runtime, `LocalDestination.upload()` raises the underlying `PermissionError` and the failure is recorded on `upload_state.json`.
-
-### Failure modes
-
-`configuration_error()` runs only local checks (env vars set, directory exists, directory writable, template parses); it deliberately does not probe the share for network responsiveness because that would block `/api/upload/start`. A mount that is present but unresponsive surfaces as an exception on the actual `shutil.copyfile` call and ends up as `status="failed"` in `upload_state.json` with the OS error message.
+> **Permissions** — NFS / SMB servers usually export with specific uid/gid. The backend container runs as a non-root user; ensure the share is writable by that user (NFS: `anonuid` / `anongid` or matching uid mapping; SMB: `uid=` / `gid=` mount options). A mount that is present but unresponsive (or unwritable) at runtime surfaces as a failed upload rather than a startup error — see [Upload to a destination — Failure modes](domain/upload.md#failure-modes).
 
 ---
 

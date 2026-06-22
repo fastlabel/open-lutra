@@ -4,7 +4,7 @@
 > upload destination (S3-compatible and local-network filesystem today;
 > GCS on the roadmap).
 >
-> Related: [Setup — S3 Upload](../SETUP.md#s3-upload-optional) | [Setup — Local-Network Upload](../SETUP.md#local-network-upload-optional) | [Architecture](../ARCHITECTURE.md)
+> Related: [Setup — Upload](../SETUP.md#upload-optional) | [Architecture](../ARCHITECTURE.md)
 
 ## Scope
 
@@ -145,8 +145,9 @@ Adding a backend (e.g. GCS) is a small, well-bounded change:
    100% coverage on the new module is expected — see
    `docs/DEVELOPMENT.md` for the coverage gate.
 6. **Update operator-facing docs.** Add an env-var table for the new
-   destination to `docs/SETUP.md` (mirror the S3 / Local-Network Upload
-   sections) so the operator knows what to set.
+   destination under `## Upload (optional)` in `docs/SETUP.md` (mirror
+   the Amazon S3 / Local-network filesystem subsections) so the operator
+   knows what to set.
 
 The service layer, the job queue, the UI, and the persisted
 `upload_state.json` are all destination-agnostic — `state.destination`
@@ -229,9 +230,9 @@ immediately fail.
 
 ## Operator setup
 
-See [Setup — S3 Upload](../SETUP.md#s3-upload-optional) for the S3
+See [Setup — Amazon S3](../SETUP.md#amazon-s3) for the S3
 environment variables (env-var-auth vs. profile-auth, TransferConfig
-overrides), [Setup — Local Testing with MinIO](../SETUP.md#local-testing-with-minio)
+overrides), [Setup — Local testing with MinIO](../SETUP.md#local-testing-with-minio)
 for spinning up the local MinIO sandbox, and
-[Setup — Local-Network Upload](../SETUP.md#local-network-upload-optional)
+[Setup — Local-network filesystem](../SETUP.md#local-network-filesystem)
 for the NFS / SMB bind-mount recipe.
