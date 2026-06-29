@@ -35,6 +35,11 @@ class TestExtractStampSec:
         assert result is not None
         assert abs(result - 1.123456789) < 1e-9
 
+    def test_missing_sec_or_nanosec_returns_none(self) -> None:
+        """Returns None when sec or nanosec is absent from the stamp."""
+        msg = SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(sec=1)))
+        assert extract_stamp_sec(msg) is None
+
 
 class TestExtractStampNs:
     """Tests for extract_stamp_ns."""
@@ -53,3 +58,12 @@ class TestExtractStampNs:
         """Returns 0 when sec=0 and nanosec=0."""
         msg = SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(sec=0, nanosec=0)))
         assert extract_stamp_ns(msg) == 0
+
+    def test_without_stamp(self) -> None:
+        """Returns None when header is present but stamp is missing."""
+        assert extract_stamp_ns(SimpleNamespace(header=SimpleNamespace())) is None
+
+    def test_missing_sec_or_nanosec_returns_none(self) -> None:
+        """Returns None when sec or nanosec is absent from the stamp."""
+        msg = SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(nanosec=5)))
+        assert extract_stamp_ns(msg) is None

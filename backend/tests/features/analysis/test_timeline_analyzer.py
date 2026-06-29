@@ -522,3 +522,55 @@ class TestTimelineAnalyzer:
             result = await analyzer.start(tmp_path)
         assert result["status"] == "analyzing"
         mock_queue.enqueue_timeline.assert_awaited_once_with(tmp_path)
+
+    @pytest.mark.asyncio
+    async def test_start_returns_cached_data(self, tmp_path: Path) -> None:
+        """start() returns ready immediately when cached data is present."""
+        cache = {
+            "duration_sec": 10.0,
+            "bin_width_sec": 0.05,
+            "recording_start_ns": 1700000000000000000,
+            "log_time_offset_ns": 0,
+            "topics": [],
+        }
+        (tmp_path / "timeline_data.json").write_text(json.dumps(cache))
+        result = await TimelineAnalyzer().start(tmp_path)
+        assert result["status"] == "ready"
+        assert "data" in result
+
+    @pytest.mark.asyncio
+    async def test_start_active_failed_job_returns_error(self, tmp_path: Path) -> None:
+        """start() surfaces a failed job's error."""
+        from app.features.jobs.models import JobStatus
+
+        (tmp_path / "data.mcap").write_bytes(b"")
+        with patch("app.features.jobs.service.get_job_queue") as mock_queue_fn:
+            mock_queue = MagicMock()
+            mock_queue.get_active_timeline_job.return_value = MagicMock(status=JobStatus.FAILED, error="bad")
+            mock_queue_fn.return_value = mock_queue
+            result = await TimelineAnalyzer().start(tmp_path)
+        assert result["status"] == "error"
+        assert result["error"] == "bad"
+
+    @pytest.mark.asyncio
+    async def test_start_active_running_job_returns_analyzing(self, tmp_path: Path) -> None:
+        """start() returns analyzing when a job is already running."""
+        from app.features.jobs.models import JobStatus
+
+        (tmp_path / "data.mcap").write_bytes(b"")
+        with patch("app.features.jobs.service.get_job_queue") as mock_queue_fn:
+            mock_queue = MagicMock()
+            mock_queue.get_active_timeline_job.return_value = MagicMock(status=JobStatus.RUNNING)
+            mock_queue_fn.return_value = mock_queue
+            result = await TimelineAnalyzer().start(tmp_path)
+        assert result["status"] == "analyzing"
+
+    @pytest.mark.asyncio
+    async def test_start_no_mcap_returns_not_found(self, tmp_path: Path) -> None:
+        """start() returns not_found when there is no MCAP and no active job."""
+        with patch("app.features.jobs.service.get_job_queue") as mock_queue_fn:
+            mock_queue = MagicMock()
+            mock_queue.get_active_timeline_job.return_value = None
+            mock_queue_fn.return_value = mock_queue
+            result = await TimelineAnalyzer().start(tmp_path)
+        assert result["status"] == "not_found"

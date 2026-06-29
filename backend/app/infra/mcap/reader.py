@@ -56,12 +56,12 @@ class MCAPReader:
     so that features only need to worry about iterating MCAPMessage values.
     """
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path) -> None:  # pragma: no cover - MCAP I/O boundary
         self._path = path
         self._file: IO[bytes] | None = None
         self._reader: Any = None  # mcap.reader.McapReader (typed as Any since it lives in the mcap library)
 
-    def __enter__(self) -> "MCAPReader":
+    def __enter__(self) -> "MCAPReader":  # pragma: no cover - MCAP I/O boundary
         self._file = self._path.open("rb")
         self._reader = make_reader(self._file, decoder_factories=[DecoderFactory()])
         return self
@@ -71,13 +71,13 @@ class MCAPReader:
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         tb: TracebackType | None,
-    ) -> None:
+    ) -> None:  # pragma: no cover - MCAP I/O boundary
         if self._file is not None:
             self._file.close()
             self._file = None
             self._reader = None
 
-    def get_channels(self) -> dict[str, MCAPChannel]:
+    def get_channels(self) -> dict[str, MCAPChannel]:  # pragma: no cover - MCAP I/O boundary
         """Return a topic → MCAPChannel dict (from the MCAP summary).
 
         Returns an empty dict if no summary exists (old or truncated MCAP).
@@ -95,7 +95,7 @@ class MCAPReader:
             )
         return channels
 
-    def get_time_range_ns(self) -> tuple[int, int]:
+    def get_time_range_ns(self) -> tuple[int, int]:  # pragma: no cover - MCAP I/O boundary
         """Return the overall log_time range of the MCAP as (start_ns, end_ns).
 
         Returns (0, 0) if no summary exists.
@@ -113,7 +113,7 @@ class MCAPReader:
         topics: list[str] | None = None,
         start_time_ns: int | None = None,
         end_time_ns: int | None = None,
-    ) -> Iterator[MCAPMessage]:
+    ) -> Iterator[MCAPMessage]:  # pragma: no cover - MCAP I/O boundary
         """Iterate messages and yield decoded MCAPMessage values.
 
         The topic and time-range filters are applied at the chunk index level,

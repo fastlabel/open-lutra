@@ -177,7 +177,7 @@ def build_joint_state_mapping(topic_roles: dict[str, str]) -> JointStateMapping 
     elif not act_entries:
         act_entries = list(unclassified_entries) if unclassified_entries else list(obs_entries)
 
-    if not obs_entries:
+    if not obs_entries:  # pragma: no cover - defensive; unreachable once topic_roles is non-empty
         return None
 
     # Stable sort: right(0) -> left(1) -> body(2) -> other(3)

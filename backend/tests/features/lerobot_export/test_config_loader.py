@@ -83,3 +83,14 @@ def test_parse_source_keys_stored() -> None:
     config = parse_config(data)
     assert config.action[0].keys == ["x", "y", "z"]
     assert config.action[0].type == "struct"
+
+
+def test_parse_config_invalid_time_range_raises() -> None:
+    with pytest.raises(ValueError, match="time_range"):
+        parse_config({**_VALID, "time_range": "average"})
+
+
+def test_parse_config_malformed_structure_raises() -> None:
+    """A structural error (observation not a mapping) is normalized to ValueError."""
+    with pytest.raises(ValueError, match="Malformed"):
+        parse_config({**_VALID, "observation": "not-a-mapping"})

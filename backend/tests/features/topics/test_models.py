@@ -263,3 +263,121 @@ class TestToApi:
         assert info.is_subscribed is True
         assert info.qos_reliability == "RELIABLE"
         assert info.message_count == 50
+
+
+# ---------------------------------------------------------------------------
+# counter-based actual_hz (fixed baseline)
+# ---------------------------------------------------------------------------
+
+
+class TestCounterBasedHz:
+    """Tests for the counter-based Hz path used when baseline_fixed is True."""
+
+    def _fixed(self) -> TopicStats:
+        return TopicStats(name="/t", msg_type="x", baseline_hz=10.0, baseline_fixed=True)
+
+    def test_no_data_returns_zero(self) -> None:
+        """No messages yet (counter never started) -> 0 Hz."""
+        stats = self._fixed()
+        stats.refresh_cache(100.0)
+        assert stats.actual_hz == 0.0
+
+    def test_too_short_window_returns_zero(self) -> None:
+        """Less than 0.5 s of data -> 0 Hz."""
+        stats = self._fixed()
+        stats.on_stamp(100.0, None)
+        stats.refresh_cache(100.2)
+        assert stats.actual_hz == 0.0
+
+    def test_computes_rate(self) -> None:
+        """20 messages over 2 s -> ~10 Hz."""
+        stats = self._fixed()
+        for i in range(20):
+            stats.on_stamp(100.0 + i * 0.1, None)
+        stats.refresh_cache(102.0)
+        assert stats.actual_hz == pytest.approx(10.0, abs=0.5)
+
+    def test_resets_after_window(self) -> None:
+        """The counter resets once the window length is exceeded."""
+        stats = self._fixed()
+        for i in range(40):
+            stats.on_stamp(100.0 + i * 0.1, None)
+        stats.refresh_cache(104.0)
+        assert stats.actual_hz == pytest.approx(10.0, abs=0.5)
+        assert stats._hz_count == 0
+        assert stats._hz_count_start == 104.0
+
+
+# ---------------------------------------------------------------------------
+# timestamp-based actual_hz windowing
+# ---------------------------------------------------------------------------
+
+
+class TestTimestampWindow:
+    """Tests for the sliding-window bounds in _compute_hz_from_timestamps."""
+
+    def test_old_timestamps_excluded_by_window(self) -> None:
+        """Timestamps older than the 3 s window are excluded."""
+        ts = deque(float(i) for i in range(11))  # 0..10 s, 1 s apart
+        stats = _make_stats_with_cache(now=10.0, name="/t", msg_type="x", timestamps=ts)
+        assert stats.actual_hz == pytest.approx(1.0, abs=0.01)
+
+    def test_single_recent_timestamp_returns_zero(self) -> None:
+        """Only one timestamp inside the window -> 0 Hz."""
+        ts = deque([0.0, 10.0])
+        stats = _make_stats_with_cache(now=10.0, name="/t", msg_type="x", timestamps=ts)
+        assert stats.actual_hz == 0.0
+
+
+# ---------------------------------------------------------------------------
+# stamp-based quality (stamp_quality=True)
+# ---------------------------------------------------------------------------
+
+
+class TestStampBasedQuality:
+    """Tests for stamp-interval loss counting and the stamp-based loss rate."""
+
+    def test_on_stamp_counts_losses_from_intervals(self) -> None:
+        stats = TopicStats(name="/t", msg_type="x", baseline_hz=10.0, baseline_fixed=True, stamp_quality=True)
+        stats.on_stamp(100.0, 1000.0)  # first stamp
+        stats.on_stamp(100.1, 1000.5)  # 0.5 s gap at 10 Hz -> ~4 lost
+        assert stats._stamp_loss_count == 4
+        stats.on_stamp(100.2, 1000.6)  # 0.1 s gap -> jitter, no extra loss
+        assert stats._stamp_loss_count == 4
+        assert stats._stamp_msg_count == 3
+
+    def test_stamp_based_loss_rate(self) -> None:
+        stats = TopicStats(
+            name="/t",
+            msg_type="x",
+            baseline_hz=10.0,
+            baseline_fixed=True,
+            stamp_quality=True,
+            message_count=10,
+            _last_msg_time=100.0,
+            _gap_threshold_sec=3.0,
+        )
+        stats._stamp_window_start = 100.0
+        stats._stamp_msg_count = 8
+        stats._stamp_loss_count = 2
+        stats.refresh_cache(101.5)  # stamp_elapsed 1.5 s
+        assert stats.loss_rate == pytest.approx(0.2, abs=0.001)  # 2 / (8 + 2)
+
+    def test_stamp_based_loss_rate_resets_window(self) -> None:
+        stats = TopicStats(
+            name="/t",
+            msg_type="x",
+            baseline_hz=10.0,
+            baseline_fixed=True,
+            stamp_quality=True,
+            message_count=10,
+            _last_msg_time=100.0,
+            _gap_threshold_sec=100.0,
+        )
+        stats._stamp_window_start = 100.0
+        stats._stamp_msg_count = 50
+        stats._stamp_loss_count = 5
+        stats.refresh_cache(106.0)  # stamp_elapsed 6 s >= 5 s window -> reset
+        assert stats._stamp_window_start == 106.0
+        assert stats._stamp_loss_count == 0
+        assert stats._stamp_msg_count == 0

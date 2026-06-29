@@ -5,6 +5,8 @@ can be tested without depending on rclpy.
 """
 
 import time
+from types import SimpleNamespace
+from typing import ClassVar
 from unittest.mock import MagicMock
 
 from app.features.topics.service import TopicMonitorService
@@ -475,3 +477,159 @@ class TestPauseResume:
         monitor.resume()
         logs, _ = log_manager.get_logs()
         assert any("resumed" in log.message.lower() for log in logs)
+
+
+# ---------------------------------------------------------------------------
+# Live mode
+# ---------------------------------------------------------------------------
+
+
+class TestLiveMode:
+    """Live-mode accessors (used by image/sensor SSE streaming)."""
+
+    def _subscribe_joint(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        mock_subscriber.discover_topics.return_value = [("/joint_states", ["sensor_msgs/msg/JointState"])]
+        monitor.on_discover_tick()
+
+    def test_is_live_defaults_false(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        assert monitor.is_live("/joint_states") is False
+        assert monitor.is_live("/unknown") is False
+
+    def test_start_live_sets_live(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        assert monitor.start_live("/joint_states") is True
+        assert monitor.is_live("/joint_states") is True
+
+    def test_start_live_unknown_returns_false(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        assert monitor.start_live("/missing") is False
+
+    def test_start_live_stops_other_sessions(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+            ("/arm_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+        monitor.update_subscriptions(["/joint_states", "/arm_states"])
+        monitor.start_live("/joint_states")
+        monitor.start_live("/arm_states")
+        assert monitor.is_live("/joint_states") is False
+        assert monitor.is_live("/arm_states") is True
+
+    def test_stop_live(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+        monitor.stop_live("/joint_states")
+        assert monitor.is_live("/joint_states") is False
+
+    def test_stop_live_unknown_is_noop(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.stop_live("/missing")  # no exception
+
+    def test_get_live_raw_image(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        assert monitor.get_live_raw_image("/missing") == b""
+        monitor._topic_stats["/joint_states"]._live_raw_image = b"frame"
+        assert monitor.get_live_raw_image("/joint_states") == b"frame"
+
+    def test_get_live_positions_none_when_not_live(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        assert monitor.get_live_positions("/missing") is None
+        assert monitor.get_live_positions("/joint_states") is None  # not in live mode
+
+    def test_get_live_positions_none_when_empty(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+        assert monitor.get_live_positions("/joint_states") is None  # nothing captured yet
+
+    def test_get_live_positions_returns_data(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+        stats = monitor._topic_stats["/joint_states"]
+        stats._live_positions = [1.0, 2.0]
+        stats._live_joint_names = ["a", "b"]
+        assert monitor.get_live_positions("/joint_states") == {"positions": [1.0, 2.0], "names": ["a", "b"]}
+
+
+class TestOnMessageLiveCapture:
+    """on_message branches for live capture and image raw-byte swapping."""
+
+    def _subscribe_joint(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        mock_subscriber.discover_topics.return_value = [("/joint_states", ["sensor_msgs/msg/JointState"])]
+        monitor.on_discover_tick()
+
+    def test_live_joint_capture(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+        monitor.on_message("/joint_states", SimpleNamespace(position=[1.0, 2.0], name=["a", "b"]))
+        assert monitor.get_live_positions("/joint_states") == {"positions": [1.0, 2.0], "names": ["a", "b"]}
+
+    def test_live_wrapped_joint_capture(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+        msg = SimpleNamespace(joint_state=SimpleNamespace(position=[3.0], name=["j1"]))
+        monitor.on_message("/joint_states", msg)
+        assert monitor.get_live_positions("/joint_states") == {"positions": [3.0], "names": ["j1"]}
+
+    def test_live_capture_handles_extraction_error(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        self._subscribe_joint(monitor, mock_subscriber)
+        monitor.start_live("/joint_states")
+
+        class _Bad:
+            name: ClassVar[list[str]] = ["x"]
+
+            @property
+            def position(self) -> list[float]:
+                raise RuntimeError("boom")
+
+        monitor.on_message("/joint_states", _Bad())  # exception is swallowed
+        assert monitor.get_live_positions("/joint_states") is None
+
+    def test_image_topic_captures_raw_bytes(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        mock_subscriber.discover_topics.return_value = [("/cam/image", ["sensor_msgs/msg/Image"])]
+        monitor.on_discover_tick()
+        monitor.update_subscriptions(["/cam/image"])
+        monitor.on_message("/cam/image", SimpleNamespace(data=b"\xff\xd8jpeg"))
+        assert monitor.get_live_raw_image("/cam/image") == b"\xff\xd8jpeg"
+
+
+class TestSubscribeExpectedHz:
+    """_subscribe_to_topic resolves a fixed baseline from the Hz resolver."""
+
+    def test_fixed_baseline_from_resolver(self, log_manager: LogManager, mock_subscriber: MagicMock) -> None:
+        service = TopicMonitorService(
+            subscribed_topics=["/joint_states"],
+            log_manager=log_manager,
+            resolve_expected_hz=lambda _name: 100.0,
+        )
+        service.set_subscriber(mock_subscriber)
+        mock_subscriber.discover_topics.return_value = [("/joint_states", ["sensor_msgs/msg/JointState"])]
+        service.on_discover_tick()
+        stats = service.get_topic_stats()[0]
+        assert stats.baseline_hz == 100.0
+        assert stats.baseline_fixed is True
+
+    def test_resolver_returns_none(self, log_manager: LogManager, mock_subscriber: MagicMock) -> None:
+        service = TopicMonitorService(
+            subscribed_topics=["/joint_states"],
+            log_manager=log_manager,
+            resolve_expected_hz=lambda _name: None,
+        )
+        service.set_subscriber(mock_subscriber)
+        mock_subscriber.discover_topics.return_value = [("/joint_states", ["sensor_msgs/msg/JointState"])]
+        service.on_discover_tick()
+        stats = service.get_topic_stats()[0]
+        assert stats.baseline_fixed is False
