@@ -14,7 +14,7 @@ from pathlib import Path
 # Import the constant directly (not via the package __init__) to avoid eagerly
 # importing the export writer's pandas/numpy stack at recordings-scan time.
 from app.features.lerobot_export.exports import EXPORTS_DIRNAME
-from app.features.recordings.meta import META_FILENAME, read_recording_meta
+from app.features.recordings.meta import RECORDING_META_FILENAME, read_recording_meta
 from app.features.recordings.schemas import FileEntry
 from app.features.upload.cache import CACHE_FILENAME as UPLOAD_STATE_FILENAME
 from app.features.upload.cache import load_state as load_upload_state
@@ -24,7 +24,7 @@ from app.features.validation.cache import load_report as load_validation_report
 logger = logging.getLogger(__name__)
 
 # The bag metadata sidecar that `ros2 bag record` writes next to the .mcap segments
-# (distinct from META_FILENAME / recording_meta.json, this app's own metadata file).
+# (distinct from RECORDING_META_FILENAME / recording_meta.json, this app's own metadata file).
 MCAP_METADATA_FILENAME = "metadata.yaml"
 QUALITY_REPORT_FILENAME = "quality_report.json"
 
@@ -53,7 +53,7 @@ class _ParsedBundle:
 # them (mtime or size) flips the fingerprint and invalidates that folder's entry.
 _SOURCE_FILENAMES: tuple[str, ...] = (
     MCAP_METADATA_FILENAME,
-    META_FILENAME,
+    RECORDING_META_FILENAME,
     VALIDATION_RESULT_FILENAME,
     UPLOAD_STATE_FILENAME,
 )

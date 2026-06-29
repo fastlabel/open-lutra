@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-META_FILENAME = "recording_meta.json"
+RECORDING_META_FILENAME = "recording_meta.json"
 
 
 class RecordingMeta(BaseModel):
@@ -29,7 +29,7 @@ class RecordingMeta(BaseModel):
 
 def read_recording_meta(directory: Path) -> RecordingMeta | None:
     """Load recording_meta.json. Returns None if the file is missing or corrupt."""
-    meta_path = directory / META_FILENAME
+    meta_path = directory / RECORDING_META_FILENAME
     if not meta_path.exists():
         return None
     try:
@@ -42,7 +42,7 @@ def read_recording_meta(directory: Path) -> RecordingMeta | None:
 
 def write_recording_meta(directory: Path, meta: RecordingMeta) -> None:
     """Write recording_meta.json (plain overwrite, not an atomic replace)."""
-    meta_path = directory / META_FILENAME
+    meta_path = directory / RECORDING_META_FILENAME
     meta_path.write_text(
         json.dumps(meta.model_dump(), indent=2, ensure_ascii=False),
         encoding="utf-8",
