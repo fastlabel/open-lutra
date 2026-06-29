@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigResponse, FileEntry, JobSchema } from "@/api/generated/schemas";
 import { UploadBadge } from "../upload-badge";
 
-const { useConfigMock, useJobsMock } = vi.hoisted(() => ({
+const { useConfigMock, useUploadJobMock } = vi.hoisted(() => ({
   useConfigMock: vi.fn<() => { data: ConfigResponse | undefined }>(() => ({ data: undefined })),
-  useJobsMock: vi.fn<() => JobSchema[]>(() => []),
+  useUploadJobMock: vi.fn<(folder: string) => JobSchema | undefined>(() => undefined),
 }));
 
 vi.mock("@/hooks/use-api", () => ({ useConfig: () => useConfigMock() }));
-vi.mock("@/hooks/use-jobs-stream", () => ({ useJobs: () => useJobsMock() }));
+vi.mock("@/hooks/use-jobs-stream", () => ({ useUploadJob: (folder: string) => useUploadJobMock(folder) }));
 
 function makeConfig(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
   return {
@@ -62,12 +62,12 @@ function makeJob(overrides: JobOverrides = {}): JobSchema {
 
 beforeEach(() => {
   useConfigMock.mockReturnValue({ data: makeConfig() });
-  useJobsMock.mockReturnValue([]);
+  useUploadJobMock.mockReturnValue(undefined);
 });
 
 afterEach(() => {
   useConfigMock.mockReset();
-  useJobsMock.mockReset();
+  useUploadJobMock.mockReset();
 });
 
 describe("UploadBadge", () => {
@@ -99,9 +99,9 @@ describe("UploadBadge", () => {
   });
 
   it("shows live progress when an active upload job matches this folder", () => {
-    useJobsMock.mockReturnValue([
+    useUploadJobMock.mockReturnValue(
       makeJob({ folder: "rec_001", status: "running", progress: { current: 50, total: 100 } }),
-    ]);
+    );
     const { container, getByText } = render(<UploadBadge entry={makeEntry({ upload_status: "uploaded" })} />);
     // Live job wins over the persisted status.
     expect(container.querySelector('[data-status="uploading"]')).not.toBeNull();
@@ -109,23 +109,24 @@ describe("UploadBadge", () => {
   });
 
   it("clamps progress to 100% when current exceeds total", () => {
-    useJobsMock.mockReturnValue([
+    useUploadJobMock.mockReturnValue(
       makeJob({ folder: "rec_001", status: "running", progress: { current: 200, total: 100 } }),
-    ]);
+    );
     const { getByText } = render(<UploadBadge entry={makeEntry()} />);
     expect(getByText("100%")).toBeInTheDocument();
   });
 
   it("falls back to 0% when total is zero", () => {
-    useJobsMock.mockReturnValue([
+    useUploadJobMock.mockReturnValue(
       makeJob({ folder: "rec_001", status: "running", progress: { current: 0, total: 0 } }),
-    ]);
+    );
     const { getByText } = render(<UploadBadge entry={makeEntry()} />);
     expect(getByText("0%")).toBeInTheDocument();
   });
 
-  it("ignores jobs for other folders", () => {
-    useJobsMock.mockReturnValue([makeJob({ folder: "other_folder", status: "running" })]);
+  it("shows the persisted status when there is no active job for this folder", () => {
+    // useUploadJob already scopes to this folder, so no match -> undefined.
+    useUploadJobMock.mockReturnValue(undefined);
     const { container } = render(<UploadBadge entry={makeEntry({ upload_status: "uploaded", name: "rec_001" })} />);
     expect(container.querySelector('[data-status="uploaded"]')).not.toBeNull();
     expect(container.querySelector('[data-status="uploading"]')).toBeNull();

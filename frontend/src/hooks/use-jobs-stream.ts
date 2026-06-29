@@ -123,3 +123,20 @@ export function useJob(jobId: string | null | undefined): JobSchema | undefined 
   if (!jobId) return undefined;
   return jobs.find((j) => j.job_id === jobId);
 }
+
+/** Reactively read the active (queued/running) upload job for a single folder.
+ *
+ * Uses TanStack Query `select` so a subscriber re-renders only when its own
+ * folder's upload job changes, not on every job-stream tick. This keeps a long
+ * recordings list cheap to render while an upload is in flight.
+ */
+export function useUploadJob(folderName: string): JobSchema | undefined {
+  return useQuery<JobSchema[], Error, JobSchema | undefined>({
+    queryKey: sseKeys.jobs(),
+    queryFn: skipToken,
+    select: (jobs) =>
+      jobs.find(
+        (j) => j.type === "upload" && j.folder === folderName && (j.status === "queued" || j.status === "running"),
+      ),
+  }).data;
+}

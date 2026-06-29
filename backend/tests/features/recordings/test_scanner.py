@@ -5,15 +5,30 @@ Verifies the pure filesystem logic of scan_output_dir / read_metadata_summary.
 
 import json
 import os
+import shutil
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
+import pytest
+
+from app.features.recordings import scanner
 from app.features.recordings.scanner import (
     collect_recent_task_names,
     read_metadata_summary,
     scan_output_dir,
 )
+
+
+@pytest.fixture(autouse=True)
+def _clear_scanner_cache() -> Iterator[None]:
+    """Reset the module-level parse cache around every test for determinism."""
+    scanner._reset_cache()
+    yield
+    scanner._reset_cache()
 
 # ---------------------------------------------------------------------------
 # read_metadata_summary
@@ -468,3 +483,148 @@ class TestCollectRecentTaskNames:
         names = collect_recent_task_names(tmp_path)
 
         assert names == ["pick", "place"]
+
+
+# ---------------------------------------------------------------------------
+# Parse cache + scandir edge cases
+# ---------------------------------------------------------------------------
+
+
+class _FakeDirEntry:
+    """Minimal os.DirEntry stand-in exposing only name / path / is_file / stat."""
+
+    def __init__(self, name: str, *, is_file: bool = True, stat_error: bool = False, size: int = 0) -> None:
+        self.name = name
+        self.path = name
+        self._is_file = is_file
+        self._stat_error = stat_error
+        self._size = size
+
+    def is_file(self) -> bool:
+        return self._is_file
+
+    def stat(self) -> object:
+        if self._stat_error:
+            raise OSError("stat failed")
+        return SimpleNamespace(st_size=self._size, st_mtime_ns=0)
+
+
+@contextmanager
+def _fake_scandir(entries: list[_FakeDirEntry]) -> Iterator[Iterator[_FakeDirEntry]]:
+    """Context manager that mimics os.scandir, yielding the given fake entries."""
+    yield iter(entries)
+
+
+class TestScanCaching:
+    """Tests for the per-folder parse cache and os.scandir edge cases."""
+
+    def test_second_scan_reuses_cached_parse(self, tmp_path: Path) -> None:
+        """A second scan with no file changes does not re-read/parse the source files."""
+        _make_recording(tmp_path / "rec", metadata=METADATA_YAML)
+        scan_output_dir(tmp_path)  # populate cache
+
+        with (
+            patch("app.features.recordings.scanner.read_metadata_summary") as m_meta,
+            patch("app.features.recordings.scanner.read_recording_meta") as m_rec,
+            patch("app.features.recordings.scanner.load_validation_report") as m_val,
+            patch("app.features.recordings.scanner.load_upload_state") as m_up,
+        ):
+            entries = scan_output_dir(tmp_path)
+
+        m_meta.assert_not_called()
+        m_rec.assert_not_called()
+        m_val.assert_not_called()
+        m_up.assert_not_called()
+        # Values still come through from the cached bundle.
+        assert entries[0].topic_count == 2
+        assert entries[0].recording_start_ns == 1700000000000000000
+
+    def test_cache_invalidated_when_source_file_changes(self, tmp_path: Path) -> None:
+        """Editing a source file flips its signature and triggers a re-parse."""
+        rec = _make_recording(
+            tmp_path / "rec",
+            files={
+                "validation_result.json": json.dumps(
+                    {"overall_status": "warn", "results": [], "task_name": "t", "executed_at": "2026-05-25T00:00:00"}
+                ).encode("utf-8")
+            },
+        )
+        assert scan_output_dir(tmp_path)[0].validation_overall_status == "warn"
+
+        (rec / "validation_result.json").write_text(
+            json.dumps(
+                {"overall_status": "fail", "results": [], "task_name": "t", "executed_at": "2026-05-25T00:00:00"}
+            ),
+            encoding="utf-8",
+        )
+        # Force a distinct mtime so the signature changes regardless of fs resolution.
+        os.utime(rec / "validation_result.json", (time.time() + 10, time.time() + 10))
+
+        assert scan_output_dir(tmp_path)[0].validation_overall_status == "fail"
+
+    def test_size_recomputed_on_cache_hit(self, tmp_path: Path) -> None:
+        """Adding an mcap segment (which leaves the source files untouched) still updates size."""
+        rec = _make_recording(tmp_path / "rec", metadata=METADATA_YAML)
+        first_size = scan_output_dir(tmp_path)[0].size
+
+        (rec / "recording_1.mcap").write_bytes(b"y" * 500)
+        # The four source files are unchanged, so this is a cache hit, yet size must grow.
+        assert scan_output_dir(tmp_path)[0].size == first_size + 500
+
+    def test_deleted_folder_pruned_from_cache(self, tmp_path: Path) -> None:
+        """A folder removed between scans is dropped from the cache."""
+        _make_recording(tmp_path / "rec_a")
+        _make_recording(tmp_path / "rec_b")
+        scan_output_dir(tmp_path)
+        assert str(tmp_path / "rec_a") in scanner._parse_cache
+
+        shutil.rmtree(tmp_path / "rec_a")
+        scan_output_dir(tmp_path)
+
+        assert str(tmp_path / "rec_a") not in scanner._parse_cache
+        assert str(tmp_path / "rec_b") in scanner._parse_cache
+
+    def test_subdirectory_inside_recording_ignored(self, tmp_path: Path) -> None:
+        """Non-file children (e.g. a nested directory) are skipped, not summed."""
+        rec = _make_recording(tmp_path / "rec")
+        (rec / "nested").mkdir()
+
+        entries = scan_output_dir(tmp_path)
+
+        assert len(entries) == 1
+        assert entries[0].name == "rec"
+
+    def test_child_stat_failure_is_skipped(self, tmp_path: Path) -> None:
+        """A file whose stat() fails is skipped; the rest of the folder still loads."""
+        rec = _make_recording(tmp_path / "rec")
+        entries = [
+            _FakeDirEntry("recording_0.mcap", size=100),
+            _FakeDirEntry("broken.bin", stat_error=True),
+        ]
+        # Fake scandir only for the recording folder; the top-level listing
+        # (Path.iterdir uses os.scandir on some Python versions) stays real.
+        real_scandir = os.scandir
+
+        def fake(path: object, *args: object, **kwargs: object) -> object:
+            if Path(os.fspath(path)) == rec:
+                return _fake_scandir(entries)
+            return real_scandir(path, *args, **kwargs)
+
+        with patch("os.scandir", side_effect=fake):
+            result = scan_output_dir(tmp_path)
+
+        assert len(result) == 1
+        assert result[0].size == 100  # broken file omitted, only the mcap counted
+
+    def test_folder_scandir_failure_skips_folder(self, tmp_path: Path) -> None:
+        """An os.scandir failure on a folder drops just that folder."""
+        rec = _make_recording(tmp_path / "rec")
+        real_scandir = os.scandir
+
+        def fake(path: object, *args: object, **kwargs: object) -> object:
+            if Path(os.fspath(path)) == rec:
+                raise PermissionError("denied")
+            return real_scandir(path, *args, **kwargs)
+
+        with patch("os.scandir", side_effect=fake):
+            assert scan_output_dir(tmp_path) == []

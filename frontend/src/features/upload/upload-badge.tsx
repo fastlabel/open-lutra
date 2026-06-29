@@ -14,18 +14,14 @@
 import { CloudCheck, CloudOff, Loader2 } from "lucide-react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { useConfig } from "@/hooks/use-api";
-import { useJobs } from "@/hooks/use-jobs-stream";
+import { useUploadJob } from "@/hooks/use-jobs-stream";
 
 export function UploadBadge({ entry }: { entry: FileEntry }) {
   // --- Server state ---
   const { data: config } = useConfig();
-  const jobs = useJobs();
+  const activeJob = useUploadJob(entry.name);
 
   if (!config?.upload_enabled) return null;
-
-  const activeJob = jobs.find(
-    (j) => j.type === "upload" && j.folder === entry.name && (j.status === "queued" || j.status === "running"),
-  );
 
   if (activeJob) {
     const { current, total } = activeJob.progress;

@@ -4,9 +4,14 @@
  * returns recording_start_ns desc + mtime fallback).
  * Filters: single-select dropdown by task_name.
  * Application order: search → taskFilter (AND-combined).
+ *
+ * The list body is virtualized (@tanstack/react-virtual): only the visible rows are
+ * mounted, so a 1000+ recording list stays responsive.
  */
 
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search } from "lucide-react";
+import { useMemo, useRef } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BulkExportButton } from "@/features/lerobot-export";
@@ -17,21 +22,34 @@ import { TaskFilter } from "./ui/task-filter";
 import { applySearchAndFilter } from "./utils";
 
 export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
+  // --- Filter state + derived lists ---
+  const searchText = useRecordingsTableStore((s) => s.searchText);
+  const taskFilter = useRecordingsTableStore((s) => s.taskFilter);
+
+  // List with only the search applied. Used as the population for TaskFilter options/counts.
+  const searchedEntries = useMemo(() => applySearchAndFilter(entries, searchText), [entries, searchText]);
+  // Final list with all filters applied.
+  const filteredEntries = useMemo(
+    () => applySearchAndFilter(entries, searchText, taskFilter),
+    [entries, searchText, taskFilter],
+  );
+  const allFolders = useMemo(() => filteredEntries.map((e) => e.name), [filteredEntries]);
+
+  // --- Virtualization ---
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: filteredEntries.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 57,
+    overscan: 8,
+  });
+
+  // --- Render-only state ---
+  const setSearchText = useRecordingsTableStore((s) => s.setSearchText);
+  const setTaskFilter = useRecordingsTableStore((s) => s.setTaskFilter);
   const checkedFolders = useRecordingsStore((s) => s.checkedFolders);
   const toggleCheckAll = useRecordingsStore((s) => s.toggleCheckAll);
   const setCheckedFolders = useRecordingsStore((s) => s.setCheckedFolders);
-  const searchText = useRecordingsTableStore((s) => s.searchText);
-  const setSearchText = useRecordingsTableStore((s) => s.setSearchText);
-  const taskFilter = useRecordingsTableStore((s) => s.taskFilter);
-  const setTaskFilter = useRecordingsTableStore((s) => s.setTaskFilter);
-
-  // List with only the search applied. Used as the population for TaskFilter options/counts.
-  const searchedEntries = applySearchAndFilter(entries, searchText);
-
-  // Final list with all filters applied
-  const filteredEntries = applySearchAndFilter(entries, searchText, taskFilter);
-
-  const allFolders = filteredEntries.map((e) => e.name);
 
   return (
     <div className="flex h-full flex-col">
@@ -83,14 +101,29 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
         </div>
       </div>
 
-      {/* List body */}
-      <div className="flex-1 overflow-auto">
+      {/* List body (virtualized) */}
+      <div ref={scrollRef} className="flex-1 overflow-auto">
         {filteredEntries.length === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
             {searchText ? "No matching files" : "No recordings yet"}
           </div>
         ) : (
-          filteredEntries.map((entry) => <RecordingListItem key={entry.name} entry={entry} />)
+          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const entry = filteredEntries[virtualRow.index];
+              return (
+                <div
+                  key={entry.name}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  <RecordingListItem entry={entry} />
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

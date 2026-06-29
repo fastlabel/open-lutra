@@ -4,18 +4,63 @@ Pure filesystem logic, split out of router.py.
 """
 
 import logging
+import os
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 # Import the constant directly (not via the package __init__) to avoid eagerly
 # importing the export writer's pandas/numpy stack at recordings-scan time.
 from app.features.lerobot_export.exports import EXPORTS_DIRNAME
-from app.features.recordings.meta import read_recording_meta
+from app.features.recordings.meta import META_FILENAME, read_recording_meta
 from app.features.recordings.schemas import FileEntry
+from app.features.upload.cache import CACHE_FILENAME as UPLOAD_STATE_FILENAME
 from app.features.upload.cache import load_state as load_upload_state
+from app.features.validation.cache import CACHE_FILENAME as VALIDATION_RESULT_FILENAME
 from app.features.validation.cache import load_report as load_validation_report
 
 logger = logging.getLogger(__name__)
+
+METADATA_FILENAME = "metadata.yaml"
+QUALITY_REPORT_FILENAME = "quality_report.json"
+
+
+@dataclass(frozen=True)
+class _ParsedBundle:
+    """Memoized parse result of a recording folder's source files.
+
+    Holds everything that requires reading/parsing a file (the expensive part).
+    Size, mtime, and artifact flags are intentionally NOT stored here — they are
+    recomputed from disk on every scan so file-size freshness is never lost.
+    """
+
+    topic_count: int | None
+    recording_start_ns: int | None
+    duration_ns: int | None
+    message_count: int | None
+    validation_overall_status: str | None
+    upload_status: str | None
+    task_name: str | None
+    recording_config_name: str | None
+    tags: tuple[str, ...]
+
+
+# Source files whose parsed contents are memoized per folder. A change to any of
+# them (mtime or size) flips the signature and invalidates that folder's entry.
+_SOURCE_FILENAMES: tuple[str, ...] = (
+    METADATA_FILENAME,
+    META_FILENAME,
+    VALIDATION_RESULT_FILENAME,
+    UPLOAD_STATE_FILENAME,
+)
+
+# Per-folder cache of parse results, keyed by absolute folder path and guarded by
+# _cache_lock. Rebuilt and pruned to the folders present on every scan.
+_Signature = tuple[tuple[int, int] | None, ...]
+_parse_cache: dict[str, tuple[_Signature, _ParsedBundle]] = {}
+_cache_lock = threading.Lock()
 
 
 def scan_output_dir(output_dir: Path) -> list[FileEntry]:
@@ -44,71 +89,141 @@ def scan_output_dir(output_dir: Path) -> list[FileEntry]:
     except PermissionError:
         return []
 
+    # Skip the reserved exports directory (generated datasets, not recordings).
+    # Note: only this exact name is excluded — recording folders may legitimately
+    # start with `_`/`.` (task names are unsanitized), and must stay visible.
+    folders = [
+        item
+        for item in items
+        if item.is_dir() and item.name != ".DS_Store" and item.name != EXPORTS_DIRNAME
+    ]
+
+    with _cache_lock:
+        snapshot = dict(_parse_cache)
+
+    fresh_cache: dict[str, tuple[_Signature, _ParsedBundle]] = {}
     entries: list[FileEntry] = []
-    for item in items:
-        # Skip the reserved exports directory (generated datasets, not recordings).
-        # Note: only this exact name is excluded — recording folders may legitimately
-        # start with `_`/`.` (task names are unsanitized), and must stay visible.
-        if not item.is_dir() or item.name == ".DS_Store" or item.name == EXPORTS_DIRNAME:
-            continue
-        entry = _build_recording_entry(item, output_dir)
-        if entry is not None:
-            entries.append(entry)
+    for key, signature, bundle, entry in _scan_folders(folders, output_dir, snapshot):
+        fresh_cache[key] = (signature, bundle)
+        entries.append(entry)
+
+    # Replace the cache wholesale so deleted / renamed folders are pruned.
+    with _cache_lock:
+        _parse_cache.clear()
+        _parse_cache.update(fresh_cache)
 
     # Sort by recording_start_ns primarily, mtime as fallback. Descending (newest first).
     entries.sort(key=_sort_key_recording_desc, reverse=True)
     return entries
 
 
-def _build_recording_entry(folder: Path, rel_root: Path) -> FileEntry | None:
-    """Build a FileEntry for a single recording folder. Returns None if no `.mcap` is present."""
+def _scan_folders(
+    folders: list[Path],
+    rel_root: Path,
+    snapshot: dict[str, tuple[_Signature, _ParsedBundle]],
+) -> list[tuple[str, _Signature, _ParsedBundle, FileEntry]]:
+    """Build entries for every folder concurrently (I/O-bound). None results are dropped.
+
+    Each worker reads the shared `snapshot` read-only and never mutates the cache,
+    so no locking is needed inside the workers.
+    """
+    if not folders:
+        return []
+    workers = min(32, (os.cpu_count() or 4) * 4)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        built = executor.map(lambda folder: _build_recording_entry(folder, rel_root, snapshot), folders)
+        return [result for result in built if result is not None]
+
+
+def _build_recording_entry(
+    folder: Path,
+    rel_root: Path,
+    cache_snapshot: dict[str, tuple[_Signature, _ParsedBundle]],
+) -> tuple[str, _Signature, _ParsedBundle, FileEntry] | None:
+    """Build a FileEntry (plus its cache payload) for a single recording folder.
+
+    Returns None if no `.mcap` is present or the folder cannot be read. Size,
+    mtime, and artifact flags are recomputed from a single `os.scandir` pass
+    every call; only the parsed source-file contents are reused from the cache
+    when their (mtime, size) signature is unchanged.
+    """
     total_size = 0
     has_mcap = False
     has_quality_report = False
+    source_stats: dict[str, tuple[int, int]] = {}
 
     try:
-        children = list(folder.iterdir())
-    except PermissionError:
+        with os.scandir(folder) as children:
+            for child in children:
+                if not child.is_file():
+                    continue
+                try:
+                    info = child.stat()
+                except OSError as e:
+                    logger.debug("Failed to read file size: %s - %s", child.path, e)
+                    continue
+                total_size += info.st_size
+                name = child.name
+                if name.endswith(".mcap"):
+                    has_mcap = True
+                elif name == QUALITY_REPORT_FILENAME:
+                    has_quality_report = True
+                if name in _SOURCE_FILENAMES:
+                    source_stats[name] = (info.st_mtime_ns, info.st_size)
+    except OSError:
         return None
-
-    for child in children:
-        if not child.is_file():
-            continue
-        try:
-            total_size += child.stat().st_size
-        except OSError as e:
-            logger.debug("Failed to read file size: %s - %s", child, e)
-
-        name = child.name
-        if name.endswith(".mcap"):
-            has_mcap = True
-        elif name == "quality_report.json":
-            has_quality_report = True
 
     # Folders without any .mcap are not treated as recordings.
     if not has_mcap:
         return None
 
-    topic_count, start_ns, dur_ns, msg_count = read_metadata_summary(folder)
-    meta = read_recording_meta(folder)
-    validation_report = load_validation_report(folder)
-    upload_state = load_upload_state(folder)
-    return FileEntry(
+    signature: _Signature = tuple(source_stats.get(name) for name in _SOURCE_FILENAMES)
+    key = str(folder)
+    cached = cache_snapshot.get(key)
+    bundle = cached[1] if cached is not None and cached[0] == signature else _parse_sources(folder)
+
+    entry = FileEntry(
         name=folder.name,
         path=str(folder.relative_to(rel_root)),
         size=total_size,
         modified_at=folder.stat().st_mtime,
+        topic_count=bundle.topic_count,
+        recording_start_ns=bundle.recording_start_ns,
+        duration_ns=bundle.duration_ns,
+        message_count=bundle.message_count,
+        has_quality_report=has_quality_report,
+        validation_overall_status=bundle.validation_overall_status,
+        upload_status=bundle.upload_status,
+        task_name=bundle.task_name,
+        recording_config_name=bundle.recording_config_name,
+        tags=list(bundle.tags),
+    )
+    return key, signature, bundle, entry
+
+
+def _parse_sources(folder: Path) -> _ParsedBundle:
+    """Read and parse the four per-folder source files (the expensive, cached part)."""
+    topic_count, start_ns, dur_ns, msg_count = read_metadata_summary(folder)
+    meta = read_recording_meta(folder)
+    validation_report = load_validation_report(folder)
+    upload_state = load_upload_state(folder)
+    return _ParsedBundle(
         topic_count=topic_count,
         recording_start_ns=start_ns,
         duration_ns=dur_ns,
         message_count=msg_count,
-        has_quality_report=has_quality_report,
-        validation_overall_status=(validation_report.overall_status if validation_report else None),
+        validation_overall_status=validation_report.overall_status if validation_report else None,
         upload_status=upload_state.status if upload_state else None,
         task_name=meta.task_name if meta else None,
         recording_config_name=meta.recording_config_name if meta else None,
-        tags=meta.tags if meta else [],
+        tags=tuple(meta.tags) if meta else (),
     )
+
+
+def _reset_cache() -> None:
+    """Empty the parse cache. Used by tests to keep runs deterministic."""
+    with _cache_lock:
+        _parse_cache.clear()
 
 
 def _sort_key_recording_desc(entry: FileEntry) -> tuple[int, float]:

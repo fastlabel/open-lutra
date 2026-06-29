@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
 import type { JobSchema } from "@/api/generated/schemas";
 import { getGetValidationQueryKey } from "@/api/generated/validation/validation";
-import { useJobsStream } from "../use-jobs-stream";
+import { useJobsStream, useUploadJob } from "../use-jobs-stream";
 
 // A minimal EventSource stand-in: capture listeners and let tests dispatch
 // fake job events synchronously.
@@ -106,5 +106,33 @@ describe("useJobsStream", () => {
     expect(calls).toContainEqual(getGetRecordingsQueryKey());
     const cached = client.getQueryData<JobSchema[]>(["sse", "jobs"]);
     expect(cached?.[0]?.status).toBe("completed");
+  });
+});
+
+function renderUploadJob(folder: string, jobs: JobSchema[]) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // Seed the cache before rendering so the first render already reflects it.
+  client.setQueryData<JobSchema[]>(["sse", "jobs"], jobs);
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return renderHook(() => useUploadJob(folder), { wrapper });
+}
+
+describe("useUploadJob", () => {
+  it("returns the active upload job scoped to the given folder", () => {
+    const { result } = renderUploadJob("rec_001", [
+      makeJob({ job_id: "u1", type: "upload", folder: "rec_001", status: "running" }),
+      makeJob({ job_id: "u2", type: "upload", folder: "other", status: "running" }),
+      makeJob({ job_id: "v1", type: "validation", folder: "rec_001", status: "running" }),
+    ]);
+    expect(result.current?.job_id).toBe("u1");
+  });
+
+  it("returns undefined when the folder has no queued/running upload job", () => {
+    const { result } = renderUploadJob("rec_001", [
+      makeJob({ job_id: "u1", type: "upload", folder: "rec_001", status: "completed" }),
+    ]);
+    expect(result.current).toBeUndefined();
   });
 });

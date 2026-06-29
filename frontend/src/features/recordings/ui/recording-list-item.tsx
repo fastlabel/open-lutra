@@ -5,7 +5,7 @@
 
 import { useNavigate } from "@tanstack/react-router";
 import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,9 @@ import {
 import { FileMetaLine } from "./file-meta-line";
 import { MetaEditDialog } from "./meta-edit-dialog";
 
-export function RecordingListItem({
+// Memoized: the list renders many rows, and only the row whose `entry` (or its
+// own checked state, read via a store selector inside) changes should re-render.
+export const RecordingListItem = memo(function RecordingListItem({
   entry,
   checkDisabled,
   canRename,
@@ -240,4 +242,4 @@ export function RecordingListItem({
       </div>
     </div>
   );
-}
+});

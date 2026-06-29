@@ -30,8 +30,8 @@ function RecordingsPage() {
         </div>
       </div>
 
-      {/* Main content: the table */}
-      <div className="flex-1 overflow-auto">
+      {/* Main content: the table (it owns its own scroll container for virtualization) */}
+      <div className="min-h-0 flex-1 overflow-hidden">
         <RecordingsTable entries={entries} />
       </div>
     </div>
