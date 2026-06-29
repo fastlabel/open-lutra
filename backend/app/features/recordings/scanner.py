@@ -23,7 +23,9 @@ from app.features.validation.cache import load_report as load_validation_report
 
 logger = logging.getLogger(__name__)
 
-METADATA_FILENAME = "metadata.yaml"
+# The bag metadata sidecar that `ros2 bag record` writes next to the .mcap segments
+# (distinct from META_FILENAME / recording_meta.json, this app's own metadata file).
+MCAP_METADATA_FILENAME = "metadata.yaml"
 QUALITY_REPORT_FILENAME = "quality_report.json"
 
 
@@ -48,18 +50,22 @@ class _ParsedBundle:
 
 
 # Source files whose parsed contents are memoized per folder. A change to any of
-# them (mtime or size) flips the signature and invalidates that folder's entry.
+# them (mtime or size) flips the fingerprint and invalidates that folder's entry.
 _SOURCE_FILENAMES: tuple[str, ...] = (
-    METADATA_FILENAME,
+    MCAP_METADATA_FILENAME,
     META_FILENAME,
     VALIDATION_RESULT_FILENAME,
     UPLOAD_STATE_FILENAME,
 )
 
+# A per-folder cache-validity token: the (st_mtime_ns, st_size) of each source
+# file, or None when the file is absent. The cached parse is reused only while
+# this fingerprint is unchanged.
+_SourceFingerprint = tuple[tuple[int, int] | None, ...]
+
 # Per-folder cache of parse results, keyed by absolute folder path and guarded by
 # _cache_lock. Rebuilt and pruned to the folders present on every scan.
-_Signature = tuple[tuple[int, int] | None, ...]
-_parse_cache: dict[str, tuple[_Signature, _ParsedBundle]] = {}
+_parse_cache: dict[str, tuple[_SourceFingerprint, _ParsedBundle]] = {}
 _cache_lock = threading.Lock()
 
 
@@ -101,10 +107,10 @@ def scan_output_dir(output_dir: Path) -> list[FileEntry]:
     with _cache_lock:
         snapshot = dict(_parse_cache)
 
-    fresh_cache: dict[str, tuple[_Signature, _ParsedBundle]] = {}
+    fresh_cache: dict[str, tuple[_SourceFingerprint, _ParsedBundle]] = {}
     entries: list[FileEntry] = []
-    for key, signature, bundle, entry in _scan_folders(folders, output_dir, snapshot):
-        fresh_cache[key] = (signature, bundle)
+    for key, fingerprint, bundle, entry in _scan_folders(folders, output_dir, snapshot):
+        fresh_cache[key] = (fingerprint, bundle)
         entries.append(entry)
 
     # Replace the cache wholesale so deleted / renamed folders are pruned.
@@ -120,8 +126,8 @@ def scan_output_dir(output_dir: Path) -> list[FileEntry]:
 def _scan_folders(
     folders: list[Path],
     rel_root: Path,
-    snapshot: dict[str, tuple[_Signature, _ParsedBundle]],
-) -> list[tuple[str, _Signature, _ParsedBundle, FileEntry]]:
+    snapshot: dict[str, tuple[_SourceFingerprint, _ParsedBundle]],
+) -> list[tuple[str, _SourceFingerprint, _ParsedBundle, FileEntry]]:
     """Build entries for every folder concurrently (I/O-bound). None results are dropped.
 
     Each worker reads the shared `snapshot` read-only and never mutates the cache,
@@ -138,14 +144,14 @@ def _scan_folders(
 def _build_recording_entry(
     folder: Path,
     rel_root: Path,
-    cache_snapshot: dict[str, tuple[_Signature, _ParsedBundle]],
-) -> tuple[str, _Signature, _ParsedBundle, FileEntry] | None:
+    cache_snapshot: dict[str, tuple[_SourceFingerprint, _ParsedBundle]],
+) -> tuple[str, _SourceFingerprint, _ParsedBundle, FileEntry] | None:
     """Build a FileEntry (plus its cache payload) for a single recording folder.
 
     Returns None if no `.mcap` is present or the folder cannot be read. Size,
     mtime, and artifact flags are recomputed from a single `os.scandir` pass
     every call; only the parsed source-file contents are reused from the cache
-    when their (mtime, size) signature is unchanged.
+    when their (mtime, size) fingerprint is unchanged.
     """
     total_size = 0
     has_mcap = False
@@ -177,10 +183,10 @@ def _build_recording_entry(
     if not has_mcap:
         return None
 
-    signature: _Signature = tuple(source_stats.get(name) for name in _SOURCE_FILENAMES)
+    fingerprint: _SourceFingerprint = tuple(source_stats.get(name) for name in _SOURCE_FILENAMES)
     key = str(folder)
     cached = cache_snapshot.get(key)
-    bundle = cached[1] if cached is not None and cached[0] == signature else _parse_sources(folder)
+    bundle = cached[1] if cached is not None and cached[0] == fingerprint else _parse_sources(folder)
 
     entry = FileEntry(
         name=folder.name,
@@ -198,7 +204,7 @@ def _build_recording_entry(
         recording_config_name=bundle.recording_config_name,
         tags=list(bundle.tags),
     )
-    return key, signature, bundle, entry
+    return key, fingerprint, bundle, entry
 
 
 def _parse_sources(folder: Path) -> _ParsedBundle:

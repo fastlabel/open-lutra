@@ -40,7 +40,10 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
   const virtualizer = useVirtualizer({
     count: filteredEntries.length,
     getScrollElement: () => scrollRef.current,
+    // Initial guess for a two-line row (py-2 padding + title + meta line + 1px border).
+    // Only affects scrollbar sizing before each row is measured; measureElement corrects it.
     estimateSize: () => 57,
+    // Render 8 extra rows above/below the viewport so fast scrolling does not flash blanks.
     overscan: 8,
   });
 
