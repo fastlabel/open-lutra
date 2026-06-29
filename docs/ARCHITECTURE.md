@@ -353,6 +353,8 @@ Clicking the details panel header navigates to the MCAP detail page (`/recording
 
 **Where bulk actions live**: bulk-action buttons are individual components under `frontend/src/features/recordings/ui/bulk-*.tsx` (today: `bulk-delete-button.tsx`) and mounted inside `features/recordings-table/recordings-table.tsx`. They read the selected set from `useRecordingsStore.checkedFolders` (a Zustand store inside the `recordings` feature). Add new bulk actions by mirroring this pattern.
 
+**Rendering & scan (large lists)**: the table is virtualized with `@tanstack/react-virtual`, so only the rows in view are mounted (each row is absolutely positioned and measured) and the list stays responsive with thousands of recordings. On the backend, `scan_output_dir` caches each folder's parsed metadata keyed by a source-file fingerprint and scans folders in parallel, so repeated list fetches are cheap; file size and mtime are always recomputed fresh so they never go stale.
+
 #### MCAP detail page (`/recordings/:folder`) — integrated timeline view
 
 ```

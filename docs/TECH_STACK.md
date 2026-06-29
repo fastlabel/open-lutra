@@ -32,6 +32,7 @@
 | Valibot | 1.x | Schema validation |
 | shadcn/ui | - | UI component primitives (Radix UI based) |
 | react-resizable-panels | 4.x | Resizable panel layout |
+| TanStack Virtual | 3.x | List virtualization (recordings table) |
 | lucide-react | latest | Icons |
 | uPlot | 1.6+ | Time-series charts |
 
