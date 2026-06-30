@@ -6,12 +6,15 @@
  * `useUploadStatus(folderPath)`; clicks fire `POST /api/upload/start`
  * which always overwrites the previously uploaded object (per issue #6).
  *
- * Hidden entirely when `upload_enabled` is false on `/api/config`.
+ * Rendered disabled with an explanatory tooltip when `upload_enabled` is
+ * false on `/api/config` (no upload destination configured), so the operator
+ * can still discover the feature and learn it needs to be set up.
  */
 
 import { AlertCircle, CloudCheck, CloudUpload, Loader2 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfig, useStartUpload } from "@/hooks/use-api";
 import { type UploadStatus, useUploadStatus } from "@/hooks/use-upload-status";
 
@@ -39,7 +42,23 @@ export function UploadButton({ folderPath }: { folderPath: string }) {
   const { status, percent, error } = useUploadStatus(folderPath);
   const { mutate: startUpload, isPending } = useStartUpload();
 
-  if (!config?.upload_enabled) return null;
+  if (!config?.upload_enabled) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* The disabled button has pointer-events:none, so wrap it in a span
+              that receives the hover the tooltip needs to open. */}
+          <span className="cursor-not-allowed">
+            <Button type="button" size="sm" variant="outline" disabled>
+              <CloudUpload size={14} />
+              <span>Upload</span>
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">No upload destination is configured</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   const disabled = status === "uploading" || isPending;
   const { Icon, text, spin } = buildLabel(status, percent);

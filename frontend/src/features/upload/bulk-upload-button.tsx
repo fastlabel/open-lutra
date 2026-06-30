@@ -6,8 +6,9 @@
  * SSE job stream, so this component does not track in-flight state per row —
  * the UploadBadge on each recording row picks that up.
  *
- * Hidden entirely when upload_enabled is false on /api/config, mirroring the
- * single-recording UploadButton.
+ * Rendered disabled with an explanatory tooltip when upload_enabled is false
+ * on /api/config (no upload destination configured), mirroring the
+ * single-recording UploadButton. Still hidden when no folder is selected.
  */
 
 import { CloudUpload, Loader2 } from "lucide-react";
@@ -24,8 +25,9 @@ export function BulkUploadButton() {
   const startBulkUpload = useStartBulkUpload();
   const addLog = useAddLog();
 
-  if (!config?.upload_enabled) return null;
   if (checkedFolders.size === 0) return null;
+
+  const uploadEnabled = !!config?.upload_enabled;
 
   const handleClick = () => {
     const folders = [...checkedFolders];
@@ -54,21 +56,29 @@ export function BulkUploadButton() {
     );
   };
 
+  const button = (
+    <button
+      type="button"
+      disabled={!uploadEnabled || startBulkUpload.isPending}
+      onClick={handleClick}
+      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-emerald-300 transition-colors enabled:hover:bg-emerald-500/20 disabled:pointer-events-none disabled:text-muted-foreground/40"
+    >
+      {startBulkUpload.isPending ? <Loader2 size={13} className="animate-spin" /> : <CloudUpload size={13} />}
+      Upload
+    </button>
+  );
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          type="button"
-          disabled={startBulkUpload.isPending}
-          onClick={handleClick}
-          className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-emerald-300 transition-colors enabled:hover:bg-emerald-500/20 disabled:text-muted-foreground/40 disabled:cursor-not-allowed"
-        >
-          {startBulkUpload.isPending ? <Loader2 size={13} className="animate-spin" /> : <CloudUpload size={13} />}
-          Upload
-        </button>
+        {/* The disabled button has pointer-events:none, so wrap it in a span
+            that receives the hover the tooltip needs to open. */}
+        {uploadEnabled ? button : <span className="cursor-not-allowed">{button}</span>}
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        Upload {checkedFolders.size} item{checkedFolders.size === 1 ? "" : "s"}
+        {uploadEnabled
+          ? `Upload ${checkedFolders.size} item${checkedFolders.size === 1 ? "" : "s"}`
+          : "No upload destination is configured"}
       </TooltipContent>
     </Tooltip>
   );

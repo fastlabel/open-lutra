@@ -1,8 +1,15 @@
 import { fireEvent, render } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigResponse } from "@/api/generated/schemas";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { UploadStatusView } from "@/hooks/use-upload-status";
 import { UploadButton } from "../upload-button";
+
+function renderButton(folderPath = "rec_001") {
+  const wrapper = ({ children }: { children: ReactNode }) => <TooltipProvider>{children}</TooltipProvider>;
+  return render(<UploadButton folderPath={folderPath} />, { wrapper });
+}
 
 const { useConfigMock, useUploadStatusMock, startUploadMock, useStartUploadMock } = vi.hoisted(() => ({
   useConfigMock: vi.fn<() => { data: ConfigResponse | undefined }>(() => ({ data: undefined })),
@@ -48,52 +55,55 @@ afterEach(() => {
 });
 
 describe("UploadButton", () => {
-  it("renders nothing when upload_enabled is false", () => {
+  it("renders a disabled button when upload_enabled is false", () => {
     useConfigMock.mockReturnValue({ data: makeConfig({ upload_enabled: false }) });
-    const { container } = render(<UploadButton folderPath="rec_001" />);
-    expect(container.firstChild).toBeNull();
+    const { getByRole } = renderButton();
+    const button = getByRole("button", { name: /Upload/ });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(startUploadMock).not.toHaveBeenCalled();
   });
 
   it("shows the idle label when there is no prior upload", () => {
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     expect(getByRole("button", { name: /^Upload$/ })).toBeEnabled();
   });
 
   it("shows the percent label while uploading and disables the click", () => {
     useUploadStatusMock.mockReturnValue({ status: "uploading", percent: 42, error: null });
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     const button = getByRole("button", { name: /Uploading 42%/ });
     expect(button).toBeDisabled();
   });
 
   it("falls back to an indeterminate label while uploading without percent", () => {
     useUploadStatusMock.mockReturnValue({ status: "uploading", percent: null, error: null });
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     expect(getByRole("button", { name: /Uploading…/ })).toBeDisabled();
   });
 
   it("flips to Re-upload when an upload completed", () => {
     useUploadStatusMock.mockReturnValue({ status: "uploaded", percent: null, error: null });
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     expect(getByRole("button", { name: /Re-upload/ })).toBeEnabled();
   });
 
   it("shows the failure message alongside a Retry button when failed", () => {
     useUploadStatusMock.mockReturnValue({ status: "failed", percent: null, error: "network down" });
-    const { getByRole, getByText } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole, getByText } = renderButton();
     expect(getByRole("button", { name: /Retry upload/ })).toBeEnabled();
     expect(getByText("network down")).toBeInTheDocument();
   });
 
   it("invokes startUpload with the folder path when clicked", () => {
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     fireEvent.click(getByRole("button"));
     expect(startUploadMock).toHaveBeenCalledWith({ params: { path: "rec_001" } });
   });
 
   it("disables the click while the mutation is pending", () => {
     useStartUploadMock.mockReturnValue({ mutate: startUploadMock, isPending: true });
-    const { getByRole } = render(<UploadButton folderPath="rec_001" />);
+    const { getByRole } = renderButton();
     expect(getByRole("button")).toBeDisabled();
   });
 });

@@ -191,7 +191,7 @@ message. The sources of a `status="failed"` response are:
 
 | Source | Where it is raised | What the user sees |
 |---|---|---|
-| `UPLOAD_DESTINATION` not set | `DisabledDestination.configuration_error()` (start-path early-reject) | "UPLOAD_DESTINATION is not configured" (UI: upload affordances hidden) |
+| `UPLOAD_DESTINATION` not set | `DisabledDestination.configuration_error()` (start-path early-reject) | "UPLOAD_DESTINATION is not configured" (UI: upload buttons rendered disabled with a tooltip) |
 | `S3_BUCKET` / `S3_KEY_TEMPLATE` not set | `S3Destination.configuration_error()` (start-path early-reject) | "S3_BUCKET is not configured" (UI: red badge) |
 | `LOCAL_UPLOAD_DIR` not set / missing / not writable | `LocalDestination.configuration_error()` (start-path early-reject) | "LOCAL_UPLOAD_DIR is not configured" / "LOCAL_UPLOAD_DIR does not exist: …" / "LOCAL_UPLOAD_DIR is not writable: …" |
 | Invalid template syntax | `validate_template` via `configuration_error()` (start-path early-reject) | "Unknown placeholder: …" / "Unbalanced braces: …" |
@@ -218,15 +218,20 @@ error and the user can hit "Retry upload" without losing context.
 | Recording-detail header (`recordings_/$folder.tsx`) | `UploadButton` | Stateful label: `Upload` / `Uploading N%` / `Re-upload` / `Retry upload`. Click fires `POST /api/upload/start`. Inline error shown next to the button when `status="failed"`. |
 | Recording-list row (`recording-list-item.tsx`) | `UploadBadge` | Inline icon: cloud-check (uploaded), spinner + percent (uploading), cloud-off (failed), empty slot (no state). Reads `FileEntry.upload_status` for persistence + the SSE job stream for live percent — no per-row HTTP. |
 
-Both components return `null` when `useConfig().upload_enabled === false`,
-so a machine with no destination configured renders no upload affordances
-at all.
+When `useConfig().upload_enabled === false`, `UploadButton` and the
+bulk-upload button in the recordings toolbar render **disabled with a
+tooltip** ("No upload destination is configured") rather than hiding, so
+the operator can still discover the feature and learn it needs to be set
+up. `UploadBadge` keeps returning `null` in that state — it surfaces a
+recording's persisted upload *state*, which never exists on a machine
+where uploads are impossible, so a disabled icon on every row would be
+noise.
 
 `upload_enabled` is true exactly when the active destination's
 `configuration_error()` returns `None` — every precondition (env vars,
 template parses, directory exists / is writable, etc.) lives inside
-that method. That keeps the UI from showing a button that would always
-immediately fail.
+that method. That keeps the button disabled (never able to enqueue an
+upload that would immediately fail) until the machine is fully set up.
 
 ## Operator setup
 

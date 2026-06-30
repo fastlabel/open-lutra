@@ -58,11 +58,14 @@ afterEach(() => {
 });
 
 describe("BulkUploadButton", () => {
-  it("renders nothing when upload_enabled is false", () => {
+  it("renders a disabled button without firing an upload when upload_enabled is false", () => {
     useConfigMock.mockReturnValue({ data: makeConfig({ upload_enabled: false }) });
     setChecked(["rec_001"]);
-    const { container } = renderButton();
-    expect(container.firstChild).toBeNull();
+    const { getByRole } = renderButton();
+    const button = getByRole("button", { name: /Upload/ });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(startBulkUploadMock).not.toHaveBeenCalled();
   });
 
   it("renders nothing when no folder is selected", () => {
