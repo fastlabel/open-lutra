@@ -1,7 +1,21 @@
-/** Latest-record banner: persistent reference to the most recent recording, with navigation to its detail page and a dismiss button. */
+/** Latest-record banner: persistent reference to the most recent recording, with navigation to its detail page, a delete action, and a dismiss button. */
 
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, FolderOpen, X } from "lucide-react";
+import { ArrowRight, FolderOpen, Loader2, Trash2, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { useDeleteRecordings } from "@/hooks/use-api";
+import { useAddLog } from "@/hooks/use-topics-stream";
 import { formatDuration, formatSize } from "@/lib/format";
 import { useRecordingStore } from "./store";
 
@@ -10,12 +24,29 @@ export function RecordingCompletionBanner() {
   const finished = useRecordingStore((s) => s.finishedRecording);
   const dismiss = useRecordingStore((s) => s.dismissFinishedRecording);
 
+  const deleteMutation = useDeleteRecordings();
+  const addLog = useAddLog();
+
   if (!finished) return null;
 
   const meta: string[] = [formatDuration(finished.durationSec)];
   if (finished.messageCount != null) meta.push(`${finished.messageCount.toLocaleString()} msgs`);
   if (finished.topicCount != null) meta.push(`${finished.topicCount} topics`);
   if (finished.size > 0) meta.push(formatSize(finished.size));
+
+  const handleDelete = () =>
+    deleteMutation.mutate(
+      { data: { folders: [finished.name] } },
+      {
+        onSuccess: () => {
+          addLog("info", `Deleted recording: ${finished.name}`);
+          dismiss();
+        },
+        onError: (err: unknown) => {
+          addLog("danger", `Delete failed: ${err instanceof Error ? err.message : "Delete failed"}`);
+        },
+      },
+    );
 
   return (
     <div className="flex items-center gap-3 border-b border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-[13px] text-emerald-300">
@@ -32,6 +63,39 @@ export function RecordingCompletionBanner() {
         </button>
         <span className="text-emerald-400/70">{meta.join(" · ")}</span>
       </div>
+
+      {/* Discard the recording that was just made (e.g. a bad take), with confirmation. */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            type="button"
+            disabled={deleteMutation.isPending}
+            className="flex items-center gap-1.5 rounded-md border border-emerald-500/30 px-2.5 py-1 text-emerald-200 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {deleteMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            Delete
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete recording</AlertDialogTitle>
+            <AlertDialogDescription>Delete "{finished.name}"? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline" size="sm">
+                Cancel
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button variant="destructive" size="sm" onClick={handleDelete}>
+                Delete
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <button
         type="button"
         onClick={() => navigate({ to: "/recordings/$folder", params: { folder: encodeURIComponent(finished.path) } })}

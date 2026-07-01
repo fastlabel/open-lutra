@@ -7,14 +7,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { memo, useState } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { UploadBadge } from "@/features/upload";
-import { ValidationBadge } from "@/features/validation";
-import { useDeleteRecordings, useRenameRecording } from "@/hooks/use-api";
-import { useAddLog } from "@/hooks/use-topics-stream";
-import { useRecordingsStore } from "../store";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./alert-dialog";
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { UploadBadge } from "@/features/upload";
+import { ValidationBadge } from "@/features/validation";
+import { useDeleteRecordings, useRenameRecording } from "@/hooks/use-api";
+import { useAddLog } from "@/hooks/use-topics-stream";
+import { useRecordingsStore } from "../store";
 import { FileMetaLine } from "./file-meta-line";
 import { MetaEditDialog } from "./meta-edit-dialog";
 

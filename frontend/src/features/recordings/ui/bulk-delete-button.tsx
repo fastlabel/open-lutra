@@ -1,11 +1,6 @@
 /** Bulk delete button for checked recordings, with tooltip and confirmation dialog. */
 
 import { Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDeleteRecordings } from "@/hooks/use-api";
-import { useAddLog } from "@/hooks/use-topics-stream";
-import { useRecordingsStore } from "../store";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +11,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./alert-dialog";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDeleteRecordings } from "@/hooks/use-api";
+import { useAddLog } from "@/hooks/use-topics-stream";
+import { useRecordingsStore } from "../store";
 
 export function BulkDeleteButton() {
   const deleteMutation = useDeleteRecordings();

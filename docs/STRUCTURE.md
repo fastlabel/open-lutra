@@ -136,6 +136,7 @@ frontend/src/
 │   ├── recording/                 # Recording controls
 │   │   ├── index.ts               # Barrel (public API)
 │   │   ├── recording-control.tsx  # Record button + delay settings
+│   │   ├── completion-banner.tsx  # Latest-record banner (open details / delete / dismiss)
 │   │   ├── timer.tsx              # Timer display
 │   │   ├── store.ts               # Zustand: countdown, start/stop state
 │   │   ├── mutations.ts           # MutationObserver: recording ops from outside React
@@ -186,8 +187,7 @@ frontend/src/
 │   │       ├── recording-list-item.tsx
 │   │       ├── bulk-delete-button.tsx
 │   │       ├── file-meta-line.tsx
-│   │       ├── file-state-badges.tsx  # Timeline generation status badges
-│   │       └── alert-dialog.tsx
+│   │       └── file-state-badges.tsx  # Timeline generation status badges
 │   ├── recordings-table/          # Recordings table (/recordings page)
 │   │   ├── index.ts               # Barrel
 │   │   ├── recordings-table.tsx   # Table body (search / filter / bulk operations)
