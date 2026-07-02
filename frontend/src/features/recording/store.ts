@@ -11,17 +11,12 @@ import { useLiveTopicsStore } from "@/features/live-topics";
 import type { SseConnectionStatus } from "@/hooks/use-topics-stream";
 import { queryClient } from "@/lib/query-client";
 import { sseKeys } from "@/lib/query-keys";
+import { toast } from "@/stores/toast-store";
 import { createTimer } from "./create-timer";
-import { clearMessageTimer, showMessage, startRecordingMutation, stopRecordingMutation } from "./mutations";
+import { startRecordingMutation, stopRecordingMutation } from "./mutations";
 
 /** Available delay options. */
 export const DELAY_OPTIONS = [0, 3, 5, 10] as const;
-
-/** Feedback message. */
-export interface RecordingMessage {
-  text: string;
-  type: "success" | "error";
-}
 
 /** Info about the just-finished recording (used to render the completion banner). */
 export interface FinishedRecording {
@@ -50,8 +45,6 @@ interface RecordingStore {
   isStarting: boolean;
   /** A stop request is in flight. */
   isStopping: boolean;
-  /** Feedback message. */
-  message: RecordingMessage | null;
   /** Info about the most recently finished recording (rendered as a banner; dismissed with × or cleared when a new recording starts). */
   finishedRecording: FinishedRecording | null;
 
@@ -65,8 +58,6 @@ interface RecordingStore {
   stopRecording: () => void;
   /** Dispatch start/stop based on loading/isRecording/isCountingDown. */
   toggle: () => void;
-  /** Clear the message. */
-  clearMessage: () => void;
   /** Close the completion banner. */
   dismissFinishedRecording: () => void;
 }
@@ -107,7 +98,6 @@ export const useRecordingStore = create<RecordingStore>()(
         countdownSec: null,
         isStarting: false,
         isStopping: false,
-        message: null,
         finishedRecording: null,
 
         setDelay: (sec) => set({ delaySec: sec }, false, "setDelay"),
@@ -130,7 +120,7 @@ export const useRecordingStore = create<RecordingStore>()(
           if (countdownSec !== null) {
             countdownTimer.clear();
             set({ countdownSec: null }, false, "cancelCountdown");
-            showMessage("Countdown canceled", "error");
+            toast.error("Countdown canceled");
             return;
           }
           stopRecordingMutation.mutate(undefined);
@@ -146,19 +136,14 @@ export const useRecordingStore = create<RecordingStore>()(
           // Mirror the record button's start preconditions (record-button.tsx): require a live
           // connection and at least one selected topic, with feedback when a start is refused.
           if (getConnectionStatus() !== "connected") {
-            showMessage("Cannot start recording while disconnected", "error");
+            toast.error("Cannot start recording while disconnected");
             return;
           }
           if (useLiveTopicsStore.getState().selectedTopics.size === 0) {
-            showMessage("Select at least one topic to record", "error");
+            toast.error("Select at least one topic to record");
             return;
           }
           startRecording();
-        },
-
-        clearMessage: () => {
-          clearMessageTimer();
-          set({ message: null }, false, "clearMessage");
         },
 
         dismissFinishedRecording: () => set({ finishedRecording: null }, false, "dismissFinishedRecording"),

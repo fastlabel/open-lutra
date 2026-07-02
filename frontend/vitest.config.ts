@@ -21,6 +21,7 @@ export default mergeConfig(
           "src/features/**/quality-utils.tsx",
           "src/features/recording/store.ts",
           "src/stores/quality-history-store.ts",
+          "src/stores/toast-store.ts",
         ],
         exclude: ["src/api/generated/**", "src/lib/utils.ts", "src/lib/query-client.ts"],
         thresholds: {

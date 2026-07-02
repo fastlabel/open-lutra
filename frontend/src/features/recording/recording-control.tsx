@@ -19,7 +19,6 @@ export function RecordingControl() {
 
   const isCountingDown = useRecordingStore((s) => s.countdownSec !== null);
   const loading = useRecordingStore((s) => s.isStarting || s.isStopping);
-  const message = useRecordingStore((s) => s.message);
   const delaySec = useRecordingStore((s) => s.delaySec);
   const setDelay = useRecordingStore((s) => s.setDelay);
   const [copied, setCopied] = useState(false);
@@ -106,16 +105,6 @@ export function RecordingControl() {
             <ClipboardCopy size={13} />
             <span>{copied ? "Copied" : "Copy command"}</span>
           </button>
-        )}
-
-        {/* Transient message (set via showMessage; auto-clears after 5 seconds) */}
-        {message && (
-          <span
-            className={`text-[13px] ${message.type === "success" ? "text-emerald-400" : "text-red-400"}`}
-            role="status"
-          >
-            {message.text}
-          </span>
         )}
 
         {/* Warn when YAML default topics have not yet been received via SSE.

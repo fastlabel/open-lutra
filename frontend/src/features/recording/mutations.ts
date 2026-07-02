@@ -17,12 +17,10 @@ import type { LogEntry } from "@/hooks/use-topics-stream";
 import { queryClient } from "@/lib/query-client";
 import { sseKeys } from "@/lib/query-keys";
 import { useQualityHistoryStore } from "@/stores/quality-history-store";
-import { createTimer } from "./create-timer";
+import { toast } from "@/stores/toast-store";
 import { useRecordingStore } from "./store";
 
 // --- Helpers ---
-
-const messageTimer = createTimer();
 
 /** Append a UI log entry to the TanStack Query cache. */
 function addLog(severity: "info" | "warning" | "danger", message: string) {
@@ -35,17 +33,6 @@ function addLog(severity: "info" | "warning" | "danger", message: string) {
     source: "ui",
   };
   queryClient.setQueryData<LogEntry[]>(sseKeys.logs(), (old) => [...(old ?? []), entry].slice(-500));
-}
-
-/** Set the message and auto-clear it after 5 seconds. */
-export function showMessage(text: string, type: "success" | "error") {
-  useRecordingStore.setState({ message: { text, type } });
-  messageTimer.set(() => useRecordingStore.setState({ message: null }), 5000);
-}
-
-/** Cancel the message auto-clear timer. */
-export function clearMessageTimer() {
-  messageTimer.clear();
 }
 
 // --- MutationObserver ---
@@ -61,14 +48,14 @@ export const startRecordingMutation = new MutationObserver(queryClient, {
   },
   onSuccess: (_data, topics) => {
     useQualityHistoryStore.getState().addMarker("start");
-    showMessage("Recording started", "success");
+    toast.success("Recording started");
     addLog("info", `Recording started (${topics.length} topics)`);
     queryClient.invalidateQueries({ queryKey: getGetRecordingStatusQueryKey() });
     setTimeout(() => queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() }), 500);
   },
   onError: (error) => {
     const msg = error.message || "Failed to start recording";
-    showMessage(msg, "error");
+    toast.error(msg);
     addLog("danger", `Recording start failed: ${msg}`);
   },
   onSettled: () => {
@@ -87,7 +74,7 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
     queryClient.invalidateQueries({ queryKey: getGetRecordingStatusQueryKey() });
     if (resp.status !== 200) return;
     const d = resp.data;
-    showMessage("Recording completed", "success");
+    toast.success("Recording completed");
     addLog("info", `Recording stopped (${d.duration_sec.toFixed(1)}s) → ${d.output_path}`);
     // Force-refresh the file list to fetch the latest mcap.
     // invalidateQueries notifies every observer to refetch, ensuring the UI updates.
@@ -138,7 +125,7 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
   },
   onError: (error) => {
     const msg = error.message || "Failed to stop recording";
-    showMessage(msg, "error");
+    toast.error(msg);
     addLog("danger", `Recording stop failed: ${msg}`);
   },
   onSettled: () => {

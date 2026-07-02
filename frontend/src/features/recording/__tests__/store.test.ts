@@ -2,18 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock setup (initialized via vi.hoisted before vi.mock) ---
 
-const {
-  mockMutateStart,
-  mockMutateStop,
-  mockShowMessage,
-  mockClearMessageTimer,
-  mockGetQueryData,
-  mockSelectedTopics,
-} = vi.hoisted(() => ({
+const { mockMutateStart, mockMutateStop, mockToast, mockGetQueryData, mockSelectedTopics } = vi.hoisted(() => ({
   mockMutateStart: vi.fn(),
   mockMutateStop: vi.fn(),
-  mockShowMessage: vi.fn(),
-  mockClearMessageTimer: vi.fn(),
+  mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   mockGetQueryData: vi.fn((_key?: unknown): unknown => undefined),
   mockSelectedTopics: { current: new Set<string>(["/topic_a", "/topic_b"]) },
 }));
@@ -26,8 +18,10 @@ vi.mock("zustand/middleware", () => ({
 vi.mock("../mutations", () => ({
   startRecordingMutation: { mutate: mockMutateStart },
   stopRecordingMutation: { mutate: mockMutateStop },
-  showMessage: mockShowMessage,
-  clearMessageTimer: mockClearMessageTimer,
+}));
+
+vi.mock("@/stores/toast-store", () => ({
+  toast: mockToast,
 }));
 
 vi.mock("@/lib/query-client", () => ({
@@ -69,7 +63,6 @@ describe("useRecordingStore", () => {
       countdownSec: null,
       isStarting: false,
       isStopping: false,
-      message: null,
       finishedRecording: null,
     });
     mockSelectedTopics.current = new Set(["/topic_a", "/topic_b"]);
@@ -90,7 +83,6 @@ describe("useRecordingStore", () => {
       expect(state.countdownSec).toBeNull();
       expect(state.isStarting).toBe(false);
       expect(state.isStopping).toBe(false);
-      expect(state.message).toBeNull();
       expect(state.finishedRecording).toBeNull();
     });
   });
@@ -206,7 +198,7 @@ describe("useRecordingStore", () => {
       useRecordingStore.getState().stopRecording();
 
       expect(useRecordingStore.getState().countdownSec).toBeNull();
-      expect(mockShowMessage).toHaveBeenCalledWith("Countdown canceled", "error");
+      expect(mockToast.error).toHaveBeenCalledWith("Countdown canceled");
       expect(mockMutateStop).not.toHaveBeenCalled();
     });
 
@@ -252,7 +244,7 @@ describe("useRecordingStore", () => {
       useRecordingStore.getState().toggle();
 
       expect(useRecordingStore.getState().countdownSec).toBeNull();
-      expect(mockShowMessage).toHaveBeenCalledWith("Countdown canceled", "error");
+      expect(mockToast.error).toHaveBeenCalledWith("Countdown canceled");
     });
 
     it("starts recording when idle, connected, and a topic is selected", () => {
@@ -277,7 +269,7 @@ describe("useRecordingStore", () => {
       useRecordingStore.getState().toggle();
 
       expect(mockMutateStart).not.toHaveBeenCalled();
-      expect(mockShowMessage).toHaveBeenCalledWith("Cannot start recording while disconnected", "error");
+      expect(mockToast.error).toHaveBeenCalledWith("Cannot start recording while disconnected");
     });
 
     it("does not start when no topic is selected, and shows a message", () => {
@@ -291,24 +283,7 @@ describe("useRecordingStore", () => {
       useRecordingStore.getState().toggle();
 
       expect(mockMutateStart).not.toHaveBeenCalled();
-      expect(mockShowMessage).toHaveBeenCalledWith("Select at least one topic to record", "error");
-    });
-  });
-
-  // --- clearMessage ---
-
-  describe("clearMessage", () => {
-    it("sets the message to null", () => {
-      useRecordingStore.setState({ message: { text: "Test", type: "success" } });
-      useRecordingStore.getState().clearMessage();
-
-      expect(useRecordingStore.getState().message).toBeNull();
-    });
-
-    it("calls clearMessageTimer", () => {
-      useRecordingStore.getState().clearMessage();
-
-      expect(mockClearMessageTimer).toHaveBeenCalled();
+      expect(mockToast.error).toHaveBeenCalledWith("Select at least one topic to record");
     });
   });
 

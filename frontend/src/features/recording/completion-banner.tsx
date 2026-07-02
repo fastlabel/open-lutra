@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useDeleteRecordings } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
 import { formatDuration, formatSize } from "@/lib/format";
+import { toast } from "@/stores/toast-store";
 import { useRecordingStore } from "./store";
 
 export function RecordingCompletionBanner() {
@@ -40,10 +41,13 @@ export function RecordingCompletionBanner() {
       {
         onSuccess: () => {
           addLog("info", `Deleted recording: ${finished.name}`);
+          toast.success("Recording deleted", finished.name);
           dismiss();
         },
         onError: (err: unknown) => {
-          addLog("danger", `Delete failed: ${err instanceof Error ? err.message : "Delete failed"}`);
+          const msg = err instanceof Error ? err.message : "Delete failed";
+          addLog("danger", `Delete failed: ${msg}`);
+          toast.error("Delete failed", msg);
         },
       },
     );

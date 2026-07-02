@@ -8,6 +8,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
 import { StatusBar } from "@/components/layout/StatusBar";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useJobsStream } from "@/hooks/use-jobs-stream";
 import { isDevMode } from "@/lib/dev-mode";
@@ -33,6 +34,7 @@ function RootLayoutInner() {
         {/* StatusBar is shown only in dev mode (VITE_DEV_MODE=true). */}
         {isDevMode() && <StatusBar />}
       </div>
+      <Toaster />
     </TooltipProvider>
   );
 }

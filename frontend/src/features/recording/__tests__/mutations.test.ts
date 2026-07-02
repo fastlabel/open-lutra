@@ -2,18 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock setup ---
 
-const { mockSetState, mockAddMarker, mockStartRecordingApi, mockStopRecordingApi, mockGetFiles } = vi.hoisted(() => {
-  const mockAddMarker = vi.fn();
-  return {
-    mockSetState: vi.fn(),
-    mockAddMarker,
-    mockStartRecordingApi: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
-    mockStopRecordingApi: vi.fn(() =>
-      Promise.resolve({ status: 200, data: { duration_sec: 10.5, output_path: "/data/test.mcap" } }),
-    ),
-    mockGetFiles: vi.fn(),
-  };
-});
+const { mockSetState, mockAddMarker, mockStartRecordingApi, mockStopRecordingApi, mockGetFiles, mockToast } =
+  vi.hoisted(() => {
+    const mockAddMarker = vi.fn();
+    return {
+      mockSetState: vi.fn(),
+      mockAddMarker,
+      mockStartRecordingApi: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
+      mockStopRecordingApi: vi.fn(() =>
+        Promise.resolve({ status: 200, data: { duration_sec: 10.5, output_path: "/data/test.mcap" } }),
+      ),
+      mockGetFiles: vi.fn(),
+      mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+    };
+  });
 
 vi.mock("@/lib/query-client", async () => {
   const { QueryClient: QC } = await import("@tanstack/react-query");
@@ -65,9 +67,13 @@ vi.mock("@/lib/query-keys", () => ({
   },
 }));
 
+vi.mock("@/stores/toast-store", () => ({
+  toast: mockToast,
+}));
+
 import { useSettingsStore } from "@/features/settings";
 import { queryClient } from "@/lib/query-client";
-import { clearMessageTimer, showMessage, startRecordingMutation, stopRecordingMutation } from "../mutations";
+import { startRecordingMutation, stopRecordingMutation } from "../mutations";
 
 /** Helper that flushes all pending Promises after mutate. */
 async function flushMutation() {
@@ -92,68 +98,6 @@ function suppressUnhandledRejection() {
     process.removeListener("unhandledRejection", processHandler);
   };
 }
-
-// --- showMessage / clearMessageTimer ---
-
-describe("showMessage", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("sets the message on the store", () => {
-    showMessage("Test success", "success");
-
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Test success", type: "success" },
-    });
-  });
-
-  it("auto-clears the message after 5 seconds", () => {
-    showMessage("Transient message", "error");
-
-    vi.advanceTimersByTime(5000);
-
-    expect(mockSetState).toHaveBeenLastCalledWith({ message: null });
-  });
-
-  it("cancels the previous timer on consecutive calls", () => {
-    showMessage("first", "success");
-    showMessage("last", "error");
-
-    // The auto-clear after 5 seconds runs only once.
-    vi.advanceTimersByTime(5000);
-
-    const nullCalls = mockSetState.mock.calls.filter((call) => (call[0] as { message: unknown }).message === null);
-    expect(nullCalls).toHaveLength(1);
-  });
-});
-
-describe("clearMessageTimer", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("cancels the showMessage auto-clear timer", () => {
-    showMessage("Test", "success");
-    clearMessageTimer();
-
-    vi.advanceTimersByTime(5000);
-
-    // setState is called only once (during showMessage; no auto-clear).
-    const nullCalls = mockSetState.mock.calls.filter((call) => (call[0] as { message: unknown }).message === null);
-    expect(nullCalls).toHaveLength(0);
-  });
-});
 
 // --- startRecordingMutation ---
 
@@ -205,13 +149,11 @@ describe("startRecordingMutation", () => {
     expect(mockAddMarker).toHaveBeenCalledWith("start");
   });
 
-  it("shows the start notification message on success", async () => {
+  it("shows the start notification toast on success", async () => {
     startRecordingMutation.mutate(["/topic_a"]);
     await flushMutation();
 
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Recording started", type: "success" },
-    });
+    expect(mockToast.success).toHaveBeenCalledWith("Recording started");
   });
 
   it("onSuccess: invalidates the file list 500ms later", async () => {
@@ -231,16 +173,14 @@ describe("startRecordingMutation", () => {
     expect(mockSetState).toHaveBeenCalledWith({ isStarting: false });
   });
 
-  it("shows an error message on error", async () => {
+  it("shows an error toast on error", async () => {
     const cleanup = suppressUnhandledRejection();
     mockStartRecordingApi.mockRejectedValueOnce(new Error("Connection error"));
 
     startRecordingMutation.mutate(["/topic_a"]);
     await flushMutation();
 
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Connection error", type: "error" },
-    });
+    expect(mockToast.error).toHaveBeenCalledWith("Connection error");
     cleanup();
   });
 
@@ -251,9 +191,7 @@ describe("startRecordingMutation", () => {
     startRecordingMutation.mutate(["/topic_a"]);
     await flushMutation();
 
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Failed to start recording", type: "error" },
-    });
+    expect(mockToast.error).toHaveBeenCalledWith("Failed to start recording");
     cleanup();
   });
 });
@@ -389,16 +327,14 @@ describe("stopRecordingMutation", () => {
     expect(mockSetState).toHaveBeenCalledWith({ isStopping: false });
   });
 
-  it("shows an error message on error", async () => {
+  it("shows an error toast on error", async () => {
     const cleanup = suppressUnhandledRejection();
     mockStopRecordingApi.mockRejectedValueOnce(new Error("Stop failed"));
 
     stopRecordingMutation.mutate(undefined);
     await flushMutation();
 
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Stop failed", type: "error" },
-    });
+    expect(mockToast.error).toHaveBeenCalledWith("Stop failed");
     cleanup();
   });
 
@@ -409,9 +345,7 @@ describe("stopRecordingMutation", () => {
     stopRecordingMutation.mutate(undefined);
     await flushMutation();
 
-    expect(mockSetState).toHaveBeenCalledWith({
-      message: { text: "Failed to stop recording", type: "error" },
-    });
+    expect(mockToast.error).toHaveBeenCalledWith("Failed to stop recording");
     cleanup();
   });
 });
