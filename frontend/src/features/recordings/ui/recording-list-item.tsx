@@ -96,7 +96,15 @@ export const RecordingListItem = memo(function RecordingListItem({
   return (
     <div
       className="flex items-center gap-3 border-b border-border px-4 py-2 transition-colors cursor-pointer hover:bg-muted/50"
-      onClick={() => navigate({ to: "/recordings/$folder", params: { folder: encodeURIComponent(entry.path) } })}
+      onClick={() =>
+        navigate({
+          from: "/recordings",
+          to: "/recordings/$folder",
+          params: { folder: encodeURIComponent(entry.path) },
+          // Carry the active filter into the detail page so its prev/next pager walks the same view.
+          search: (prev) => prev,
+        })
+      }
       onDoubleClick={
         canRename
           ? (e) => {

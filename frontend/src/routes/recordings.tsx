@@ -3,10 +3,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { RecordingsTable } from "@/features/recordings-table";
+import { RecordingsTable, validateRecordingsSearch } from "@/features/recordings-table";
 import { useFileEntries } from "@/hooks/use-file-entries";
 
 function RecordingsPage() {
+  // --- Routing ---
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   // --- Server state (TanStack Query) ---
   const entries = useFileEntries();
 
@@ -32,12 +36,23 @@ function RecordingsPage() {
 
       {/* Main content: the table (it owns its own scroll container for virtualization) */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        <RecordingsTable entries={entries} />
+        <RecordingsTable
+          entries={entries}
+          searchText={search.q ?? ""}
+          taskFilter={search.task ?? null}
+          onSearchTextChange={(text) =>
+            navigate({ search: (prev) => ({ ...prev, q: text || undefined }), replace: true })
+          }
+          onTaskFilterChange={(value) =>
+            navigate({ search: (prev) => ({ ...prev, task: value === null ? undefined : value }) })
+          }
+        />
       </div>
     </div>
   );
 }
 
 export const Route = createFileRoute("/recordings")({
+  validateSearch: validateRecordingsSearch,
   component: RecordingsPage,
 });

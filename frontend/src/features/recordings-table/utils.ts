@@ -5,9 +5,16 @@
  */
 
 import type { FileEntry } from "@/api/generated/schemas";
-import type { TaskFilterValue } from "./store";
 
 export { formatRecordingDate } from "@/lib/format";
+
+/** Filter value by task_name.
+ *
+ * - `null`: all tasks (no filter)
+ * - `""`: only recordings without a task_name
+ * - any other string: only recordings whose task_name matches exactly
+ */
+export type TaskFilterValue = string | null;
 
 /** Formats a byte count into a human-readable string. */
 export function formatSize(bytes: number): string {

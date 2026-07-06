@@ -3,14 +3,14 @@
  * - Single-select (clicking the current selection again resets to "All")
  * - Options are aggregated as unique task_names from the `entries` argument (= post-search list)
  * - Tasks with count 0 are not shown. "(no task)" appears only if there are recordings without task_name
- * - No URL sync (store only)
+ * - Stateless: the selection is owned by the caller (backed by URL search params)
  */
 
 import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { TaskFilterValue } from "../store";
+import type { TaskFilterValue } from "../utils";
 
 const ALL_LABEL = "All";
 const NONE_LABEL = "(no task)";

@@ -1,3 +1,4 @@
 export { RecordingsTable } from "./recordings-table";
-export { useRecordingsTableStore } from "./store";
-export { applySearchAndFilter } from "./utils";
+export { type RecordingsSearch, validateRecordingsSearch } from "./search";
+export { useRecordingNeighbors } from "./use-recording-neighbors";
+export { applySearchAndFilter, type TaskFilterValue } from "./utils";

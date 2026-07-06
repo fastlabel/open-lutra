@@ -1,7 +1,7 @@
 /** MCAP detail page: quality assessment (left) + tabbed analytics / validation (right). */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { Group, Panel } from "react-resizable-panels";
 import type { LossEvent } from "@/api/generated/schemas";
@@ -10,8 +10,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QualitySummary } from "@/features/quality-summary";
 import { QualityTimeline, useQualityTimelineStore } from "@/features/quality-timeline";
+import { useRecordingNeighbors, validateRecordingsSearch } from "@/features/recordings-table";
 import { UploadButton } from "@/features/upload";
 import { ValidationSummary } from "@/features/validation";
+
+// Shared icon-button base for the header pager (matches the back-to-list link).
+const PAGER_BTN = "flex h-7 w-7 items-center justify-center rounded transition-colors";
 
 /** Compute the display range for a loss event (minimum 0.5 seconds). */
 function lossViewRange(loss: LossEvent, durationSec: number): { from: number; to: number } {
@@ -25,7 +29,17 @@ function lossViewRange(loss: LossEvent, durationSec: number): { from: number; to
 function McapDetailPage() {
   // --- Routing ---
   const { folder } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const folderPath = decodeURIComponent(folder);
+
+  // --- Server state (derived) ---
+  // Previous/next recording within the same filtered view the user came from.
+  const { prev, next, index, total, currentExists, isLoaded } = useRecordingNeighbors(
+    folderPath,
+    search.q ?? "",
+    search.task ?? null,
+  );
 
   // --- Side effects ---
   // Reset the store on unmount (resets viewRange etc. when leaving the page).
@@ -33,6 +47,11 @@ function McapDetailPage() {
   useEffect(() => {
     return () => reset();
   }, [reset]);
+
+  // When the viewed recording no longer exists (e.g. deleted while open), return to the list.
+  useEffect(() => {
+    if (isLoaded && !currentExists) navigate({ to: "/recordings", search });
+  }, [isLoaded, currentExists, navigate, search]);
 
   // --- Event handlers (callbacks passed to JSX) ---
   const selectedTopic = useQualityTimelineStore((s) => s.selectedTopic);
@@ -77,10 +96,62 @@ function McapDetailPage() {
       <div className="flex items-center gap-2 border-b border-border px-4 py-2">
         <Link
           to="/recordings"
-          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          search={search}
+          className={`${PAGER_BTN} text-muted-foreground hover:bg-muted hover:text-foreground`}
+          title="Back to recordings"
         >
           <ArrowLeft size={16} />
         </Link>
+
+        {/* Previous / next recording pager */}
+        <div className="flex items-center gap-0.5">
+          {prev ? (
+            <Link
+              to="/recordings/$folder"
+              params={{ folder: encodeURIComponent(prev.path) }}
+              search={search}
+              className={`${PAGER_BTN} text-muted-foreground hover:bg-muted hover:text-foreground`}
+              title={`Previous: ${prev.task_name ?? prev.name}`}
+            >
+              <ChevronLeft size={16} />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className={`${PAGER_BTN} cursor-not-allowed text-muted-foreground opacity-30`}
+              title="No previous recording"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
+          {index >= 0 && (
+            <span className="px-1 text-sm text-muted-foreground tabular-nums">
+              {index + 1} / {total}
+            </span>
+          )}
+          {next ? (
+            <Link
+              to="/recordings/$folder"
+              params={{ folder: encodeURIComponent(next.path) }}
+              search={search}
+              className={`${PAGER_BTN} text-muted-foreground hover:bg-muted hover:text-foreground`}
+              title={`Next: ${next.task_name ?? next.name}`}
+            >
+              <ChevronRight size={16} />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className={`${PAGER_BTN} cursor-not-allowed text-muted-foreground opacity-30`}
+              title="No next recording"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
+
         <span className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           {folderPath.split("/").pop() ?? folder}
         </span>
@@ -130,5 +201,6 @@ function McapDetailPage() {
 }
 
 export const Route = createFileRoute("/recordings_/$folder")({
+  validateSearch: validateRecordingsSearch,
   component: McapDetailPage,
 });

@@ -17,15 +17,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BulkExportButton } from "@/features/lerobot-export";
 import { BulkDeleteButton, RecordingListItem, useRecordingsStore } from "@/features/recordings";
 import { BulkUploadButton } from "@/features/upload";
-import { useRecordingsTableStore } from "./store";
 import { TaskFilter } from "./ui/task-filter";
-import { applySearchAndFilter } from "./utils";
+import { applySearchAndFilter, type TaskFilterValue } from "./utils";
 
-export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
-  // --- Filter state + derived lists ---
-  const searchText = useRecordingsTableStore((s) => s.searchText);
-  const taskFilter = useRecordingsTableStore((s) => s.taskFilter);
+interface RecordingsTableProps {
+  entries: FileEntry[];
+  /** Filter state, owned by the route (backed by URL search params). */
+  searchText: string;
+  taskFilter: TaskFilterValue;
+  onSearchTextChange: (text: string) => void;
+  onTaskFilterChange: (value: TaskFilterValue) => void;
+}
 
+export function RecordingsTable({
+  entries,
+  searchText,
+  taskFilter,
+  onSearchTextChange,
+  onTaskFilterChange,
+}: RecordingsTableProps) {
+  // --- Derived lists ---
   // List with only the search applied. Used as the population for TaskFilter options/counts.
   const searchedEntries = useMemo(() => applySearchAndFilter(entries, searchText), [entries, searchText]);
   // Final list with all filters applied.
@@ -48,8 +59,6 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
   });
 
   // --- Render-only state ---
-  const setSearchText = useRecordingsTableStore((s) => s.setSearchText);
-  const setTaskFilter = useRecordingsTableStore((s) => s.setTaskFilter);
   const checkedFolders = useRecordingsStore((s) => s.checkedFolders);
   const toggleCheckAll = useRecordingsStore((s) => s.toggleCheckAll);
   const setCheckedFolders = useRecordingsStore((s) => s.setCheckedFolders);
@@ -68,7 +77,7 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
             setCheckedFolders(
               newSearchText ? applySearchAndFilter(entries, newSearchText, taskFilter).map((x) => x.name) : [],
             );
-            setSearchText(newSearchText);
+            onSearchTextChange(newSearchText);
           }}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
@@ -93,7 +102,7 @@ export function RecordingsTable({ entries }: { entries: FileEntry[] }) {
                   ? []
                   : applySearchAndFilter(entries, searchText, newTaskFilter).map((e) => e.name),
               );
-              setTaskFilter(newTaskFilter);
+              onTaskFilterChange(newTaskFilter);
             }}
           />
         </div>
