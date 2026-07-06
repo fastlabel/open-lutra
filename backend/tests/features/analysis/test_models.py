@@ -1,5 +1,7 @@
 """Tests for file-quality analysis domain models."""
 
+import pytest
+
 from app.features.analysis.models import MessageSizeStats, QualityReport, TopicQuality
 
 
@@ -298,3 +300,146 @@ class TestLossEvents:
         # Tail is end_early (max timestamp_sec ~ 8.2, just before the 10 s recording end)
         assert tq.loss_events[-1].timestamp_sec > 7.0
         assert tq.loss_events[-1].timestamp_sec < 10.0
+
+
+# ---------------------------------------------------------------------------
+# Config-declared expected Hz (RECORDING_CONFIG expected_hz_patterns)
+# ---------------------------------------------------------------------------
+
+
+class TestCountLossRate:
+    """Tests for TopicQuality._count_loss_rate()."""
+
+    def test_computes_deficit(self) -> None:
+        """1 - actual/expected against the configured frame count."""
+        # expected = 100 Hz * 1 s = 100 frames; 25 received -> 75% loss
+        assert TopicQuality._count_loss_rate(25, 100.0, 1.0) == 0.75
+
+    def test_no_loss_when_more_than_expected(self) -> None:
+        """Receiving more than expected clamps to 0.0 (no negative loss)."""
+        assert TopicQuality._count_loss_rate(150, 100.0, 1.0) == 0.0
+
+    def test_zero_when_expected_hz_unknown(self) -> None:
+        assert TopicQuality._count_loss_rate(10, 0.0, 1.0) == 0.0
+
+    def test_zero_when_duration_unknown(self) -> None:
+        assert TopicQuality._count_loss_rate(10, 100.0, 0.0) == 0.0
+
+
+class TestStatusFromLossRate:
+    """Tests for TopicQuality._status_from_loss_rate()."""
+
+    def test_danger(self) -> None:
+        assert TopicQuality._status_from_loss_rate(0.1) == "danger"
+
+    def test_warning(self) -> None:
+        assert TopicQuality._status_from_loss_rate(0.03) == "warning"
+
+    def test_ok(self) -> None:
+        assert TopicQuality._status_from_loss_rate(0.0) == "ok"
+
+
+class TestConfigExpectedHz:
+    """Tests for the config-declared expected Hz overriding the auto estimate."""
+
+    def test_config_hz_drives_expected_and_loss_rate(self) -> None:
+        """A configured Hz becomes expected_frequency_hz and the loss-rate denominator."""
+        ts = [i * 0.1 for i in range(11)]  # 10 Hz measured, over 1.0 s
+        tq = TopicQuality.from_timestamps(
+            name="/cam",
+            msg_type="sensor_msgs/msg/CompressedImage",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=1.0,
+            config_expected_hz=20.0,
+        )
+        # Not snapped to the nearest standard frequency (10.0) -> the config value wins
+        assert tq.expected_frequency_hz == 20.0
+        # 11 received against 20 expected -> 45% loss
+        assert tq.loss_rate == pytest.approx(0.45)
+
+    def test_falls_back_to_estimate_when_config_hz_absent(self) -> None:
+        """Without a configured Hz, expected_frequency_hz is the auto estimate."""
+        ts = [i * 0.1 for i in range(11)]  # 10 Hz measured
+        tq = TopicQuality.from_timestamps(
+            name="/cam",
+            msg_type="sensor_msgs/msg/CompressedImage",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=1.0,
+            config_expected_hz=None,
+        )
+        assert tq.expected_frequency_hz == 10.0
+        assert tq.loss_rate == 0.0
+
+    def test_falls_back_to_estimate_when_config_hz_non_positive(self) -> None:
+        """A non-positive configured Hz is ignored (falls back to the auto estimate)."""
+        ts = [i * 0.1 for i in range(11)]  # 10 Hz measured
+        tq = TopicQuality.from_timestamps(
+            name="/cam",
+            msg_type="sensor_msgs/msg/CompressedImage",
+            timestamps=ts,
+            sizes=[100] * len(ts),
+            recording_start=0.0,
+            duration_sec=1.0,
+            config_expected_hz=0.0,
+        )
+        assert tq.expected_frequency_hz == 10.0
+
+    def test_single_message_with_config_hz_reports_loss(self) -> None:
+        """With too few messages, a configured Hz still yields a count-based loss and status."""
+        tq = TopicQuality.from_timestamps(
+            name="/cam",
+            msg_type="sensor_msgs/msg/CompressedImage",
+            timestamps=[0.0],
+            sizes=[100],
+            recording_start=0.0,
+            duration_sec=10.0,
+            config_expected_hz=30.0,
+        )
+        assert tq.expected_frequency_hz == 30.0
+        # 1 received against 30 Hz * 10 s = 300 expected -> ~99.7% loss
+        assert tq.loss_rate == pytest.approx(0.9967)
+        assert tq.status == "danger"
+
+    def test_single_message_without_config_hz_stays_ok(self) -> None:
+        """With too few messages and no configured Hz, the topic is reported as healthy."""
+        tq = TopicQuality.from_timestamps(
+            name="/cam",
+            msg_type="std_msgs/msg/String",
+            timestamps=[0.0],
+            sizes=[100],
+            recording_start=0.0,
+            duration_sec=10.0,
+        )
+        assert tq.expected_frequency_hz == 0.0
+        assert tq.loss_rate == 0.0
+        assert tq.status == "ok"
+
+    def test_resolve_expected_hz_overrides_per_topic(self) -> None:
+        """from_mcap_data forwards the resolved config Hz to each topic."""
+        ts = [i * 0.1 for i in range(11)]  # 10 Hz measured, over 1.0 s
+        report = QualityReport.from_mcap_data(
+            topic_timestamps={"/cam": ts},
+            topic_sizes={"/cam": [100] * len(ts)},
+            topic_types={"/cam": "sensor_msgs/msg/CompressedImage"},
+            file_size=1100,
+            resolve_expected_hz=lambda name: 20.0 if name == "/cam" else None,
+        )
+        tq = report.topics[0]
+        assert tq.expected_frequency_hz == 20.0
+        assert tq.loss_rate == pytest.approx(0.45)
+
+    def test_resolve_expected_hz_none_falls_back(self) -> None:
+        """A resolver that returns None leaves the topic on the auto estimate."""
+        ts = [i * 0.1 for i in range(11)]  # 10 Hz measured
+        report = QualityReport.from_mcap_data(
+            topic_timestamps={"/cam": ts},
+            topic_sizes={"/cam": [100] * len(ts)},
+            topic_types={"/cam": "sensor_msgs/msg/CompressedImage"},
+            file_size=1100,
+            resolve_expected_hz=lambda name: None,
+        )
+        assert report.topics[0].expected_frequency_hz == 10.0

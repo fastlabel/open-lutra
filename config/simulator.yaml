@@ -54,10 +54,13 @@ validators:
     min_sec: 5
     max_sec: 30
 
-# Expected Hz for quality monitoring (pattern match, first match wins).
-# Omit `hz` to enable dynamic learning (auto-computed from message intervals
-# after subscribe). Example:
-#   - pattern: "/sensor/*"   # no hz: dynamically learned
+# Expected Hz for quality evaluation (pattern match, first match wins). Used by
+# both live monitoring and the post-recording quality report: a matching `hz`
+# becomes the topic's expected frequency and the loss-rate denominator.
+# Omit `hz` to auto-derive the expected frequency from the measured message
+# intervals instead (live monitoring learns it after subscribe; the report
+# snaps the measured rate to the nearest standard frequency). Example:
+#   - pattern: "/sensor/*"   # no hz: auto-derived
 expected_hz_patterns:
   - pattern: "**/compressed"
     hz: 30

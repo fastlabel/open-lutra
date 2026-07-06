@@ -258,6 +258,26 @@ class TestBuildTimeline:
         assert topic.expected_hz == 30.0
         assert len(topic.bins) > 0
 
+    def test_config_expected_hz_overrides_estimate(self) -> None:
+        """A configured Hz overrides the estimated expected_hz (matches the quality report)."""
+        timestamps = [i * 0.033 for i in range(30)]  # ~30 Hz measured
+        data = _build_timeline(
+            {"/cam": timestamps},
+            {"/cam": "sensor_msgs/CompressedImage"},
+            resolve_expected_hz=lambda name: 100.0,
+        )
+        assert data.topics[0].expected_hz == 100.0
+
+    def test_config_expected_hz_none_falls_back_to_estimate(self) -> None:
+        """A resolver returning None leaves the estimated expected_hz in place."""
+        timestamps = [i * 0.033 for i in range(30)]  # ~30 Hz measured
+        data = _build_timeline(
+            {"/cam": timestamps},
+            {"/cam": "sensor_msgs/CompressedImage"},
+            resolve_expected_hz=lambda name: None,
+        )
+        assert data.topics[0].expected_hz == 30.0
+
     def test_unknown_msg_type(self) -> None:
         """A topic missing from topic_types is unknown."""
         timestamps = [i * 0.033 for i in range(30)]

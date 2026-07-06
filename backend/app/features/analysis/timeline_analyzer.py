@@ -8,6 +8,7 @@ Also exposes per-message lookups used by the rug plot.
 import json
 import logging
 import math
+from collections.abc import Callable
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -22,6 +23,7 @@ from app.features.analysis.schemas import (
     TimelineTopic,
 )
 from app.infra.mcap import MCAPReader, find_mcap_files, resolve_timestamp_sec
+from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,12 @@ def build_and_save_timeline(directory: Path) -> TimelineData:  # pragma: no cove
         log_time_min_ns, _ = reader.get_time_range_ns()
 
     topic_timestamps, _topic_sizes, topic_types, _stamp_sources = _read_mcap(mcap_path)
-    data = _build_timeline(topic_timestamps, topic_types, log_time_min_ns=log_time_min_ns)
+    data = _build_timeline(
+        topic_timestamps,
+        topic_types,
+        log_time_min_ns=log_time_min_ns,
+        resolve_expected_hz=get_settings().recording.resolve_expected_hz,
+    )
 
     cache_path = directory / _CACHE_FILENAME
     cache_path.write_text(
@@ -216,6 +223,7 @@ def _build_timeline(
     topic_timestamps: dict[str, list[float]],
     topic_types: dict[str, str],
     log_time_min_ns: int = 0,
+    resolve_expected_hz: Callable[[str], float | None] | None = None,
 ) -> TimelineData:
     """Build timeline data from a topic-to-timestamps dictionary.
 
@@ -223,6 +231,10 @@ def _build_timeline(
         The diff against recording_start_ns (header.stamp based) is stored as
         log_time_offset_ns and used as the log_time filter origin when the
         rug plot scans the MCAP.
+    resolve_expected_hz: resolves the config-declared expected Hz
+        (RECORDING_CONFIG expected_hz_patterns) for a topic name. When it
+        returns a value, that value overrides the auto-estimated expected Hz
+        for that topic (matching the quality report).
     """
     all_ts: list[float] = []
     for ts_list in topic_timestamps.values():
@@ -247,7 +259,9 @@ def _build_timeline(
     topics: list[TimelineTopic] = []
     for topic_name in sorted(topic_timestamps.keys()):
         timestamps = sorted(topic_timestamps[topic_name])
-        expected_hz = _estimate_hz(timestamps)
+        # A config-declared expected Hz wins; otherwise estimate from the data.
+        config_hz = resolve_expected_hz(topic_name) if resolve_expected_hz else None
+        expected_hz = config_hz if config_hz is not None and config_hz > 0 else _estimate_hz(timestamps)
         msg_type = topic_types.get(topic_name, "unknown")
 
         # Binning (keep expected as float; rounding introduces quantization noise)

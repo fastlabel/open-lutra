@@ -8,6 +8,7 @@ See docs/domain/quality_analysis.md for details on quality metrics.
 """
 
 import statistics
+from collections.abc import Callable
 
 from pydantic import BaseModel, Field
 
@@ -112,8 +113,17 @@ class TopicQuality(BaseModel):
         recording_start: float,
         duration_sec: float,
         timestamp_source: str = "log_time",
+        config_expected_hz: float | None = None,
     ) -> "TopicQuality":
-        """Compute quality metrics from timestamps and sizes."""
+        """Compute quality metrics from timestamps and sizes.
+
+        When ``config_expected_hz`` is provided (the RECORDING_CONFIG
+        ``expected_hz_patterns`` value for this topic), it is used as the
+        expected frequency instead of the rate estimated from the data. It
+        drives the loss-rate denominator, the gap/loss detection thresholds,
+        and the reported ``expected_frequency_hz``. A ``None`` or non-positive
+        value falls back to snapping the measured rate to a standard frequency.
+        """
         timestamps.sort()
         msg_count = len(timestamps)
         size_stats = MessageSizeStats.from_sizes(sizes)
@@ -123,15 +133,20 @@ class TopicQuality(BaseModel):
         recording_end = recording_start + duration_sec
         end_early = recording_end - timestamps[-1] if timestamps else 0.0
 
-        # Skip frequency analysis when there are too few messages
+        # Skip interval-based analysis when there are too few messages. Interval
+        # metrics need >= 2 samples, but with a config-declared expected Hz the
+        # loss rate can still be computed from the count against the configured
+        # rate, so a near-empty configured topic is not reported as healthy.
         if msg_count < 2:
+            expected_hz = config_expected_hz if config_expected_hz is not None and config_expected_hz > 0 else 0.0
+            loss_rate = cls._count_loss_rate(msg_count, expected_hz, duration_sec)
             return cls(
                 name=name,
                 msg_type=msg_type,
                 message_count=msg_count,
                 actual_frequency_hz=0.0,
-                expected_frequency_hz=0.0,
-                loss_rate=0.0,
+                expected_frequency_hz=expected_hz,
+                loss_rate=round(loss_rate, 4),
                 frequency_std_hz=0.0,
                 data_continuity_score=1.0,
                 gap_count=0,
@@ -145,25 +160,27 @@ class TopicQuality(BaseModel):
                 size_stats=size_stats,
                 start_delay_sec=round(start_delay, 3),
                 end_early_sec=round(max(0.0, end_early), 3),
-                status="ok",
+                status=cls._status_from_loss_rate(loss_rate),
             )
 
         # Frequency calculation (median of message intervals)
         intervals = [timestamps[i + 1] - timestamps[i] for i in range(msg_count - 1)]
         median_interval = statistics.median(intervals)
         actual_hz = 1.0 / median_interval if median_interval > 0 else 0.0
-        expected_hz = cls._estimate_expected_frequency(actual_hz)
+        # A config-declared expected Hz wins; otherwise snap the measured rate to
+        # the nearest standard frequency.
+        expected_hz = (
+            config_expected_hz
+            if config_expected_hz is not None and config_expected_hz > 0
+            else cls._estimate_expected_frequency(actual_hz)
+        )
 
         # Frequency standard deviation
         freq_values = [1.0 / iv if iv > 0 else 0.0 for iv in intervals]
         freq_std = statistics.stdev(freq_values) if len(freq_values) > 1 else 0.0
 
-        # Loss rate
-        if expected_hz > 0 and duration_sec > 0:
-            expected_count = expected_hz * duration_sec
-            loss_rate = max(0.0, 1.0 - (msg_count / expected_count))
-        else:
-            loss_rate = 0.0
+        # Loss rate (message count against the expected frame count)
+        loss_rate = cls._count_loss_rate(msg_count, expected_hz, duration_sec)
 
         expected_interval = 1.0 / expected_hz if expected_hz > 0 else median_interval
 
@@ -320,6 +337,31 @@ class TopicQuality(BaseModel):
         return float(min(_STANDARD_FREQUENCIES, key=lambda f: abs(f - actual_hz)))
 
     @staticmethod
+    def _count_loss_rate(msg_count: int, expected_hz: float, duration_sec: float) -> float:
+        """Count-based loss rate: 1 - actual/expected.
+
+        Returns 0.0 when the expected frame count is unknown (expected_hz or
+        duration is non-positive).
+        """
+        if expected_hz > 0 and duration_sec > 0:
+            expected_count = expected_hz * duration_sec
+            return max(0.0, 1.0 - (msg_count / expected_count))
+        return 0.0
+
+    @staticmethod
+    def _status_from_loss_rate(loss_rate: float) -> str:
+        """Map a count-based loss rate to a quality status.
+
+        Used when there are too few messages for interval-based severity
+        classification but a configured expected Hz still yields a loss rate.
+        """
+        if loss_rate > _LOSS_RATE_DANGER:
+            return "danger"
+        if loss_rate > _LOSS_RATE_WARN:
+            return "warning"
+        return "ok"
+
+    @staticmethod
     def _determine_status(major_loss: int, minor_loss: int, msg_count: int, loss_count: int = 0) -> str:
         """Determine the quality status.
 
@@ -356,8 +398,15 @@ class QualityReport(BaseModel):
         topic_types: dict[str, str],
         file_size: int,
         topic_stamp_sources: dict[str, str] | None = None,
+        resolve_expected_hz: Callable[[str], float | None] | None = None,
     ) -> "QualityReport":
-        """Build a quality report from data extracted from MCAP."""
+        """Build a quality report from data extracted from MCAP.
+
+        ``resolve_expected_hz`` resolves the config-declared expected Hz
+        (RECORDING_CONFIG ``expected_hz_patterns``) for a topic name; when it
+        returns a value, that value overrides the auto-estimated expected Hz
+        for that topic (see ``TopicQuality.from_timestamps``).
+        """
         stamp_sources = topic_stamp_sources or {}
 
         # Overall timestamp range
@@ -380,6 +429,7 @@ class QualityReport(BaseModel):
                 recording_start=recording_start,
                 duration_sec=duration_sec,
                 timestamp_source=stamp_sources.get(topic_name, "log_time"),
+                config_expected_hz=(resolve_expected_hz(topic_name) if resolve_expected_hz else None),
             )
             for topic_name, timestamps in sorted(topic_timestamps.items())
         ]

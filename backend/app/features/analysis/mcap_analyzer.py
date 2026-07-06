@@ -12,6 +12,7 @@ from pathlib import Path
 
 from app.features.analysis.models import QualityReport
 from app.infra.mcap import MCAPReader, find_mcap_files, resolve_timestamp_sec
+from app.settings import get_settings
 from app.shared.stamp import extract_stamp_sec
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ def _analyze_mcap(directory: Path) -> QualityReport:  # pragma: no cover
         topic_types=topic_types,
         file_size=file_size,
         topic_stamp_sources=topic_stamp_sources,
+        resolve_expected_hz=get_settings().recording.resolve_expected_hz,
     )
 
 

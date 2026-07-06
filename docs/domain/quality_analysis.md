@@ -198,6 +198,7 @@ Implementation: `frontend/src/features/quality-timeline/loss-rate-utils.ts`.
 |---|---|
 | Implementation | `MCAPAnalyzer` (mcap Python library) |
 | Data source | All message timestamps inside the MCAP file |
+| Expected Hz | Config-declared `expected_hz_patterns` value when the topic matches; otherwise the nearest standard frequency estimated from message intervals |
 | Accuracy | More accurate than real-time monitoring (uses the full data, not an approximation) |
 | Persistence | Saved as `quality_report.json` in the same directory as the MCAP (cache) |
 | Execution | Runs in the background via `asyncio.to_thread()` (does not block the UI) |
@@ -260,7 +261,7 @@ expected_hz_patterns:
 | Fixed (YAML config) | Keeps `baseline_hz`. Only resets timing-related metrics |
 | Dynamic learning | Sets `baseline_hz` back to `None` and restarts learning (50 warm-up + 50 accumulation) |
 
-**Scope**: `expected_hz_patterns` is only referenced by live monitoring (Phase 2). Post-recording MCAP analysis (Phase 3) does not use YAML values; instead, it statistically re-estimates from timestamps (see [How MCAP analysis works](#how-mcap-analysis-works)).
+**Scope**: `expected_hz_patterns` is referenced by both live monitoring (Phase 2) and post-recording MCAP analysis (Phase 3). In Phase 3 a matching `hz` overrides the auto-estimated expected Hz for that topic — it becomes the topic's `expected_frequency_hz` and drives the loss-rate denominator, the gap/loss detection thresholds, and the timeline's expected Hz. Topics with no matching `hz` (pattern omitted or `hz:` left blank) fall back to statistical re-estimation from timestamps (see [How MCAP analysis works](#how-mcap-analysis-works)).
 
 ### Loss rate
 
