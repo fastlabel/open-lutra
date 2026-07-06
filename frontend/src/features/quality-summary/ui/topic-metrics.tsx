@@ -18,13 +18,12 @@ export function TopicMetrics({
   /** Chevron click handler. When provided, stops the row click and toggles independently. */
   onChevronClick?: (e: MouseEvent) => void;
 }) {
-  const { minor_loss_count, major_loss_count, loss_count, message_count, start_delay_sec, msg_type } = topic;
+  const { minor_loss_count, major_loss_count, loss_rate, message_count, start_delay_sec, msg_type } = topic;
   const { zero_size_count, avg_bytes } = topic.size_stats;
 
-  // loss_count-based loss rate (actual losses detected by IQR)
-  const totalExpected = message_count + loss_count;
-  const lossRate = totalExpected > 0 ? loss_count / totalExpected : 0;
-  const missClass = major_loss_count > 0 ? "text-red-400" : minor_loss_count > 0 ? "text-amber-400" : "";
+  // Count-based loss rate: received frames vs the expected count (uses the configured
+  // expected_hz when set). Colored by the same 2% / 5% warn/danger thresholds.
+  const missClass = loss_rate > 0.05 ? "text-red-400" : loss_rate > 0.02 ? "text-amber-400" : "";
   const chevronIcon = expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />;
 
   return (
@@ -32,7 +31,7 @@ export function TopicMetrics({
       <span>{shortMsgType(msg_type)}</span>
       <span>Size: {formatSize(avg_bytes)} avg</span>
       <span>{message_count.toLocaleString()} msgs</span>
-      <span className={missClass}>{(lossRate * 100).toFixed(2)}% loss</span>
+      <span className={missClass}>{(loss_rate * 100).toFixed(2)}% loss</span>
       {start_delay_sec > 0.1 && (
         <span className="rounded bg-blue-500/15 px-1 py-0 text-[10px] text-blue-400">
           +{start_delay_sec.toFixed(1)}s delay

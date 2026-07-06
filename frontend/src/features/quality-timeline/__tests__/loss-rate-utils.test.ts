@@ -1,97 +1,82 @@
 import { describe, expect, it } from "vitest";
-import type { TimelineGap, TimelineTopic } from "@/api/generated/schemas";
-import {
-  buildLossRateData,
-  buildTopicLossRateSeries,
-  LOSS_RATE_STEP_SEC,
-  LOSS_RATE_WINDOW_SEC,
-} from "../loss-rate-utils";
+import type { TimelineBin, TimelineTopic } from "@/api/generated/schemas";
+import { buildLossRateData, buildTopicLossRateSeries, LOSS_RATE_STEP_SEC } from "../loss-rate-utils";
 
-function gap(start: number, lostCount: number, durationSec = 0.05): TimelineGap {
-  return {
-    start_sec: start,
-    end_sec: start + durationSec,
-    duration_sec: durationSec,
-    lost_count: lostCount,
-    severity: lostCount >= 3 ? "major" : "minor",
-  };
+const BIN_WIDTH = 0.05;
+
+function bin(t: number, count: number, expected: number): TimelineBin {
+  return { t, count, expected, has_gap: false, has_minor_loss: false };
 }
 
-function topic(expectedHz: number, gaps: TimelineGap[]): TimelineTopic {
-  return {
-    name: "/test",
-    msg_type: "std_msgs/msg/String",
-    expected_hz: expectedHz,
-    bins: [],
-    gaps,
-  };
+/** N contiguous bins (BIN_WIDTH spacing from t=0) each with the given count/expected. */
+function uniformBins(n: number, count: number, expected: number): TimelineBin[] {
+  return Array.from({ length: n }, (_, i) => bin(i * BIN_WIDTH, count, expected));
+}
+
+function topic(expectedHz: number, bins: TimelineBin[]): TimelineTopic {
+  return { name: "/test", msg_type: "std_msgs/msg/String", expected_hz: expectedHz, bins, gaps: [] };
 }
 
 const step = LOSS_RATE_STEP_SEC; // 0.1
-const window = LOSS_RATE_WINDOW_SEC; // 0.5
 
 describe("buildTopicLossRateSeries", () => {
-  it("returns all zeros when there are no gaps", () => {
-    const ys = buildTopicLossRateSeries(topic(30, []), 50);
+  it("returns all zeros when there are no bins", () => {
+    const ys = buildTopicLossRateSeries(topic(100, []), 50, BIN_WIDTH);
     expect(Array.from(ys)).toEqual(new Array(50).fill(0));
   });
 
-  it("returns all zeros when expected_hz is 0 (avoids division by zero)", () => {
-    const ys = buildTopicLossRateSeries(topic(0, [gap(5.0, 3)]), 100);
+  it("returns all zeros when expected_hz is 0", () => {
+    const ys = buildTopicLossRateSeries(topic(0, uniformBins(40, 3, 5)), 40, BIN_WIDTH);
     expect(Array.from(ys).every((v) => v === 0)).toBe(true);
   });
 
-  it("places a loss at t=15.9s near 15.9s, not at 15.0s", () => {
-    // 30 Hz topic, single 1-frame loss at 15.9s.
-    // Expected per WINDOW_SEC window = 30 × WINDOW_SEC frames.
-    // Plateau spans WINDOW_SEC centered on the gap (±WINDOW_SEC/2).
-    const numPoints = 200; // covers up to 19.9s
-    const ys = buildTopicLossRateSeries(topic(30, [gap(15.9, 1)]), numPoints);
-    const expectedPct = (1 / (30 * window)) * 100;
-
-    // The loss must appear at x=15.9 itself.
-    expect(ys[Math.round(15.9 / step)]).toBeCloseTo(expectedPct, 5);
-
-    // And in the neighboring points well inside the plateau.
-    expect(ys[Math.round(15.8 / step)]).toBeCloseTo(expectedPct, 5);
-    expect(ys[Math.round(16.0 / step)]).toBeCloseTo(expectedPct, 5);
-
-    // The OLD 1-second-bin behavior placed the spike at x=15.0 — this must now be 0.
-    expect(ys[Math.round(15.0 / step)]).toBe(0);
-
-    // Points far outside the 0.5s plateau are 0.
-    expect(ys[Math.round(15.0 / step)]).toBe(0);
-    expect(ys[Math.round(17.0 / step)]).toBe(0);
+  it("returns all zeros when binWidthSec is 0", () => {
+    const ys = buildTopicLossRateSeries(topic(100, uniformBins(40, 3, 5)), 40, 0);
+    expect(Array.from(ys).every((v) => v === 0)).toBe(true);
   });
 
-  it("sums lost_count across multiple gaps inside the same window", () => {
-    // Two gaps very close together — both fall inside any window centered near them.
-    const ys = buildTopicLossRateSeries(topic(30, [gap(10.0, 1), gap(10.05, 2)]), 200);
-    const expectedPct = ((1 + 2) / (30 * window)) * 100;
-    expect(ys[Math.round(10.0 / step)]).toBeCloseTo(expectedPct, 5);
+  it("reports 0% loss when every bin is at its expected count", () => {
+    const ys = buildTopicLossRateSeries(topic(100, uniformBins(40, 5, 5)), 40, BIN_WIDTH);
+    // The window centered at 1.0s is fully inside the bin coverage.
+    expect(ys[Math.round(1.0 / step)]).toBeCloseTo(0, 5);
   });
 
-  it("caps the rate at 100%", () => {
-    // 30 Hz topic, a huge burst of 100 lost frames at t=5s: 100/15 ≈ 666% → clamped to 100.
-    const ys = buildTopicLossRateSeries(topic(30, [gap(5.0, 100)]), 100);
-    expect(ys[Math.round(5.0 / step)]).toBe(100);
+  it("reports a sustained deficit when the stream runs steadily below its rate", () => {
+    // 3 of every 5 expected frames received → 40% loss, held across the whole stream.
+    const ys = buildTopicLossRateSeries(topic(100, uniformBins(40, 3, 5)), 40, BIN_WIDTH);
+    expect(ys[Math.round(1.0 / step)]).toBeCloseTo(40, 5);
+  });
+
+  it("localizes a single-bin loss to the windows overlapping it", () => {
+    const bins = uniformBins(40, 5, 5);
+    bins[20] = bin(20 * BIN_WIDTH, 4, 5); // 1 frame short at t=1.0s
+    const ys = buildTopicLossRateSeries(topic(100, bins), 40, BIN_WIDTH);
+    // Window at t=1.0 spans [0.5, 1.5): 1 missing frame out of 100 expected → 1%.
+    expect(ys[Math.round(1.0 / step)]).toBeCloseTo(1, 5);
+    // A window that does not overlap t=1.0 stays at 0.
+    expect(ys[Math.round(0.1 / step)]).toBe(0);
+  });
+
+  it("caps the loss rate at 100%", () => {
+    const ys = buildTopicLossRateSeries(topic(100, uniformBins(40, 0, 5)), 40, BIN_WIDTH);
+    expect(ys[Math.round(1.0 / step)]).toBe(100);
   });
 });
 
 describe("buildLossRateData", () => {
   it("returns an empty xs array when there are no topics", () => {
-    const result = buildLossRateData([], null, 10);
+    const result = buildLossRateData([], null, 10, BIN_WIDTH);
     expect(result.length).toBe(1);
     expect((result[0] as Float64Array).length).toBe(0);
   });
 
   it("returns an empty xs array when durationSec is 0", () => {
-    const result = buildLossRateData([topic(30, [gap(1, 1)])], null, 0);
+    const result = buildLossRateData([topic(100, uniformBins(40, 3, 5))], null, 0, BIN_WIDTH);
     expect((result[0] as Float64Array).length).toBe(0);
   });
 
   it("emits xs at STEP_SEC intervals covering durationSec", () => {
-    const result = buildLossRateData([topic(30, [])], null, 1.0);
+    const result = buildLossRateData([topic(100, uniformBins(20, 5, 5))], null, 1.0, BIN_WIDTH);
     const xs = result[0] as Float64Array;
     // ceil(1.0 / 0.1) + 1 = 11 points: 0.0, 0.1, ..., 1.0
     expect(xs.length).toBe(11);
@@ -100,17 +85,17 @@ describe("buildLossRateData", () => {
   });
 
   it("filters to the selected topic only", () => {
-    const t1 = { ...topic(30, [gap(1, 1)]), name: "/a" };
-    const t2 = { ...topic(30, [gap(2, 1)]), name: "/b" };
-    const result = buildLossRateData([t1, t2], "/b", 5);
+    const t1 = { ...topic(100, uniformBins(20, 5, 5)), name: "/a" };
+    const t2 = { ...topic(100, uniformBins(20, 5, 5)), name: "/b" };
+    const result = buildLossRateData([t1, t2], "/b", 5, BIN_WIDTH);
     // [xs, ys for /b only]
     expect(result.length).toBe(2);
   });
 
   it("includes one ys series per topic when no topic is selected", () => {
-    const t1 = { ...topic(30, []), name: "/a" };
-    const t2 = { ...topic(30, []), name: "/b" };
-    const result = buildLossRateData([t1, t2], null, 5);
+    const t1 = { ...topic(100, uniformBins(20, 5, 5)), name: "/a" };
+    const t2 = { ...topic(100, uniformBins(20, 5, 5)), name: "/b" };
+    const result = buildLossRateData([t1, t2], null, 5, BIN_WIDTH);
     expect(result.length).toBe(3); // xs + 2 topics
   });
 });

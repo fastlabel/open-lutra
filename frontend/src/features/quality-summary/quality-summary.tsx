@@ -112,7 +112,7 @@ export function QualitySummary({
       <div>
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Topics</span>
-          <InfoTip text="Quality status per topic. loss_rate (loss-frame rate) over 2% is warning (yellow); over 5% or any major loss (3+ frames) is danger (red). loss_events are exact losses detected with the IQR statistical threshold (detected from a single frame)." />
+          <InfoTip text="Quality status per topic. loss_rate = 1 − received / expected (against the configured expected_hz when set, otherwise the measured rate); over 2% is warning (yellow), over 5% is danger (red). minor/major are discrete dropout events detected with the IQR statistical threshold (down to a single frame)." />
         </div>
         <div className="rounded-md border border-border overflow-hidden">
           {sortTopicsByCategory(
@@ -142,7 +142,7 @@ export function QualitySummary({
           </span>
           <span className="flex items-center gap-1">
             loss
-            <InfoTip text="loss_rate = loss_count / (msg_count + loss_count). The loss-frame rate detected via IQR statistics (includes leading/trailing empty windows)." />
+            <InfoTip text="loss_rate = 1 − received / (expected_hz × duration). The received-vs-expected frame deficit; expected_hz comes from the recording config when set, otherwise the measured rate." />
           </span>
           <span className="flex items-center gap-1">
             minor / major

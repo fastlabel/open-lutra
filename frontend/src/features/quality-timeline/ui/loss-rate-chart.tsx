@@ -1,8 +1,8 @@
-/** Loss Rate static chart: renders loss_rate from MCAP timeline data.
+/** Loss Rate static chart: renders the count-based loss rate from MCAP timeline data.
  *
  * Same UI as the recording page's real-time version (uPlot, inverted Y axis),
  * but the data source is the timeline API instead of SSE, and the full dataset is rendered at once.
- * The per-point series is computed via a sliding window — see `loss-rate-utils.ts`.
+ * The per-point series is a sliding-window "1 − received / expected" — see `loss-rate-utils.ts`.
  */
 
 import { useEffect, useRef } from "react";
@@ -145,7 +145,11 @@ export function LossRateChart({ data }: { data: TimelineData }) {
       plugins: [thresholdPlugin(), playheadPlugin(playheadRef)],
       scales: {
         x: { time: false },
-        y: { dir: -1 as const, range: [0, 10] },
+        // Keep a [0, 10]% window for the common near-zero case, but expand to fit
+        // when a topic runs steadily below its expected rate (count-based loss can
+        // reach tens of %), so a sustained deficit stays on-screen instead of
+        // clipping off the top.
+        y: { dir: -1 as const, range: (_u, _min, max) => [0, Math.max(10, max ?? 10)] },
       },
       axes: [
         {
@@ -167,7 +171,7 @@ export function LossRateChart({ data }: { data: TimelineData }) {
       legend: { show: false },
     };
 
-    const chartData = buildLossRateData(data.topics, selectedTopic, data.duration_sec);
+    const chartData = buildLossRateData(data.topics, selectedTopic, data.duration_sec, data.bin_width_sec);
     uplotRef.current = new uPlot(opts, chartData, el);
 
     return () => {
@@ -179,7 +183,7 @@ export function LossRateChart({ data }: { data: TimelineData }) {
   // selectedTopic change → re-set data
   useEffect(() => {
     if (!uplotRef.current) return;
-    uplotRef.current.setData(buildLossRateData(data.topics, selectedTopic, data.duration_sec));
+    uplotRef.current.setData(buildLossRateData(data.topics, selectedTopic, data.duration_sec, data.bin_width_sec));
   }, [selectedTopic, data]);
 
   // viewRange + playhead → bundle X-axis scale update and plugin redraw into one effect
