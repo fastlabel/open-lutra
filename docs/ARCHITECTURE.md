@@ -164,8 +164,8 @@ Located in `backend/app/features/analysis/`. Runs in the background via `asyncio
 
 Located in `backend/app/features/analysis/`. Provides data for the horizontal-bar heatmap and Message Ticks on the MCAP detail page's timeline.
 
-- **Binning**: Aggregates per-topic density into time bins (bin width is adjusted dynamically based on recording length)
-- **Gap marking**: Generates color-coding data using each bin's `has_gap` / `has_minor_loss` flags
+- **Binning**: Aggregates per-topic `count` vs `expected` into time bins (bin width is adjusted dynamically based on recording length); `expected` reflects the configured `expected_hz` when set
+- **Loss marking**: Each bin carries `count` / `expected` (the heatmap shades a smoothed count/expected deficit green→amber→red) plus `has_gap` / `has_minor_loss` flags and gap spans (the discrete IQR dropout overlay)
 - **Message retrieval for rug plot**: Returns individual messages within a specified time range (for accurate display at high zoom). `MCAPReader.iter_messages(topics=, start_time_ns=, end_time_ns=)` in `backend/app/infra/mcap` filters by time and topic ranges using the chunk index, so even ~500MB files respond in tens to hundreds of ms
 - **Clock-skew handling**: Saves the skew between `log_time` (recorder wall clock) and `header.stamp` (sensor side) as `log_time_offset_ns` in the cache, and converts the rug plot's chunk filter into the correct `log_time` range (see [DDS communication and gaps §6.6](domain/dds_gap.md))
 - Caches `timeline_data.json` in the recording folder (includes `recording_start_ns` / `log_time_offset_ns`)

@@ -1,8 +1,9 @@
-/** Timeline horizontal-bar heatmap: shows per-topic message density with color shading.
+/** Timeline horizontal-bar heatmap: per-topic message-rate deficit shaded green→amber→red.
  *
- * Density is computed from each bin's count/expected, and rendered as a gradient
- * from green (healthy) to red (missing). Gap regions are highlighted with a
- * semi-transparent red overlay.
+ * Each bin is colored by a smoothed count/expected deficit (1 − received / expected over a
+ * ~1s window), using the same 2% / 5% warn/danger thresholds as the Loss Rate chart, so a
+ * stream running steadily below its expected rate shows a sustained warm band — not just the
+ * discrete IQR dropouts, which stay highlighted on top with a semi-transparent gap overlay.
  *
  * The display range is **always the entire recording** (start to end) and does not
  * follow the minimap's viewRange (= it works as a full-overview map). The current
@@ -14,18 +15,8 @@ import { Activity } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import type { TimelineData, TimelineTopic } from "@/api/generated/schemas";
 import { sortTopicsByCategory } from "@/lib/topic-sort";
+import { computeSmoothedDeficits, deficitColor, NO_RATE_COLOR } from "../heatmap-utils";
 import { useQualityTimelineStore } from "../store";
-
-/** Returns the background color for a bin. Decision is based on has_gap; count=0 is also considered.
- * Green = OK, red = gap. Regions without data are gray.
- */
-function binColor(count: number, hasGap: boolean, hasMinorLoss: boolean, hasData: boolean): string {
-  if (!hasData) return "bg-muted/10";
-  if (hasGap) return "bg-red-400/50";
-  if (hasMinorLoss) return "bg-amber-400/50";
-  if (count === 0) return "bg-muted/20";
-  return "bg-emerald-400/40";
-}
 
 /** Shortens a topic name for display. */
 function shortName(name: string): string {
@@ -68,6 +59,11 @@ function TopicRow({
   // Compute bin positions relative to the whole recording (independent of viewRange)
   const safeDuration = totalDuration > 0 ? totalDuration : topic.bins.length * binWidth || 1;
 
+  // Per-bin smoothed count/expected deficit, shaded green→amber→red. Topics without an
+  // expected rate (expected_hz <= 0) can't yield a deficit, so they get a neutral fill.
+  const hasRate = topic.expected_hz > 0;
+  const deficits = useMemo(() => computeSmoothedDeficits(topic.bins, binWidth), [topic.bins, binWidth]);
+
   return (
     <div className="flex items-center gap-2 py-1">
       {/* Topic name */}
@@ -78,14 +74,18 @@ function TopicRow({
       {/* Heatmap bar (always shows the whole recording).
        * overflow-hidden is intentionally removed so the highlight glow / -inset-1 can extend outside. */}
       <div className="relative flex-1 flex h-4 rounded-sm bg-muted/20">
-        {topic.bins.map((bin) => {
+        {topic.bins.map((bin, idx) => {
           const left = (bin.t / safeDuration) * 100;
           const width = (binWidth / safeDuration) * 100;
           return (
             <div
               key={bin.t}
-              className={`absolute top-0 h-full ${binColor(bin.count, bin.has_gap, bin.has_minor_loss, bin.count > 0 || bin.expected > 0)}`}
-              style={{ left: `${left}%`, width: `${Math.max(width, 0.2)}%` }}
+              className="absolute top-0 h-full"
+              style={{
+                left: `${left}%`,
+                width: `${Math.max(width, 0.2)}%`,
+                backgroundColor: hasRate ? deficitColor(deficits[idx]) : NO_RATE_COLOR,
+              }}
             />
           );
         })}
@@ -199,15 +199,19 @@ export function TimelineHeatmap({ data }: { data: TimelineData }) {
       </div>
 
       {/* Legend */}
-      <div className="mt-1.5 flex gap-3 text-[10px] text-muted-foreground">
+      <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded-sm bg-emerald-400/40" /> OK
+          <span
+            className="inline-block h-2 w-8 rounded-sm"
+            style={{
+              background:
+                "linear-gradient(to right, rgba(52,211,153,0.5), rgba(251,191,36,0.5), rgba(248,113,113,0.5))",
+            }}
+          />
+          Under rate (2% / 5%+)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded-sm bg-amber-400/50" /> 1-2 frame loss
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded-sm bg-red-400/50" /> 3+ frame loss
+          <span className="inline-block h-2 w-3 rounded-sm border-x border-red-500/50 bg-red-500/20" /> Dropout event
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded-sm border-x border-cyan-400/60 bg-cyan-400/10" />
