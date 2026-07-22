@@ -17,6 +17,7 @@ const entry = (name: string, overrides: Partial<FileEntry> = {}): FileEntry => (
   task_name: null,
   recording_config_name: null,
   tags: [],
+  metadata: {},
   ...overrides,
 });
 

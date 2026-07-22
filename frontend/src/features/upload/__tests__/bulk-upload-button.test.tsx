@@ -31,6 +31,7 @@ function makeConfig(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
     default_topics: [],
     stamp_quality: false,
     upload_enabled: true,
+    metadata_fields: [],
     ...overrides,
   };
 }

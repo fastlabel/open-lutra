@@ -48,6 +48,7 @@ describe("applySearchAndFilter", () => {
     task_name: null,
     recording_config_name: null,
     tags: [],
+    metadata: {},
     ...overrides,
   });
 

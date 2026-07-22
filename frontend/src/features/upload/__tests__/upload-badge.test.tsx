@@ -18,6 +18,7 @@ function makeConfig(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
     default_topics: [],
     stamp_quality: false,
     upload_enabled: true,
+    metadata_fields: [],
     ...overrides,
   };
 }
@@ -38,6 +39,7 @@ function makeEntry(overrides: Partial<FileEntry> = {}): FileEntry {
     task_name: null,
     recording_config_name: null,
     tags: [],
+    metadata: {},
     ...overrides,
   };
 }
