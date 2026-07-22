@@ -208,6 +208,7 @@ expected_hz_patterns:
 | `default_topics` | List of topic names recorded by default |
 | `expected_hz_patterns` | Expected Hz for quality monitoring. Specified by pattern (`fnmatch`); the first match wins |
 | `stamp_quality` | Whether the live-quality `loss_rate` is computed from `header.stamp` (for real robots, `true`) or by count (for the simulator, `false`). See [DDS Communication and Gaps](domain/dds_gap.md) for details |
+| `metadata_fields` | Optional pre-registered metadata fields (operator ID, target object, …) offered before recording. See [Pre-registered metadata](domain/metadata.md) for the field schema |
 
 `default_topics` can also be toggled individually in the UI's left panel. Hz is also automatically applied to dynamically discovered topics via `expected_hz_patterns`.
 

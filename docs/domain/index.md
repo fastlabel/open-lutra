@@ -28,5 +28,6 @@ This repository's scope covers **MCAP recording, quality verification, and shipp
 | [DDS communication and gaps](dds_gap.md) | Why messages get lost over DDS, how it relates to QoS, and how to tune it |
 | [Quality analysis](quality_analysis.md) | Metrics, score calculation, status determination |
 | [Custom validators](custom_validators.md) | How the per-recording auto-validation works, and how to add your own rules |
+| [Pre-registered metadata](metadata.md) | Master-defined fields (operator ID, target object, …) attached to every recording, their storage, and validation |
 | [Upload to a destination](upload.md) | Lifecycle, the destination abstraction, key-template syntax, and failure modes |
 | [SSE stream](sse.md) | Spec for real-time data delivery (event list, connection example) |
