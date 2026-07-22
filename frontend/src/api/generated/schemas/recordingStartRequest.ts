@@ -3,8 +3,9 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { RecordingStartRequestMetadata } from './recordingStartRequestMetadata.ts';
 
 /**
  * Recording start request.
@@ -14,4 +15,6 @@ export interface RecordingStartRequest {
   topics?: string[] | null;
   /** Task name. When provided, used as a prefix for the recording directory name. */
   task_name?: string | null;
+  /** Pre-registered metadata (key -> value) persisted into recording_meta.json. */
+  metadata?: RecordingStartRequestMetadata;
 }

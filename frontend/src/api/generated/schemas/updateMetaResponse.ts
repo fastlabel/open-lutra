@@ -3,8 +3,9 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { UpdateMetaResponseMetadata } from './updateMetaResponseMetadata.ts';
 
 /**
  * Response for PATCH /api/recordings/{name}.
@@ -13,4 +14,5 @@ export interface UpdateMetaResponse {
   task_name: string | null;
   recording_config_name: string | null;
   tags: string[];
+  metadata: UpdateMetaResponseMetadata;
 }

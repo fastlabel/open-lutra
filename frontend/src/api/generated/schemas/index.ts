@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from './bulkUploadRequest.ts';
@@ -16,6 +16,7 @@ export * from './discoveredTopic.ts';
 export * from './exportRequest.ts';
 export * from './exportResponse.ts';
 export * from './fileEntry.ts';
+export * from './fileEntryMetadata.ts';
 export * from './filesResponse.ts';
 export * from './gapInfo.ts';
 export * from './getJointsParams.ts';
@@ -43,9 +44,12 @@ export * from './memoryInfo.ts';
 export * from './messageDetailItem.ts';
 export * from './messagesDetailResponse.ts';
 export * from './messageSizeStats.ts';
+export * from './metadataFieldOptionResponse.ts';
+export * from './metadataFieldResponse.ts';
 export * from './qualityReport.ts';
 export * from './qualityResponse.ts';
 export * from './recordingStartRequest.ts';
+export * from './recordingStartRequestMetadata.ts';
 export * from './recordingStartResponse.ts';
 export * from './recordingStatus.ts';
 export * from './recordingStopResponse.ts';
@@ -72,7 +76,9 @@ export * from './topicInfo.ts';
 export * from './topicQuality.ts';
 export * from './topicsResponse.ts';
 export * from './updateMetaRequest.ts';
+export * from './updateMetaRequestMetadata.ts';
 export * from './updateMetaResponse.ts';
+export * from './updateMetaResponseMetadata.ts';
 export * from './uploadResponse.ts';
 export * from './uploadState.ts';
 export * from './uploadStateStatus.ts';

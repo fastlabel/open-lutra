@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   faker
@@ -51,7 +51,18 @@ export const getStartLeRobotExportMockHandler = (overrideResponse?: ExportRespon
       })
   }, options)
 }
+
+export const getDownloadLeRobotExportMockHandler = (overrideResponse?: unknown | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<unknown> | unknown), options?: RequestHandlerOptions) => {
+  return http.get('*/api/lerobot/exports/:name/download', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+
+    return new HttpResponse(null,
+      { status: 200
+      })
+  }, options)
+}
 export const getLerobotMock = () => [
   getGetLeRobotConfigMockHandler(),
-  getStartLeRobotExportMockHandler()
+  getStartLeRobotExportMockHandler(),
+  getDownloadLeRobotExportMockHandler()
 ]

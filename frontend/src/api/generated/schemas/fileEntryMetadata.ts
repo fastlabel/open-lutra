@@ -6,9 +6,4 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type StartLiveParams = {
-/**
- * Target topic for Live mode
- */
-topic: string;
-};
+export type FileEntryMetadata = {[key: string]: string};

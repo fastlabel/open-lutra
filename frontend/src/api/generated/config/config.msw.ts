@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   faker
@@ -26,7 +26,7 @@ import type {
 
 export const getHealthCheckResponseMock = (overrideResponse: Partial<Extract<HealthResponse, object>> = {}): HealthResponse => ({status: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
 
-export const getGetConfigResponseMock = (overrideResponse: Partial<Extract<ConfigResponse, object>> = {}): ConfigResponse => ({ros_domain_id: faker.number.int(), robot_name: faker.string.alpha({length: {min: 10, max: 20}}), default_topics: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), stamp_quality: faker.datatype.boolean(), upload_enabled: faker.datatype.boolean(), ...overrideResponse})
+export const getGetConfigResponseMock = (overrideResponse: Partial<Extract<ConfigResponse, object>> = {}): ConfigResponse => ({ros_domain_id: faker.number.int(), robot_name: faker.string.alpha({length: {min: 10, max: 20}}), default_topics: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), stamp_quality: faker.datatype.boolean(), upload_enabled: faker.datatype.boolean(), metadata_fields: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({key: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), type: faker.string.alpha({length: {min: 10, max: 20}}), pattern: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), placeholder: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), options: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({value: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}})}))})), ...overrideResponse})
 
 export const getGetMemoryResponseMock = (overrideResponse: Partial<Extract<MemoryInfo, object>> = {}): MemoryInfo => ({used_bytes: faker.number.int(), limit_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
 

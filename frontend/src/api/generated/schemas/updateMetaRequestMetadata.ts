@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type StartLiveParams = {
 /**
- * Target topic for Live mode
+ * Pre-registered metadata (key -> value)
  */
-topic: string;
-};
+export type UpdateMetaRequestMetadata = {[key: string]: string} | null;

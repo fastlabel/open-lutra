@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   useMutation,
@@ -240,3 +240,123 @@ export const useStartLeRobotExport = <TError = HTTPValidationError,
       > => {
       return useMutation(getStartLeRobotExportMutationOptions(options), queryClient);
     }
+    export type downloadLeRobotExportResponse200 = {
+  data: unknown
+  status: 200
+}
+
+export type downloadLeRobotExportResponse422 = {
+  data: HTTPValidationError
+  status: 422
+}
+
+export type downloadLeRobotExportResponseSuccess = (downloadLeRobotExportResponse200) & {
+  headers: Headers;
+};
+export type downloadLeRobotExportResponseError = (downloadLeRobotExportResponse422) & {
+  headers: Headers;
+};
+
+export type downloadLeRobotExportResponse = (downloadLeRobotExportResponseSuccess | downloadLeRobotExportResponseError)
+
+export const getDownloadLeRobotExportUrl = (name: string,) => {
+
+
+
+
+  return `/api/lerobot/exports/${name}/download`
+}
+
+/**
+ * Bundle an exported dataset into a single zip and stream it for download.
+ * @summary Download Export
+ */
+export const downloadLeRobotExport = async (name: string, options?: RequestInit): Promise<downloadLeRobotExportResponse> => {
+
+  return fetchClient<downloadLeRobotExportResponse>(getDownloadLeRobotExportUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadLeRobotExportQueryKey = (name: string,) => {
+    return [
+    `/api/lerobot/exports/${name}/download`
+    ] as const;
+    }
+
+
+export const getDownloadLeRobotExportQueryOptions = <TData = Awaited<ReturnType<typeof downloadLeRobotExport>>, TError = HTTPValidationError>(name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadLeRobotExportQueryKey(name);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadLeRobotExport>>> = ({ signal }) => downloadLeRobotExport(name, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: name !== null && name !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadLeRobotExportQueryResult = NonNullable<Awaited<ReturnType<typeof downloadLeRobotExport>>>
+export type DownloadLeRobotExportQueryError = HTTPValidationError
+
+
+export function useDownloadLeRobotExport<TData = Awaited<ReturnType<typeof downloadLeRobotExport>>, TError = HTTPValidationError>(
+ name: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadLeRobotExport>>,
+          TError,
+          Awaited<ReturnType<typeof downloadLeRobotExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadLeRobotExport<TData = Awaited<ReturnType<typeof downloadLeRobotExport>>, TError = HTTPValidationError>(
+ name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadLeRobotExport>>,
+          TError,
+          Awaited<ReturnType<typeof downloadLeRobotExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadLeRobotExport<TData = Awaited<ReturnType<typeof downloadLeRobotExport>>, TError = HTTPValidationError>(
+ name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download Export
+ */
+
+export function useDownloadLeRobotExport<TData = Awaited<ReturnType<typeof downloadLeRobotExport>>, TError = HTTPValidationError>(
+ name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadLeRobotExport>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadLeRobotExportQueryOptions(name,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+

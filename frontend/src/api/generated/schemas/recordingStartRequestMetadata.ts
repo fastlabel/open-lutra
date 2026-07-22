@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type StartLiveParams = {
 /**
- * Target topic for Live mode
+ * Pre-registered metadata (key -> value) persisted into recording_meta.json.
  */
-topic: string;
-};
+export type RecordingStartRequestMetadata = {[key: string]: string} | null;

@@ -6,9 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type StartLiveParams = {
 /**
- * Target topic for Live mode
+ * A selectable value for a pre-registered metadata field.
  */
-topic: string;
-};
+export interface MetadataFieldOptionResponse {
+  value: string;
+  label: string;
+}
