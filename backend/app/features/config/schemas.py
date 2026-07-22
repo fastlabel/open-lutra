@@ -1,5 +1,7 @@
 """Configuration and system information schemas."""
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -28,7 +30,7 @@ class MetadataFieldResponse(BaseModel):
 
     key: str
     label: str
-    type: str  # "select" | "number" | "text"
+    type: Literal["select", "number", "text"]
     pattern: str | None
     placeholder: str | None
     options: list[MetadataFieldOptionResponse]

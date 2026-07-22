@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { MetadataFieldOptionResponse } from './metadataFieldOptionResponse.ts';
+import type { MetadataFieldResponseType } from './metadataFieldResponseType.ts';
 
 /**
  * A pre-registered metadata field the operator sets before recording.
@@ -13,7 +14,7 @@ import type { MetadataFieldOptionResponse } from './metadataFieldOptionResponse.
 export interface MetadataFieldResponse {
   key: string;
   label: string;
-  type: string;
+  type: MetadataFieldResponseType;
   pattern: string | null;
   placeholder: string | null;
   options: MetadataFieldOptionResponse[];

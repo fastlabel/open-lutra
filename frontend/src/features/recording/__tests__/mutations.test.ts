@@ -71,6 +71,7 @@ vi.mock("@/stores/toast-store", () => ({
   toast: mockToast,
 }));
 
+import { getGetConfigQueryKey } from "@/api/generated/config/config";
 import { useSettingsStore } from "@/features/settings";
 import { queryClient } from "@/lib/query-client";
 import { startRecordingMutation, stopRecordingMutation } from "../mutations";
@@ -110,6 +111,7 @@ describe("startRecordingMutation", () => {
 
   afterEach(async () => {
     await flushMutation();
+    queryClient.removeQueries({ queryKey: getGetConfigQueryKey() });
     vi.useRealTimers();
   });
 
@@ -150,6 +152,30 @@ describe("startRecordingMutation", () => {
       topics: ["/topic_a"],
       task_name: "test-task",
       metadata: { operator_id: "op001", target_object: "box" },
+    });
+  });
+
+  it("mutationFn: drops sticky metadata whose field is not in the active config", async () => {
+    // The store still holds a value for `stale_field` (e.g. left over after switching
+    // RECORDING_CONFIG); only fields present in the active config should be sent.
+    queryClient.setQueryData(getGetConfigQueryKey(), {
+      data: {
+        metadata_fields: [
+          { key: "operator_id", label: "Operator ID", type: "number", pattern: null, placeholder: null, options: [] },
+        ],
+      },
+    });
+    vi.mocked(useSettingsStore.getState).mockReturnValueOnce({
+      taskName: "test-task",
+      metadata: { operator_id: "op001", stale_field: "x" } as Record<string, string>,
+    } as ReturnType<typeof useSettingsStore.getState>);
+    startRecordingMutation.mutate(["/topic_a"]);
+    await flushMutation();
+
+    expect(mockStartRecordingApi).toHaveBeenCalledWith({
+      topics: ["/topic_a"],
+      task_name: "test-task",
+      metadata: { operator_id: "op001" },
     });
   });
 

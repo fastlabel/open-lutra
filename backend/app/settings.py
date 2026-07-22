@@ -5,12 +5,15 @@ settings come from a YAML file (RECORDING_CONFIG).
 """
 
 import fnmatch
+import logging
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class ValidatorEntry(BaseModel):
@@ -74,6 +77,13 @@ class MetadataField(BaseModel):
     pattern: str | None = None
     placeholder: str | None = None
     options: list[MetadataFieldOption] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _warn_select_without_options(self) -> "MetadataField":
+        """Warn (without blocking) when a select field declares no options."""
+        if self.type == "select" and not self.options:
+            logger.warning("metadata_fields: select field %r has no options; it will render empty.", self.key)
+        return self
 
 
 class RecordingConfig(BaseModel):

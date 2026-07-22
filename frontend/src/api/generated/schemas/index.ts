@@ -46,6 +46,7 @@ export * from './messagesDetailResponse.ts';
 export * from './messageSizeStats.ts';
 export * from './metadataFieldOptionResponse.ts';
 export * from './metadataFieldResponse.ts';
+export * from './metadataFieldResponseType.ts';
 export * from './qualityReport.ts';
 export * from './qualityResponse.ts';
 export * from './recordingStartRequest.ts';

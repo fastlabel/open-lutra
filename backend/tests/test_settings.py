@@ -7,7 +7,15 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.settings import HzPattern, RecordingConfig, Settings, ValidatorEntry, _load_recording_config, get_settings
+from app.settings import (
+    HzPattern,
+    MetadataField,
+    RecordingConfig,
+    Settings,
+    ValidatorEntry,
+    _load_recording_config,
+    get_settings,
+)
 
 # ---------------------------------------------------------------------------
 # RecordingConfig
@@ -45,6 +53,32 @@ class TestRecordingConfig:
         """Positive values are preserved as-is."""
         cfg = RecordingConfig(recording_start_delay_sec=2.5)
         assert cfg.recording_start_delay_sec == 2.5
+
+
+class TestMetadataField:
+    """Tests for MetadataField config validation."""
+
+    def test_select_without_options_warns(self, caplog: pytest.LogCaptureFixture) -> None:
+        """A select field with no options logs a non-blocking warning (still constructs)."""
+        with caplog.at_level("WARNING"):
+            field = MetadataField(key="target_object", label="Target Object", type="select")
+        assert field.type == "select"
+        assert "has no options" in caplog.text
+        assert "target_object" in caplog.text
+
+    def test_select_with_options_does_not_warn(self, caplog: pytest.LogCaptureFixture) -> None:
+        """A select field with options does not warn."""
+        from app.settings import MetadataFieldOption
+
+        with caplog.at_level("WARNING"):
+            MetadataField(key="k", label="L", type="select", options=[MetadataFieldOption(value="a")])
+        assert caplog.text == ""
+
+    def test_number_without_options_does_not_warn(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Non-select fields legitimately have no options and must not warn."""
+        with caplog.at_level("WARNING"):
+            MetadataField(key="operator_id", label="Operator ID", type="number")
+        assert caplog.text == ""
 
 
 class TestResolveExpectedHz:
