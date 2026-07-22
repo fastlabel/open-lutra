@@ -40,8 +40,8 @@ function addLog(severity: "info" | "warning" | "danger", message: string) {
 /** Start-recording mutation. */
 export const startRecordingMutation = new MutationObserver(queryClient, {
   mutationFn: (topics: string[]) => {
-    const taskName = useSettingsStore.getState().taskName;
-    return startRecordingApi({ topics, task_name: taskName || null });
+    const { taskName, metadata } = useSettingsStore.getState();
+    return startRecordingApi({ topics, task_name: taskName || null, metadata });
   },
   onMutate: () => {
     useRecordingStore.setState({ isStarting: true });

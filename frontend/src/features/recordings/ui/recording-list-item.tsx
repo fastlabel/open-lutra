@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UploadBadge } from "@/features/upload";
 import { ValidationBadge } from "@/features/validation";
-import { useDeleteRecordings, useRenameRecording } from "@/hooks/use-api";
+import { useConfig, useDeleteRecordings, useRenameRecording } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
 import { useRecordingsStore } from "../store";
 import { FileMetaLine } from "./file-meta-line";
@@ -52,6 +52,8 @@ export const RecordingListItem = memo(function RecordingListItem({
   const deleteMutation = useDeleteRecordings();
   const renameMutation = useRenameRecording();
   const addLog = useAddLog();
+  const { data: config } = useConfig();
+  const metadataFields = config?.metadata_fields ?? [];
 
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -162,6 +164,18 @@ export const RecordingListItem = memo(function RecordingListItem({
                     {tag}
                   </Badge>
                 ))}
+              </div>
+            )}
+            {Object.keys(entry.metadata).length > 0 && (
+              <div className="flex shrink-0 flex-wrap items-center gap-1">
+                {Object.entries(entry.metadata).map(([key, value]) => {
+                  const field = metadataFields.find((f) => f.key === key);
+                  return (
+                    <Badge key={key} variant="outline" className="text-[11px] py-0 px-1.5 font-normal">
+                      {field?.label ?? key}: {field?.options.find((o) => o.value === value)?.label ?? value}
+                    </Badge>
+                  );
+                })}
               </div>
             )}
           </div>

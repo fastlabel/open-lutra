@@ -8,6 +8,8 @@ import { devtools, persist } from "zustand/middleware";
 interface SettingsState {
   /** Task name (the leading part of the filename) */
   taskName: string;
+  /** Pre-registered metadata (field key -> selected value), picked from the master config. */
+  metadata: Record<string, string>;
 }
 
 interface SettingsActions {
@@ -21,6 +23,7 @@ type SettingsStore = SettingsState & SettingsActions;
 
 const initialState: SettingsState = {
   taskName: "",
+  metadata: {},
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -37,6 +40,7 @@ export const useSettingsStore = create<SettingsStore>()(
         name: "app-settings",
         partialize: (state) => ({
           taskName: state.taskName,
+          metadata: state.metadata,
         }),
       },
     ),

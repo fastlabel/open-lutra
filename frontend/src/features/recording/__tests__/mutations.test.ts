@@ -57,7 +57,7 @@ vi.mock("@/stores/quality-history-store", () => ({
 
 vi.mock("@/features/settings", () => ({
   useSettingsStore: {
-    getState: vi.fn(() => ({ taskName: "test-task" })),
+    getState: vi.fn(() => ({ taskName: "test-task", metadata: {} })),
   },
 }));
 
@@ -120,11 +120,12 @@ describe("startRecordingMutation", () => {
     expect(mockStartRecordingApi).toHaveBeenCalledWith({
       topics: ["/topic_a"],
       task_name: "test-task",
+      metadata: {},
     });
   });
 
   it("mutationFn: sends task_name=null when taskName is empty", async () => {
-    vi.mocked(useSettingsStore.getState).mockReturnValueOnce({ taskName: "" } as ReturnType<
+    vi.mocked(useSettingsStore.getState).mockReturnValueOnce({ taskName: "", metadata: {} } as ReturnType<
       typeof useSettingsStore.getState
     >);
     startRecordingMutation.mutate(["/topic_a"]);
@@ -133,6 +134,22 @@ describe("startRecordingMutation", () => {
     expect(mockStartRecordingApi).toHaveBeenCalledWith({
       topics: ["/topic_a"],
       task_name: null,
+      metadata: {},
+    });
+  });
+
+  it("mutationFn: sends the sticky metadata selection", async () => {
+    vi.mocked(useSettingsStore.getState).mockReturnValueOnce({
+      taskName: "test-task",
+      metadata: { operator_id: "op001", target_object: "box" } as Record<string, string>,
+    } as ReturnType<typeof useSettingsStore.getState>);
+    startRecordingMutation.mutate(["/topic_a"]);
+    await flushMutation();
+
+    expect(mockStartRecordingApi).toHaveBeenCalledWith({
+      topics: ["/topic_a"],
+      task_name: "test-task",
+      metadata: { operator_id: "op001", target_object: "box" },
     });
   });
 
@@ -203,7 +220,7 @@ describe("stopRecordingMutation", () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     // The useSettingsStore mock persists mockReturnValue across tests, so reset to default each time.
-    vi.mocked(useSettingsStore.getState).mockReturnValue({ taskName: "test-task" } as ReturnType<
+    vi.mocked(useSettingsStore.getState).mockReturnValue({ taskName: "test-task", metadata: {} } as ReturnType<
       typeof useSettingsStore.getState
     >);
     mockStopRecordingApi.mockResolvedValue({

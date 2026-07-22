@@ -25,6 +25,9 @@ class UpdateMetaRequest(BaseModel):
 
     task_name: str | None = Field(default=None, description="Task name")
     tags: list[str] | None = Field(default=None, description="List of tags")
+    metadata: dict[str, str] | None = Field(
+        default=None, description="Pre-registered metadata (key -> value)"
+    )
 
 
 class FileEntry(BaseModel):
@@ -62,6 +65,7 @@ class FileEntry(BaseModel):
     task_name: str | None
     recording_config_name: str | None
     tags: list[str]
+    metadata: dict[str, str]
 
 
 class FilesResponse(BaseModel):
@@ -100,3 +104,4 @@ class UpdateMetaResponse(BaseModel):
     task_name: str | None
     recording_config_name: str | None
     tags: list[str]
+    metadata: dict[str, str]

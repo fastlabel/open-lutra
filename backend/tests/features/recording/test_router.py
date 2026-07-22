@@ -99,7 +99,9 @@ class TestStartRecording:
         )
         response = client.post("/api/recording/start", json={"topics": ["/robot_slave/states"]})
         assert response.status_code == 200
-        mock_recorder.start.assert_called_with(topics=["/robot_slave/states"], qos_overrides=None, task_name=None)
+        mock_recorder.start.assert_called_with(
+            topics=["/robot_slave/states"], qos_overrides=None, task_name=None, metadata=None
+        )
 
     def test_start_recording_with_task_name(self, client: TestClient, mock_recorder: MagicMock) -> None:
         mock_recorder.get_status.return_value = RecorderStatus(
@@ -109,7 +111,24 @@ class TestStartRecording:
         )
         response = client.post("/api/recording/start", json={"topics": ["/topic"], "task_name": "pick"})
         assert response.status_code == 200
-        mock_recorder.start.assert_called_with(topics=["/topic"], qos_overrides=None, task_name="pick")
+        mock_recorder.start.assert_called_with(
+            topics=["/topic"], qos_overrides=None, task_name="pick", metadata=None
+        )
+
+    def test_start_recording_with_metadata(self, client: TestClient, mock_recorder: MagicMock) -> None:
+        mock_recorder.get_status.return_value = RecorderStatus(
+            is_recording=True,
+            start_time=datetime(2026, 2, 5, 12, 0, 0),
+            elapsed_sec=0.0,
+        )
+        response = client.post(
+            "/api/recording/start",
+            json={"topics": ["/topic"], "metadata": {"operator_id": "op001"}},
+        )
+        assert response.status_code == 200
+        mock_recorder.start.assert_called_with(
+            topics=["/topic"], qos_overrides=None, task_name=None, metadata={"operator_id": "op001"}
+        )
 
     def test_start_recording_already_recording(self, client: TestClient, mock_recorder: MagicMock) -> None:
         mock_recorder.start.side_effect = AlreadyRecordingError("Already recording")

@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Bot, ChevronDown, ClipboardCopy } from "lucide-react";
 import { useState } from "react";
-import { TaskNameInlineEditor } from "@/features/settings";
+import { RecordingMetadataPanel, TaskNameInlineEditor } from "@/features/settings";
 import { useConfig, useIsRecording } from "@/hooks/use-api";
 import { useTopicStats } from "@/hooks/use-topics-stream";
 import { isDevMode } from "@/lib/dev-mode";
@@ -125,8 +125,11 @@ export function RecordingControl() {
         )}
       </div>
 
-      {/* Right: task name */}
-      <TaskNameInlineEditor />
+      {/* Right: metadata + task name */}
+      <div className="flex items-center gap-3">
+        <RecordingMetadataPanel />
+        <TaskNameInlineEditor />
+      </div>
     </div>
   );
 }

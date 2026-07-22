@@ -29,6 +29,7 @@ class TestRecordingConfig:
         assert cfg.expected_hz_patterns == []
         assert cfg.stamp_quality is False
         assert cfg.validators == []
+        assert cfg.metadata_fields == []
 
     def test_recording_start_delay_sec_negative_rejected(self) -> None:
         """Negative start_delay_sec is rejected by the ge=0 constraint."""
@@ -223,6 +224,18 @@ stamp_quality: true
 expected_hz_patterns:
   - pattern: "/a"
     hz: 100
+metadata_fields:
+  - key: operator_id
+    label: Operator ID
+    type: number
+    pattern: '^[0-9]+$'
+    placeholder: "e.g. 007"
+  - key: target_object
+    label: Target Object
+    options:
+      - value: box
+        label: "Box"
+      - value: cup
 """,
             encoding="utf-8",
         )
@@ -234,6 +247,25 @@ expected_hz_patterns:
         assert s.monitor_qos_depth == 50
         assert s.default_topics == ["/a", "/b"]
         assert s.stamp_quality is True
+        assert len(s.metadata_fields) == 2
+        # A number field: explicit type / pattern / placeholder, no options.
+        operator = s.metadata_fields[0]
+        assert operator.key == "operator_id"
+        assert operator.label == "Operator ID"
+        assert operator.type == "number"
+        assert operator.pattern == "^[0-9]+$"
+        assert operator.placeholder == "e.g. 007"
+        assert operator.options == []
+        # A select field: type defaults to "select"; pattern / placeholder default to None.
+        target = s.metadata_fields[1]
+        assert target.type == "select"
+        assert target.pattern is None
+        assert target.placeholder is None
+        assert target.options[0].value == "box"
+        assert target.options[0].label == "Box"
+        # Option label is optional in the master config (falls back to value at the API layer).
+        assert target.options[1].value == "cup"
+        assert target.options[1].label is None
 
     def test_recording_start_delay_sec_default(self, tmp_path: Path) -> None:
         """Defaults to 0.0 when not specified in YAML."""

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.features.config.mapper import to_metadata_field_responses
 from app.features.config.memory_reader import read_limit_bytes, read_usage_bytes
 from app.features.config.schemas import ConfigResponse, HealthResponse, MemoryInfo
 from app.features.upload.service import is_upload_enabled
@@ -26,6 +27,7 @@ async def get_config() -> ConfigResponse:
         default_topics=settings.default_topics,
         stamp_quality=settings.stamp_quality,
         upload_enabled=is_upload_enabled(settings),
+        metadata_fields=to_metadata_field_responses(settings.metadata_fields),
     )
 
 

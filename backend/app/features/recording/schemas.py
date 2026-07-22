@@ -16,6 +16,10 @@ class RecordingStartRequest(BaseModel):
         default=None,
         description="Task name. When provided, used as a prefix for the recording directory name.",
     )
+    metadata: dict[str, str] | None = Field(
+        default=None,
+        description="Pre-registered metadata (key -> value) persisted into recording_meta.json.",
+    )
 
 
 class RecordingStartResponse(BaseModel):

@@ -67,6 +67,7 @@ class ROS2BagRecorder:
         topics: list[str] | None = None,
         qos_overrides: dict[str, str] | None = None,
         task_name: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> Path:
         """Start recording ROS2 topics.
 
@@ -79,6 +80,7 @@ class ROS2BagRecorder:
             qos_overrides: Mapping of topic name -> reliability ("reliable"/"best_effort").
                 Pass the publisher QoS detected by TopicMonitorService.
             task_name: Task name. When provided, used as a prefix for the directory name.
+            metadata: Pre-registered metadata (key -> value) persisted into recording_meta.json.
 
         Returns:
             The output directory path of the recording.
@@ -124,7 +126,7 @@ class ROS2BagRecorder:
 
         # Write app-specific metadata (ros2 bag record has already created output_path).
         # On failure, log a warning only and let recording continue.
-        self._write_meta(output_path, task_name)
+        self._write_meta(output_path, task_name, metadata)
 
         self._record = record
         self._current_topics = topics_to_record
@@ -134,7 +136,9 @@ class ROS2BagRecorder:
         logger.info("Recording started: path=%s", output_path)
         return output_path
 
-    def _write_meta(self, output_path: Path, task_name: str | None) -> None:
+    def _write_meta(
+        self, output_path: Path, task_name: str | None, metadata: dict[str, str] | None
+    ) -> None:
         """Write recording_meta.json. Logs a warning on failure."""
         try:
             write_recording_meta(
@@ -143,6 +147,7 @@ class ROS2BagRecorder:
                     task_name=task_name,
                     recording_config_name=self._recording_config_name,
                     tags=[],
+                    metadata=metadata or {},
                 ),
             )
         except OSError as e:

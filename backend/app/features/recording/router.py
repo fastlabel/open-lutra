@@ -41,6 +41,7 @@ async def start_recording(
         topics=request.topics,
         qos_overrides=_get_qos_overrides(),
         task_name=request.task_name,
+        metadata=request.metadata,
     )
     start_time = recorder.get_status().start_time
     # start_time is guaranteed to be set immediately after recorder.start() (the service stores it right after datetime.now()).

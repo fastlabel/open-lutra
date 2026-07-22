@@ -67,6 +67,35 @@ expected_hz_patterns:
   - pattern: "/sim/**"
     hz: 100
 
+# Pre-registered metadata fields shown before recording (the "Metadata" panel in
+# the recording bar). Operators set a value for each field; the selection sticks
+# across recordings (like the task name) until changed and is written into each
+# recording's recording_meta.json under `metadata`. Values are always stored as
+# strings, so a zero-padded id like "007" keeps its leading zeros.
+# Omit this whole section (or leave it empty) to hide the panel and disable it.
+#
+# `type` selects the input control (default: select):
+#   - select: pick from `options` (required for this type).
+#   - number: free numeric input, restricted to digits (stored as a string, so
+#             leading zeros are preserved). Use `pattern` for extra rules.
+#   - text:   free text input.
+# `pattern` is an optional regex the value must match (invalid input is flagged
+# in the UI). `placeholder` is an optional input hint.
+metadata_fields:
+  - key: operator_id          # stable key stored in recording_meta.json
+    label: "Operator ID"      # display label shown in the UI
+    type: number              # digits only, kept as a string ("007" stays "007")
+    pattern: '^[0-9]+$'       # optional: reject anything but digits
+    placeholder: "e.g. 007"   # optional: input hint
+  - key: target_object
+    label: "Target Object"
+    type: select              # pick from the options below
+    options:                  # allowed values (select-only)
+      - value: box
+        label: "Box"          # optional; falls back to `value` when omitted
+      - value: cup
+      - value: bottle
+
 # LeRobot dataset export mapping (used by the "Export to LeRobot" action on
 # /recordings). Declares how this robot's MCAP topics map to LeRobot v3.0
 # features. Omit this whole section to disable export for the robot.

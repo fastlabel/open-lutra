@@ -356,10 +356,17 @@ class TestScanOutputDir:
             assert scan_output_dir(restricted) == []
 
     def test_recording_meta_included(self, tmp_path: Path) -> None:
-        """When recording_meta.json exists, task_name / recording_config_name / tags are filled in."""
+        """When recording_meta.json exists, task_name / recording_config_name / tags / metadata are filled in."""
         rec = _make_recording(tmp_path / "rec")
         (rec / "recording_meta.json").write_text(
-            json.dumps({"task_name": "pick", "recording_config_name": "simulator", "tags": ["t1", "t2"]}),
+            json.dumps(
+                {
+                    "task_name": "pick",
+                    "recording_config_name": "simulator",
+                    "tags": ["t1", "t2"],
+                    "metadata": {"operator_id": "op001"},
+                }
+            ),
             encoding="utf-8",
         )
 
@@ -368,9 +375,10 @@ class TestScanOutputDir:
         assert entries[0].task_name == "pick"
         assert entries[0].recording_config_name == "simulator"
         assert entries[0].tags == ["t1", "t2"]
+        assert entries[0].metadata == {"operator_id": "op001"}
 
     def test_recording_meta_absent_defaults(self, tmp_path: Path) -> None:
-        """For legacy recording folders without recording_meta.json, task_name=None / recording_config_name=None / tags=[]."""
+        """For legacy recording folders without recording_meta.json, task_name=None / recording_config_name=None / tags=[] / metadata={}."""
         _make_recording(tmp_path / "rec")
 
         entries = scan_output_dir(tmp_path)
@@ -378,6 +386,7 @@ class TestScanOutputDir:
         assert entries[0].task_name is None
         assert entries[0].recording_config_name is None
         assert entries[0].tags == []
+        assert entries[0].metadata == {}
 
 
 def _make_recording_with_task(folder: Path, task_name: str | None, *, mtime: float | None = None) -> Path:

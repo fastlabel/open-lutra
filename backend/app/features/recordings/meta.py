@@ -25,6 +25,7 @@ class RecordingMeta(BaseModel):
     task_name: str | None = None
     recording_config_name: str | None = None
     tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
 
 
 def read_recording_meta(directory: Path) -> RecordingMeta | None:
@@ -54,12 +55,13 @@ def update_recording_meta(
     *,
     task_name: str | None = None,
     tags: list[str] | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> RecordingMeta:
     """Partially update recording_meta.json.
 
     Creates a new file from an empty meta if none exists (older recording
     folders). A None argument means "unspecified = leave unchanged"; an
-    empty string or empty list explicitly overwrites the field with that
+    empty string, list, or dict explicitly overwrites the field with that
     value. recording_config_name is fixed at recording time and is not
     updated by this function.
     """
@@ -68,5 +70,7 @@ def update_recording_meta(
         meta.task_name = task_name
     if tags is not None:
         meta.tags = list(tags)
+    if metadata is not None:
+        meta.metadata = dict(metadata)
     write_recording_meta(directory, meta)
     return meta

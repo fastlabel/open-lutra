@@ -305,7 +305,11 @@ class TestMetaWrite:
         mock_ros2.bag_record.side_effect = fake_bag_record
 
         rec = ROS2BagRecorder(settings, mock_ros2)
-        output = rec.start(topics=["/topic"], task_name="pick-and-place")
+        output = rec.start(
+            topics=["/topic"],
+            task_name="pick-and-place",
+            metadata={"operator_id": "op001", "target_object": "box"},
+        )
 
         meta_path = output / "recording_meta.json"
         assert meta_path.exists()
@@ -313,6 +317,7 @@ class TestMetaWrite:
         assert data["task_name"] == "pick-and-place"
         assert data["recording_config_name"] == "simulator"  # stem of config/simulator.yaml
         assert data["tags"] == []
+        assert data["metadata"] == {"operator_id": "op001", "target_object": "box"}
 
     def test_meta_task_name_none_when_unspecified(
         self, settings: MagicMock, mock_ros2: MagicMock, tmp_path: Path
@@ -331,6 +336,8 @@ class TestMetaWrite:
 
         data = json.loads((output / "recording_meta.json").read_text(encoding="utf-8"))
         assert data["task_name"] is None
+        # Metadata defaults to an empty object when not provided.
+        assert data["metadata"] == {}
 
     def test_meta_recording_config_name_uses_settings_stem(
         self, settings: MagicMock, mock_ros2: MagicMock, tmp_path: Path

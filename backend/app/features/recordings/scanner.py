@@ -47,6 +47,7 @@ class _ParsedBundle:
     task_name: str | None
     recording_config_name: str | None
     tags: tuple[str, ...]
+    metadata: dict[str, str]
 
 
 # Source files whose parsed contents are memoized per folder. A change to any of
@@ -203,6 +204,7 @@ def _build_recording_entry(
         task_name=bundle.task_name,
         recording_config_name=bundle.recording_config_name,
         tags=list(bundle.tags),
+        metadata=dict(bundle.metadata),
     )
     return key, fingerprint, bundle, entry
 
@@ -223,6 +225,7 @@ def _parse_sources(folder: Path) -> _ParsedBundle:
         task_name=meta.task_name if meta else None,
         recording_config_name=meta.recording_config_name if meta else None,
         tags=tuple(meta.tags) if meta else (),
+        metadata=dict(meta.metadata) if meta else {},
     )
 
 

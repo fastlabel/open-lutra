@@ -25,7 +25,14 @@ class TestReadRecordingMeta:
     def test_valid_json(self, tmp_path: Path) -> None:
         """Reads valid JSON and returns a RecordingMeta."""
         (tmp_path / "recording_meta.json").write_text(
-            json.dumps({"task_name": "pick", "recording_config_name": "simulator", "tags": ["a", "b"]}),
+            json.dumps(
+                {
+                    "task_name": "pick",
+                    "recording_config_name": "simulator",
+                    "tags": ["a", "b"],
+                    "metadata": {"operator_id": "op001", "target_object": "box"},
+                }
+            ),
             encoding="utf-8",
         )
         meta = read_recording_meta(tmp_path)
@@ -33,6 +40,17 @@ class TestReadRecordingMeta:
         assert meta.task_name == "pick"
         assert meta.recording_config_name == "simulator"
         assert meta.tags == ["a", "b"]
+        assert meta.metadata == {"operator_id": "op001", "target_object": "box"}
+
+    def test_missing_metadata_defaults_to_empty(self, tmp_path: Path) -> None:
+        """Legacy files without a metadata key default to an empty dict."""
+        (tmp_path / "recording_meta.json").write_text(
+            json.dumps({"task_name": "pick", "tags": []}),
+            encoding="utf-8",
+        )
+        meta = read_recording_meta(tmp_path)
+        assert meta is not None
+        assert meta.metadata == {}
 
     def test_invalid_json_returns_none(self, tmp_path: Path) -> None:
         """Returns None when JSON parsing fails."""
@@ -59,13 +77,23 @@ class TestWriteRecordingMeta:
 
     def test_write_creates_file(self, tmp_path: Path) -> None:
         """recording_meta.json is created."""
-        meta = RecordingMeta(task_name="task", recording_config_name="myrobot", tags=["t1"])
+        meta = RecordingMeta(
+            task_name="task",
+            recording_config_name="myrobot",
+            tags=["t1"],
+            metadata={"operator_id": "op001"},
+        )
         write_recording_meta(tmp_path, meta)
 
         path = tmp_path / "recording_meta.json"
         assert path.exists()
         data = json.loads(path.read_text(encoding="utf-8"))
-        assert data == {"task_name": "task", "recording_config_name": "myrobot", "tags": ["t1"]}
+        assert data == {
+            "task_name": "task",
+            "recording_config_name": "myrobot",
+            "tags": ["t1"],
+            "metadata": {"operator_id": "op001"},
+        }
 
     def test_write_overwrites_existing(self, tmp_path: Path) -> None:
         """An existing file is overwritten."""
@@ -145,3 +173,35 @@ class TestUpdateRecordingMeta:
         result = update_recording_meta(tmp_path, task_name="")
 
         assert result.task_name == ""
+
+    def test_update_only_metadata(self, tmp_path: Path) -> None:
+        """When updating only metadata, task_name and tags are preserved."""
+        write_recording_meta(
+            tmp_path,
+            RecordingMeta(task_name="keep", tags=["x"], metadata={"operator_id": "old"}),
+        )
+
+        result = update_recording_meta(tmp_path, metadata={"operator_id": "op002", "target_object": "cup"})
+
+        assert result.task_name == "keep"
+        assert result.tags == ["x"]
+        assert result.metadata == {"operator_id": "op002", "target_object": "cup"}
+
+    def test_metadata_preserved_when_unspecified(self, tmp_path: Path) -> None:
+        """Existing metadata is preserved when only task_name is updated."""
+        write_recording_meta(
+            tmp_path,
+            RecordingMeta(task_name="orig", metadata={"operator_id": "op001"}),
+        )
+
+        result = update_recording_meta(tmp_path, task_name="updated")
+
+        assert result.metadata == {"operator_id": "op001"}
+
+    def test_empty_dict_clears_metadata(self, tmp_path: Path) -> None:
+        """Passing an empty dict clears metadata (only None means \"unspecified\")."""
+        write_recording_meta(tmp_path, RecordingMeta(metadata={"operator_id": "op001"}))
+
+        result = update_recording_meta(tmp_path, metadata={})
+
+        assert result.metadata == {}
