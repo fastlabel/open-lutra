@@ -2,13 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock setup (initialized via vi.hoisted before vi.mock) ---
 
-const { mockMutateStart, mockMutateStop, mockToast, mockGetQueryData, mockSelectedTopics } = vi.hoisted(() => ({
-  mockMutateStart: vi.fn(),
-  mockMutateStop: vi.fn(),
-  mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
-  mockGetQueryData: vi.fn((_key?: unknown): unknown => undefined),
-  mockSelectedTopics: { current: new Set<string>(["/topic_a", "/topic_b"]) },
-}));
+const { mockMutateStart, mockMutateStop, mockToast, mockGetQueryData, mockSelectedTopics, mockUnlock, mockPlayTick } =
+  vi.hoisted(() => ({
+    mockMutateStart: vi.fn(),
+    mockMutateStop: vi.fn(),
+    mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+    mockGetQueryData: vi.fn((_key?: unknown): unknown => undefined),
+    mockSelectedTopics: { current: new Set<string>(["/topic_a", "/topic_b"]) },
+    mockUnlock: vi.fn(),
+    mockPlayTick: vi.fn(),
+  }));
 
 vi.mock("zustand/middleware", () => ({
   persist: (fn: unknown) => fn,
@@ -18,6 +21,13 @@ vi.mock("zustand/middleware", () => ({
 vi.mock("../mutations", () => ({
   startRecordingMutation: { mutate: mockMutateStart },
   stopRecordingMutation: { mutate: mockMutateStop },
+}));
+
+vi.mock("../sounds", () => ({
+  unlock: mockUnlock,
+  playTick: mockPlayTick,
+  playStart: vi.fn(),
+  playStop: vi.fn(),
 }));
 
 vi.mock("@/stores/toast-store", () => ({
@@ -60,6 +70,7 @@ describe("useRecordingStore", () => {
     useRecordingStore.setState({
       delaySec: 0,
       stopLiveMonitorDuringRecording: false,
+      soundEnabled: true,
       countdownSec: null,
       isStarting: false,
       isStopping: false,
@@ -84,6 +95,22 @@ describe("useRecordingStore", () => {
       expect(state.isStarting).toBe(false);
       expect(state.isStopping).toBe(false);
       expect(state.finishedRecording).toBeNull();
+      expect(state.soundEnabled).toBe(true);
+    });
+  });
+
+  // --- setSoundEnabled ---
+
+  describe("setSoundEnabled", () => {
+    it("turns notification sounds off", () => {
+      useRecordingStore.getState().setSoundEnabled(false);
+      expect(useRecordingStore.getState().soundEnabled).toBe(false);
+    });
+
+    it("turns notification sounds back on", () => {
+      useRecordingStore.getState().setSoundEnabled(false);
+      useRecordingStore.getState().setSoundEnabled(true);
+      expect(useRecordingStore.getState().soundEnabled).toBe(true);
     });
   });
 
@@ -128,12 +155,55 @@ describe("useRecordingStore", () => {
       expect(useRecordingStore.getState().countdownSec).toBeNull();
     });
 
+    it("unlocks audio but does not tick when delay=0", () => {
+      useRecordingStore.getState().setDelay(0);
+      useRecordingStore.getState().startRecording();
+
+      expect(mockUnlock).toHaveBeenCalledTimes(1);
+      expect(mockPlayTick).not.toHaveBeenCalled();
+    });
+
     it("starts a countdown when delay>0", () => {
       useRecordingStore.getState().setDelay(3);
       useRecordingStore.getState().startRecording();
 
       expect(useRecordingStore.getState().countdownSec).toBe(3);
       expect(mockMutateStart).not.toHaveBeenCalled();
+    });
+
+    it("unlocks audio and ticks once for the first count when delay>0", () => {
+      useRecordingStore.getState().setDelay(3);
+      useRecordingStore.getState().startRecording();
+
+      expect(mockUnlock).toHaveBeenCalledTimes(1);
+      expect(mockPlayTick).toHaveBeenCalledTimes(1);
+    });
+
+    it("ticks on each countdown decrement but not on the final handoff", () => {
+      useRecordingStore.getState().setDelay(3);
+      useRecordingStore.getState().startRecording();
+      // 1 tick fired for the initial "3".
+      expect(mockPlayTick).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(1000); // 3 -> 2
+      vi.advanceTimersByTime(1000); // 2 -> 1
+      // Two more ticks for "2" and "1"; three ticks total.
+      expect(mockPlayTick).toHaveBeenCalledTimes(3);
+
+      vi.advanceTimersByTime(1000); // 1 -> start (no tick; start chime takes over)
+      expect(mockPlayTick).toHaveBeenCalledTimes(3);
+      expect(mockMutateStart).toHaveBeenCalled();
+    });
+
+    it("plays no sounds when soundEnabled is false", () => {
+      useRecordingStore.getState().setSoundEnabled(false);
+      useRecordingStore.getState().setDelay(3);
+      useRecordingStore.getState().startRecording();
+
+      vi.advanceTimersByTime(3000);
+
+      expect(mockUnlock).not.toHaveBeenCalled();
+      expect(mockPlayTick).not.toHaveBeenCalled();
     });
 
     it("decrements the countdown by one second", () => {
@@ -206,6 +276,19 @@ describe("useRecordingStore", () => {
       useRecordingStore.getState().stopRecording();
 
       expect(mockMutateStop).toHaveBeenCalledWith(undefined);
+    });
+
+    it("unlocks audio from the stop gesture", () => {
+      useRecordingStore.getState().stopRecording();
+
+      expect(mockUnlock).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not unlock audio when soundEnabled is false", () => {
+      useRecordingStore.getState().setSoundEnabled(false);
+      useRecordingStore.getState().stopRecording();
+
+      expect(mockUnlock).not.toHaveBeenCalled();
     });
   });
 

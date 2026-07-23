@@ -135,11 +135,12 @@ frontend/src/
 ├── features/                      # Feature domains (Bulletproof React)
 │   ├── recording/                 # Recording controls
 │   │   ├── index.ts               # Barrel (public API)
-│   │   ├── recording-control.tsx  # Record button + delay settings
+│   │   ├── recording-control.tsx  # Record button + delay / sound-toggle settings
 │   │   ├── completion-banner.tsx  # Latest-record banner (open details / delete / dismiss)
 │   │   ├── timer.tsx              # Timer display
-│   │   ├── store.ts               # Zustand: countdown, start/stop state
+│   │   ├── store.ts               # Zustand: countdown, start/stop state, sound preference
 │   │   ├── mutations.ts           # MutationObserver: recording ops from outside React
+│   │   ├── sounds.ts              # Web Audio notification tones (countdown / start / stop)
 │   │   └── create-timer.ts        # setTimeout/clearTimeout wrapper
 │   ├── live-topics/               # ROS2 topic live quality monitoring + preview (left panel of the recording page)
 │   │   ├── index.ts               # Barrel

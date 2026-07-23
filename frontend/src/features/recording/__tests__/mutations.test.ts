@@ -2,20 +2,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock setup ---
 
-const { mockSetState, mockAddMarker, mockStartRecordingApi, mockStopRecordingApi, mockGetFiles, mockToast } =
-  vi.hoisted(() => {
-    const mockAddMarker = vi.fn();
-    return {
-      mockSetState: vi.fn(),
-      mockAddMarker,
-      mockStartRecordingApi: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
-      mockStopRecordingApi: vi.fn(() =>
-        Promise.resolve({ status: 200, data: { duration_sec: 10.5, output_path: "/data/test.mcap" } }),
-      ),
-      mockGetFiles: vi.fn(),
-      mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
-    };
-  });
+const {
+  mockSetState,
+  mockAddMarker,
+  mockStartRecordingApi,
+  mockStopRecordingApi,
+  mockGetFiles,
+  mockToast,
+  mockSoundEnabled,
+  mockPlayStart,
+  mockPlayStop,
+} = vi.hoisted(() => {
+  const mockAddMarker = vi.fn();
+  return {
+    mockSetState: vi.fn(),
+    mockAddMarker,
+    mockStartRecordingApi: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
+    mockStopRecordingApi: vi.fn(() =>
+      Promise.resolve({ status: 200, data: { duration_sec: 10.5, output_path: "/data/test.mcap" } }),
+    ),
+    mockGetFiles: vi.fn(),
+    mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+    mockSoundEnabled: { current: true },
+    mockPlayStart: vi.fn(),
+    mockPlayStop: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/query-client", async () => {
   const { QueryClient: QC } = await import("@tanstack/react-query");
@@ -44,7 +56,15 @@ vi.mock("@/api/generated/analysis/analysis", () => ({
 vi.mock("../store", () => ({
   useRecordingStore: {
     setState: mockSetState,
+    getState: vi.fn(() => ({ soundEnabled: mockSoundEnabled.current })),
   },
+}));
+
+vi.mock("../sounds", () => ({
+  playStart: mockPlayStart,
+  playStop: mockPlayStop,
+  playTick: vi.fn(),
+  unlock: vi.fn(),
 }));
 
 vi.mock("@/stores/quality-history-store", () => ({
@@ -106,6 +126,7 @@ describe("startRecordingMutation", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    mockSoundEnabled.current = true;
     mockStartRecordingApi.mockResolvedValue({ status: 200, data: {} });
   });
 
@@ -199,6 +220,21 @@ describe("startRecordingMutation", () => {
     expect(mockToast.success).toHaveBeenCalledWith("Recording started");
   });
 
+  it("plays the start chime on success", async () => {
+    startRecordingMutation.mutate(["/topic_a"]);
+    await flushMutation();
+
+    expect(mockPlayStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not play the start chime when sound is disabled", async () => {
+    mockSoundEnabled.current = false;
+    startRecordingMutation.mutate(["/topic_a"]);
+    await flushMutation();
+
+    expect(mockPlayStart).not.toHaveBeenCalled();
+  });
+
   it("onSuccess: invalidates the file list 500ms later", async () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
     startRecordingMutation.mutate(["/topic_a"]);
@@ -245,6 +281,7 @@ describe("stopRecordingMutation", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    mockSoundEnabled.current = true;
     // The useSettingsStore mock persists mockReturnValue across tests, so reset to default each time.
     vi.mocked(useSettingsStore.getState).mockReturnValue({ taskName: "test-task", metadata: {} } as ReturnType<
       typeof useSettingsStore.getState
@@ -338,6 +375,31 @@ describe("stopRecordingMutation", () => {
       return arg.finishedRecording !== undefined;
     });
     expect(finishedCalls).toHaveLength(0);
+  });
+
+  it("plays the stop chime on success", async () => {
+    vi.spyOn(queryClient, "getQueryData").mockReturnValue({ data: { entries: [] } });
+    stopRecordingMutation.mutate(undefined);
+    await flushMutation();
+
+    expect(mockPlayStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not play the stop chime when status!==200", async () => {
+    mockStopRecordingApi.mockResolvedValueOnce({ status: 500, data: { duration_sec: 0, output_path: "" } });
+    stopRecordingMutation.mutate(undefined);
+    await flushMutation();
+
+    expect(mockPlayStop).not.toHaveBeenCalled();
+  });
+
+  it("does not play the stop chime when sound is disabled", async () => {
+    mockSoundEnabled.current = false;
+    vi.spyOn(queryClient, "getQueryData").mockReturnValue({ data: { entries: [] } });
+    stopRecordingMutation.mutate(undefined);
+    await flushMutation();
+
+    expect(mockPlayStop).not.toHaveBeenCalled();
   });
 
   it("invalidates the quality query in stages", async () => {

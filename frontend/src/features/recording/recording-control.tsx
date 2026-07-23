@@ -1,6 +1,6 @@
 /** Recording action bar: record button, delay/REC indicator, robot info, command copy, and task name editor. */
 
-import { AlertTriangle, Bot, ChevronDown, ClipboardCopy } from "lucide-react";
+import { AlertTriangle, Bot, ChevronDown, ClipboardCopy, Volume2, VolumeX } from "lucide-react";
 import { useState } from "react";
 import { RecordingMetadataPanel, TaskNameInlineEditor } from "@/features/settings";
 import { useConfig, useIsRecording } from "@/hooks/use-api";
@@ -21,6 +21,8 @@ export function RecordingControl() {
   const loading = useRecordingStore((s) => s.isStarting || s.isStopping);
   const delaySec = useRecordingStore((s) => s.delaySec);
   const setDelay = useRecordingStore((s) => s.setDelay);
+  const soundEnabled = useRecordingStore((s) => s.soundEnabled);
+  const setSoundEnabled = useRecordingStore((s) => s.setSoundEnabled);
   const [copied, setCopied] = useState(false);
 
   const buttonActive = isRecording || isCountingDown;
@@ -76,6 +78,18 @@ export function RecordingControl() {
             </>
           )}
         </div>
+
+        {/* Notification sound toggle (start/stop/countdown tones for hands-free / foot-pedal use) */}
+        <button
+          type="button"
+          onClick={() => setSoundEnabled(!soundEnabled)}
+          title={soundEnabled ? "Mute start/stop sounds" : "Unmute start/stop sounds"}
+          aria-label={soundEnabled ? "Mute start/stop sounds" : "Unmute start/stop sounds"}
+          aria-pressed={soundEnabled}
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+        </button>
 
         {/* Divider */}
         <div className="h-12 w-px bg-border/80" />

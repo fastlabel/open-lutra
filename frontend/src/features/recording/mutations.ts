@@ -19,6 +19,7 @@ import { queryClient } from "@/lib/query-client";
 import { sseKeys } from "@/lib/query-keys";
 import { useQualityHistoryStore } from "@/stores/quality-history-store";
 import { toast } from "@/stores/toast-store";
+import * as sounds from "./sounds";
 import { useRecordingStore } from "./store";
 
 // --- Helpers ---
@@ -58,6 +59,7 @@ export const startRecordingMutation = new MutationObserver(queryClient, {
   },
   onSuccess: (_data, topics) => {
     useQualityHistoryStore.getState().addMarker("start");
+    if (useRecordingStore.getState().soundEnabled) sounds.playStart();
     toast.success("Recording started");
     addLog("info", `Recording started (${topics.length} topics)`);
     queryClient.invalidateQueries({ queryKey: getGetRecordingStatusQueryKey() });
@@ -84,6 +86,7 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
     queryClient.invalidateQueries({ queryKey: getGetRecordingStatusQueryKey() });
     if (resp.status !== 200) return;
     const d = resp.data;
+    if (useRecordingStore.getState().soundEnabled) sounds.playStop();
     toast.success("Recording completed");
     addLog("info", `Recording stopped (${d.duration_sec.toFixed(1)}s) → ${d.output_path}`);
     // Force-refresh the file list to fetch the latest mcap.

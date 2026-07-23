@@ -14,6 +14,7 @@ import { sseKeys } from "@/lib/query-keys";
 import { toast } from "@/stores/toast-store";
 import { createTimer } from "./create-timer";
 import { startRecordingMutation, stopRecordingMutation } from "./mutations";
+import * as sounds from "./sounds";
 
 /** Available delay options. */
 export const DELAY_OPTIONS = [0, 3, 5, 10] as const;
@@ -39,6 +40,8 @@ interface RecordingStore {
   delaySec: number;
   /** Whether to stop live monitoring while recording is in progress. */
   stopLiveMonitorDuringRecording: boolean;
+  /** Whether to play notification tones on countdown / start / stop. */
+  soundEnabled: boolean;
   /** Seconds remaining in countdown (null = not counting down). */
   countdownSec: number | null;
   /** A start request is in flight. */
@@ -52,6 +55,8 @@ interface RecordingStore {
   setDelay: (sec: number) => void;
   /** Toggle "stop live monitoring while recording" on/off. */
   setStopLiveMonitor: (enabled: boolean) => void;
+  /** Toggle recording notification tones on/off. */
+  setSoundEnabled: (enabled: boolean) => void;
   /** Start recording (honors the delay). */
   startRecording: () => void;
   /** Stop recording (cancels the countdown if one is active). */
@@ -78,13 +83,15 @@ function getConnectionStatus(): SseConnectionStatus | undefined {
 
 /** Countdown one-second tick (recursive setTimeout). */
 function tick() {
-  const { countdownSec } = useRecordingStore.getState();
+  const { countdownSec, soundEnabled } = useRecordingStore.getState();
   if (countdownSec === null) return;
   if (countdownSec <= 1) {
+    // Final handoff: the start chime (mutations.onSuccess) stands in for a tick here.
     useRecordingStore.setState({ countdownSec: null }, false, "tickComplete");
     startRecordingMutation.mutate([...useLiveTopicsStore.getState().selectedTopics]);
     return;
   }
+  if (soundEnabled) sounds.playTick();
   useRecordingStore.setState({ countdownSec: countdownSec - 1 }, false, "tick");
   countdownTimer.set(tick, 1000);
 }
@@ -95,6 +102,7 @@ export const useRecordingStore = create<RecordingStore>()(
       (set, get) => ({
         delaySec: 0,
         stopLiveMonitorDuringRecording: false,
+        soundEnabled: true,
         countdownSec: null,
         isStarting: false,
         isStopping: false,
@@ -102,21 +110,27 @@ export const useRecordingStore = create<RecordingStore>()(
 
         setDelay: (sec) => set({ delaySec: sec }, false, "setDelay"),
         setStopLiveMonitor: (enabled) => set({ stopLiveMonitorDuringRecording: enabled }, false, "setStopLiveMonitor"),
+        setSoundEnabled: (enabled) => set({ soundEnabled: enabled }, false, "setSoundEnabled"),
 
         startRecording: () => {
           // Auto-close any lingering banner from the previous recording.
           set({ finishedRecording: null }, false, "clearFinishedOnStart");
-          const { delaySec } = get();
+          const { delaySec, soundEnabled } = get();
+          // Resume the audio context from within this gesture so the async start chime can play.
+          if (soundEnabled) sounds.unlock();
           if (delaySec <= 0) {
             startRecordingMutation.mutate([...useLiveTopicsStore.getState().selectedTopics]);
             return;
           }
+          if (soundEnabled) sounds.playTick();
           set({ countdownSec: delaySec }, false, "startCountdown");
           countdownTimer.set(tick, 1000);
         },
 
         stopRecording: () => {
-          const { countdownSec } = get();
+          const { countdownSec, soundEnabled } = get();
+          // Resume the audio context from within this gesture so the async stop chime can play.
+          if (soundEnabled) sounds.unlock();
           if (countdownSec !== null) {
             countdownTimer.clear();
             set({ countdownSec: null }, false, "cancelCountdown");
@@ -156,6 +170,7 @@ export const useRecordingStore = create<RecordingStore>()(
         partialize: (state) => ({
           delaySec: state.delaySec,
           stopLiveMonitorDuringRecording: state.stopLiveMonitorDuringRecording,
+          soundEnabled: state.soundEnabled,
         }),
         /* v8 ignore stop */
       },
