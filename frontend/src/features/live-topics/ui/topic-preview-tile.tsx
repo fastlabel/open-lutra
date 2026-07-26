@@ -1,7 +1,7 @@
 /** Preview tile: a mini-dashboard for one topic, with the X button.
  *
  * - Header holds the topic name and a close X
- * - Body is TopicDetailsBody (Quality / Stats / Image / Latest message)
+ * - Body is TopicDetailsBody (quality line / image / detail stats / latest message)
  */
 
 import { X } from "lucide-react";

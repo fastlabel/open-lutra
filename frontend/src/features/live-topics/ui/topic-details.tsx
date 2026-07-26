@@ -1,10 +1,12 @@
 /** Topic detail panel: mini-dashboard for the selected topic.
  *
- * Called from PreviewPane; the body renders Stats / Image preview / Latest message.
+ * Called from PreviewPane; the body renders a quality line / image preview / detail
+ * stats / latest message. For image topics the preview sits directly under the quality
+ * line so the video stays visible without scrolling past the stats.
  * The panel header is assembled by the caller (PreviewPane).
  */
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Circle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { TopicInfo } from "@/api/generated/schemas";
 import { useTopicMessage } from "@/hooks/use-api";
@@ -15,42 +17,49 @@ function isImageTopic(msgType: string): boolean {
   return msgType.includes("Image");
 }
 
-/** Stats summary */
-function StatsSummary({ topic }: { topic: TopicInfo }) {
+/** Quality line: rate + status + loss at a glance, shown above the preview. */
+function QualityLine({ topic }: { topic: TopicInfo }) {
   // loss_rate is meaningless when the topic is stalled (backend resets it to 0)
   // or when no baseline has been established — render "--" in those cases.
   const lossUnknown = topic.status === "danger" || topic.baseline_hz == null;
   const lossColor = topic.loss_rate > 0.05 ? "text-red-400" : topic.loss_rate > 0.02 ? "text-amber-400" : "";
+  const statusColor =
+    topic.status === "ok"
+      ? "text-emerald-400"
+      : topic.status === "warning"
+        ? "text-amber-400"
+        : topic.status === "danger"
+          ? "text-red-400"
+          : "text-muted-foreground";
 
   return (
+    <div className="flex items-center gap-3 text-xs">
+      <span className="font-mono text-sm text-foreground">{topic.actual_hz.toFixed(0)} Hz</span>
+      <span className={`flex items-center gap-1 ${statusColor}`}>
+        <Circle size={8} className="fill-current" />
+        {topic.status}
+      </span>
+      <span className="text-muted-foreground">
+        loss{" "}
+        <span className={`font-mono ${lossUnknown ? "" : lossColor}`}>
+          {lossUnknown ? "--" : `${(topic.loss_rate * 100).toFixed(1)}%`}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/** Detail stats: baseline / drop / type / QoS, shown below the preview. */
+function StatsDetail({ topic }: { topic: TopicInfo }) {
+  return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-      <div className="text-muted-foreground">actual</div>
-      <div className="font-mono">{topic.actual_hz.toFixed(0)} Hz</div>
       <div className="text-muted-foreground">baseline</div>
       <div className="font-mono">
         {topic.baseline_hz != null ? `${topic.baseline_hz} Hz` : "--"}
         {topic.baseline_fixed ? "" : " (auto)"}
       </div>
-      <div className="text-muted-foreground">loss</div>
-      <div className={`font-mono ${lossUnknown ? "text-muted-foreground" : lossColor}`}>
-        {lossUnknown ? "--" : `${(topic.loss_rate * 100).toFixed(1)}%`}
-      </div>
       <div className="text-muted-foreground">drop</div>
       <div className="font-mono">{topic.drop_count}/s</div>
-      <div className="text-muted-foreground">status</div>
-      <div
-        className={
-          topic.status === "ok"
-            ? "text-emerald-400"
-            : topic.status === "warning"
-              ? "text-amber-400"
-              : topic.status === "danger"
-                ? "text-red-400"
-                : "text-muted-foreground"
-        }
-      >
-        {topic.status}
-      </div>
       <div className="text-muted-foreground">type</div>
       <div className="font-mono text-muted-foreground truncate" title={topic.msg_type}>
         {topic.msg_type.split("/").pop()}
@@ -123,8 +132,10 @@ function LatestMessageBody({ topicName }: { topicName: string }) {
   );
 }
 
-/** Topic-detail body (Stats / Image / Latest message).
+/** Topic-detail body (quality line / image / detail stats / latest message).
  *
+ * For image topics the preview renders directly under the quality line so the video
+ * stays visible; the remaining stats follow below it.
  * The panel header is handled by PreviewPane.
  */
 export function TopicDetailsBody({ topic }: { topic: TopicInfo }) {
@@ -143,13 +154,10 @@ export function TopicDetailsBody({ topic }: { topic: TopicInfo }) {
 
   return (
     <div className="space-y-3 p-3">
-      <StatsSummary topic={topic} />
-      {isImageTopic(topic.msg_type) && (
-        <>
-          <hr className="border-border" />
-          <ImagePreview topicName={topic.name} isLive={isLive} />
-        </>
-      )}
+      <QualityLine topic={topic} />
+      {isImageTopic(topic.msg_type) && <ImagePreview topicName={topic.name} isLive={isLive} />}
+      <hr className="border-border" />
+      <StatsDetail topic={topic} />
       {!isLive && <LatestMessage topicName={topic.name} />}
     </div>
   );
