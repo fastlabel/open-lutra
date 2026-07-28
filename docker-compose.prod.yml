@@ -10,7 +10,6 @@ services:
   backend:
     network_mode: host
     environment:
-      CYCLONEDDS_URI: ""  # Disable the dev-only manual peer setting (host network uses multicast auto-discovery)
       DEBUG: "false"
 
   frontend:

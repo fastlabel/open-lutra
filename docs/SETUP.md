@@ -425,7 +425,7 @@ docker compose up -d          # Start without the simulator (omit --profile sim)
 
 1. **Check `ROS_DOMAIN_ID`**: ensure `ros_domain_id` in `config/*.yaml` matches the robot's setting
 2. **Check the network**: production requires `network_mode: host`
-3. **CycloneDDS configuration**: ensure the correct network interface is specified in `cyclonedds.xml`
+3. **Check the DDS implementation**: the robot and this system must be able to discover each other over RTPS. Run `ros2 doctor --report` inside the backend container to confirm the active middleware (`rmw_fastrtps_cpp`)
 
 ### Docker Build Fails
 

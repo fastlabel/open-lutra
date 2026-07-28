@@ -74,7 +74,7 @@ Robot                                     This system
 
 | Item | Description |
 |------|-------------|
-| Protocol | DDS — brokerless peer-to-peer (this system uses CycloneDDS; can interoperate with Fast DDS or others on the robot side via the standard RTPS protocol) |
+| Protocol | DDS — brokerless peer-to-peer (this system uses Fast DDS, the ROS 2 Humble default; can interoperate with Cyclone DDS or others on the robot side via the standard RTPS protocol) |
 | Discovery | Auto-discovery via UDP multicast (between nodes with the same `ROS_DOMAIN_ID`) |
 | Serialization | **CDR** (Common Data Representation) — the standard DDS binary format. Protobuf is not used |
 | Type definitions | `.msg` files (e.g., `sensor_msgs/msg/JointState.msg`) — equivalent to Protobuf's `.proto` |

@@ -8,7 +8,6 @@ services:
     volumes:
       - .:/app
       - devcontainer-venv:/app/.venv
-      - ./cyclonedds.xml:/cyclonedds.xml:ro
       - ./output:/data/output
 
   # Do not start frontend when using Dev Container (avoid additional port usage)

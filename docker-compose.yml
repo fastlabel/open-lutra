@@ -18,7 +18,8 @@ services:
     container_name: ros2-publisher-simulator
     environment:
       - RECORDING_CONFIG=/app/config/simulator.yaml
-      - CYCLONEDDS_URI=file:///cyclonedds.xml
+      # Pin the DDS implementation instead of relying on the ROS 2 Humble default.
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - SIM_MODE=${SIM_MODE:-normal}
       - SIM_DROP_RATE=${SIM_DROP_RATE:-0.1}
       - SIM_UNSTABLE_TOPICS=${SIM_UNSTABLE_TOPICS:-all}
@@ -30,7 +31,6 @@ services:
       - SIM_BURST_GAP_SEC=${SIM_BURST_GAP_SEC:-2.0}
       - SIM_BURST_COUNT=${SIM_BURST_COUNT:-50}
     volumes:
-      - ./cyclonedds.xml:/cyclonedds.xml:ro
       - ./config:/app/config:ro
     profiles:
       - sim
@@ -49,7 +49,8 @@ services:
       - path: .env
         required: false
     environment:
-      - CYCLONEDDS_URI=file:///cyclonedds.xml
+      # Pin the DDS implementation instead of relying on the ROS 2 Humble default.
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - OUTPUT_DIR=/data/output
       - RECORDING_CONFIG=${RECORDING_CONFIG:-config/simulator.yaml}
       - HOST=0.0.0.0
@@ -57,7 +58,6 @@ services:
       - DEBUG=${DEBUG:-true}
     command: ["bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && export ROS_DOMAIN_ID=$(python3 -c \"import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG:-config/simulator.yaml}')).get('ros_domain_id', 0))\") && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app"]
     volumes:
-      - ./cyclonedds.xml:/cyclonedds.xml:ro
       - ./backend/app:/app/app
       - ./backend/tests:/app/tests
       - ./config:/app/config:ro

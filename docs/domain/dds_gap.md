@@ -28,7 +28,9 @@ UDP/IP (or Shared Memory)
 ROS2 Node (Subscriber / ros2 bag record)
 ```
 
-This project uses **ROS2 Humble + Cyclone DDS**. Recording is done by running `ros2 bag record -s mcap` in a subprocess.
+This project uses **ROS2 Humble + Fast DDS** (`rmw_fastrtps_cpp`, the Humble default; pinned via `RMW_IMPLEMENTATION` in `docker-compose.yml`). Recording is done by running `ros2 bag record -s mcap` in a subprocess.
+
+Sections below that describe implementation-specific defaults name the implementation they apply to. Cyclone DDS values are kept as comparison reference and do **not** describe this project's runtime.
 
 ---
 
@@ -349,7 +351,7 @@ When the network has no multicast router, IGMP queries are not sent, the switch'
 
 ### 3.5 Inside the DDS middleware
 
-#### Cyclone DDS-specific buffer limits
+#### Buffer limits inside the middleware (Cyclone DDS values, for reference)
 
 | Parameter | Default | Effect on overflow |
 |---|---|---|
@@ -361,7 +363,7 @@ When the network has no multicast router, IGMP queries are not sent, the switch'
 
 #### Notes on Shared Memory Transport
 
-Fast DDS enables Shared Memory Transport by default for same-host communication, but Cyclone DDS does not. In other words, this project communicates **via UDP even within the same container**.
+Fast DDS enables Shared Memory Transport by default for same-host communication, but Cyclone DDS does not. Since this project runs on Fast DDS, same-host traffic (simulator ↔ backend on the same Docker host) can take the **SHM path rather than UDP**.
 
 SHM avoids network-layer issues (IP fragmentation, UDP buffer overflow) entirely, but gaps can still occur in cases such as:
 - Segment size shortfall: when `segment_size` is close to the data size, the buffer is overwritten
@@ -501,11 +503,13 @@ Results from high-rate (>1kHz) tests:
 
 | DDS implementation | Message loss rate | Notes |
 |---|---|---|
-| **Cyclone DDS** | **0%** | Used in this project |
-| Fast DDS (eProsima) | 60-70% (Release build) | Better in Debug build |
+| **Cyclone DDS** | **0%** | |
+| Fast DDS (eProsima) | 60-70% (Release build) | **Used in this project**; better in Debug build |
 | RTI Connext | 21-45% | |
 
 Cyclone DDS is the most stable in high-rate scenarios. Even so, ~20-message losses have been reported for very large messages (~5MB).
+
+This project runs on Fast DDS, the ROS 2 Humble default, which fares worst in these >1kHz benchmarks. The topics recorded here are well below that rate, so the benchmark is not directly applicable — but switching implementations is a lever worth remembering if high-rate loss ever shows up.
 
 ### 6.5 The "cleanup after SIGINT" problem when launched via subprocess
 
@@ -597,24 +601,45 @@ net.ipv4.ipfrag_time=3
 net.ipv4.ipfrag_high_thresh=134217728
 ```
 
-### 7.2 Cyclone DDS configuration
+### 7.2 DDS implementation configuration
+
+Socket buffer sizes, transports, and discovery are configured through the DDS implementation's own XML file — the ROS 2 API has no way to express them. The syntax is implementation-specific and not interchangeable.
+
+This project runs on Fast DDS, so the file is a Fast DDS profiles XML:
 
 ```xml
-<!-- cyclonedds.xml -->
-<CycloneDDS>
-  <Domain>
-    <General>
-      <MaxMessageSize>65500B</MaxMessageSize>
-    </General>
-    <Internal>
-      <SocketReceiveBufferSize min="10MB"/>
-      <WhcHigh>500kB</WhcHigh>
-    </Internal>
-  </Domain>
-</CycloneDDS>
+<?xml version="1.0" encoding="UTF-8"?>
+<dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <profiles>
+    <transport_descriptors>
+      <transport_descriptor>
+        <transport_id>udp_large_buffers</transport_id>
+        <type>UDPv4</type>
+        <sendBufferSize>8388608</sendBufferSize>
+        <receiveBufferSize>8388608</receiveBufferSize>
+        <maxMessageSize>65500</maxMessageSize>
+      </transport_descriptor>
+    </transport_descriptors>
+
+    <participant profile_name="tuned_participant" is_default_profile="true">
+      <rtps>
+        <userTransports>
+          <transport_id>udp_large_buffers</transport_id>
+        </userTransports>
+        <!-- false replaces the builtin transports entirely, which also drops the
+             default Shared Memory transport (see §3.5) -->
+        <useBuiltinTransports>false</useBuiltinTransports>
+      </rtps>
+    </participant>
+  </profiles>
+</dds>
 ```
 
-Point to it via an environment variable: `export CYCLONEDDS_URI=file:///path/to/cyclonedds.xml`
+Point to it via an environment variable: `export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/fastdds.xml` (Humble ships Fast DDS 2.6, which still uses the `FASTRTPS_` prefix). Because the recording subprocess inherits the backend's environment (`app/infra/ros2/command.py`), setting it on the container covers both the rclpy monitor and `ros2 bag record`.
+
+QoS written in this file is normally discarded: `rmw_fastrtps_cpp` overwrites it with the QoS coming from the ROS 2 API. `RMW_FASTRTPS_USE_QOS_FROM_XML=1` reverses that precedence, but it then competes with the per-topic reliability this project passes through `--qos-profile-overrides-path` (see §3.4), so the two should not be mixed casually.
+
+**This repository ships no profiles XML** — the DDS layer runs on stock defaults. Add one only when a measured problem calls for it.
 
 ### 7.3 Real-time scheduling (for high-rate data)
 
@@ -683,6 +708,7 @@ From the RTI official blog "The Top 10 Reasons for Dropped DDS Messages":
 
 - [Fast DDS: Standard QoS Policies](https://fast-dds.docs.eprosima.com/en/latest/fastdds/dds_layer/core/policy/standardQosPolicies.html)
 - [Fast DDS: Shared Memory Transport](https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/shared_memory/shared_memory.html)
+- [Fast DDS: XML Profiles](https://fast-dds.docs.eprosima.com/en/v2.6.0/fastdds/xml_configuration/xml_configuration.html)
 - [Eclipse Cyclone DDS: Configuration](https://cyclonedds.io/docs/cyclonedds/latest/config/index.html)
 - [RTI: Top 10 Reasons for Dropped DDS Messages](https://www.rti.com/blog/top-10-reasons-for-dropped-dds-messages)
 - [RTI: Reliable Protocol Overview](https://community.rti.com/static/documentation/connext-dds/current/doc/manuals/connext_dds_professional/users_manual/users_manual/Overview_of_the_Reliable_Protocol.htm)

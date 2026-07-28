@@ -42,7 +42,7 @@
 |---|---|
 | Docker Compose | Development / production environments |
 | nginx | Production frontend serving + API reverse proxy |
-| CycloneDDS | ROS2 DDS communication |
+| Fast DDS (`rmw_fastrtps_cpp`) | ROS2 DDS communication (the ROS 2 Humble default) |
 | MinIO (pgsty/minio) | Local S3-compatible sandbox for testing the upload feature (`make minio-up`) |
 
 ## Dev Tools
