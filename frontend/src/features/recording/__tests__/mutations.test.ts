@@ -47,6 +47,7 @@ vi.mock("@/api/generated/recording/recording", () => ({
 vi.mock("@/api/generated/recordings/recordings", () => ({
   getRecordings: mockGetFiles,
   getGetRecordingsQueryKey: vi.fn(() => ["recordings"]),
+  getGetRecordingsQueryOptions: vi.fn(() => ({ queryKey: ["recordings"] })),
 }));
 
 vi.mock("@/api/generated/analysis/analysis", () => ({
@@ -308,13 +309,30 @@ describe("stopRecordingMutation", () => {
     await flushMutation();
   });
 
-  it("adds a marker and saves completion info to the store on success", async () => {
-    vi.spyOn(queryClient, "getQueryData").mockReturnValue({
+  it("adds a marker and saves the matched entry's relative path to the store on success", async () => {
+    // The banner must store the entry's output_dir-relative path (so the detail page can match it),
+    // not the absolute output_path. It must match by folder name, not blindly take the newest entry.
+    mockStopRecordingApi.mockResolvedValueOnce({
+      status: 200,
+      data: { duration_sec: 10.5, output_path: "/data/recordings/rec_002" },
+    });
+    vi.spyOn(queryClient, "fetchQuery").mockResolvedValue({
       data: {
         entries: [
           {
-            name: "rec_001",
-            path: "/data/rec_001",
+            name: "rec_003",
+            path: "2026-07-28/rec_003",
+            size: 1,
+            modified_at: 0,
+            topic_count: 1,
+            recording_start_ns: null,
+            duration_ns: null,
+            message_count: 1,
+            has_quality_report: false,
+          },
+          {
+            name: "rec_002",
+            path: "2026-07-28/rec_002",
             size: 2048,
             modified_at: 0,
             topic_count: 3,
@@ -334,8 +352,8 @@ describe("stopRecordingMutation", () => {
     expect(mockSetState).toHaveBeenCalledWith(
       expect.objectContaining({
         finishedRecording: expect.objectContaining({
-          name: "rec_001",
-          path: "/data/rec_001",
+          name: "rec_002",
+          path: "2026-07-28/rec_002",
           durationSec: 10.5,
           messageCount: 500,
           topicCount: 3,
@@ -345,9 +363,8 @@ describe("stopRecordingMutation", () => {
     );
   });
 
-  it("onSuccess: synthesizes from the response and saves when entries is empty", async () => {
-    vi.spyOn(queryClient, "getQueryData").mockReturnValue({ data: { entries: [] } });
-
+  it("onSuccess: synthesizes from the response and saves when the fresh scan is empty", async () => {
+    // fetchQuery defaults to an empty scan (beforeEach), so the path-only fallback runs.
     stopRecordingMutation.mutate(undefined);
     await flushMutation();
 
@@ -378,7 +395,6 @@ describe("stopRecordingMutation", () => {
   });
 
   it("plays the stop chime on success", async () => {
-    vi.spyOn(queryClient, "getQueryData").mockReturnValue({ data: { entries: [] } });
     stopRecordingMutation.mutate(undefined);
     await flushMutation();
 
@@ -395,7 +411,6 @@ describe("stopRecordingMutation", () => {
 
   it("does not play the stop chime when sound is disabled", async () => {
     mockSoundEnabled.current = false;
-    vi.spyOn(queryClient, "getQueryData").mockReturnValue({ data: { entries: [] } });
     stopRecordingMutation.mutate(undefined);
     await flushMutation();
 
@@ -404,9 +419,13 @@ describe("stopRecordingMutation", () => {
 
   it("invalidates the quality query in stages", async () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-    vi.spyOn(queryClient, "getQueryData").mockReturnValue({
+    mockStopRecordingApi.mockResolvedValueOnce({
+      status: 200,
+      data: { duration_sec: 10.5, output_path: "/data/recordings/rec_001" },
+    });
+    vi.spyOn(queryClient, "fetchQuery").mockResolvedValue({
       data: {
-        entries: [{ name: "rec_001", path: "/data/rec_001" }],
+        entries: [{ name: "rec_001", path: "2026-07-28/rec_001" }],
       },
     });
 
@@ -421,7 +440,7 @@ describe("stopRecordingMutation", () => {
       await vi.advanceTimersByTimeAsync(delayMs);
       expectedQualityCalls = 1;
       expect(invalidateSpy).toHaveBeenCalledTimes(expectedQualityCalls);
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["quality", "/data/rec_001"] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["quality", "2026-07-28/rec_001"] });
     }
   });
 

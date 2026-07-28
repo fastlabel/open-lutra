@@ -11,8 +11,8 @@ import {
   startRecording as startRecordingApi,
   stopRecording as stopRecordingApi,
 } from "@/api/generated/recording/recording";
-import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
-import type { ConfigResponse, FilesResponse } from "@/api/generated/schemas";
+import { getGetRecordingsQueryKey, getGetRecordingsQueryOptions } from "@/api/generated/recordings/recordings";
+import type { ConfigResponse } from "@/api/generated/schemas";
 import { useSettingsStore } from "@/features/settings";
 import type { LogEntry } from "@/hooks/use-topics-stream";
 import { queryClient } from "@/lib/query-client";
@@ -89,14 +89,15 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
     if (useRecordingStore.getState().soundEnabled) sounds.playStop();
     toast.success("Recording completed");
     addLog("info", `Recording stopped (${d.duration_sec.toFixed(1)}s) → ${d.output_path}`);
-    // Force-refresh the file list to fetch the latest mcap.
-    // invalidateQueries notifies every observer to refetch, ensuring the UI updates.
-    // (Cases existed where fetchQuery alone skipped observer re-renders.)
-    await queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() });
-    const filesResp = queryClient.getQueryData<{ data: FilesResponse }>(getGetRecordingsQueryKey());
-    const filesData = filesResp?.data;
-    // The first entry is always the newest recording (scan_output_dir returns recording_start_ns descending).
-    const firstEntry = filesData?.entries[0];
+    // Fetch a fresh scan and populate the cache. invalidateQueries only refetches queries that have an
+    // active observer, but the recording screen mounts none — so the banner cannot read the cache
+    // directly (it may be empty or stale). fetchQuery guarantees a fresh list and refreshes any list view.
+    const filesResp = await queryClient.fetchQuery(getGetRecordingsQueryOptions());
+    // output_path is absolute, but FileEntry.path is relative to output_dir; match on the folder name
+    // (the unique recording id). split always returns at least one element, so pop returns a string.
+    const finishedName = d.output_path.split("/").pop() as string;
+    // Fall back to the newest entry (scan_output_dir returns recording_start_ns descending).
+    const firstEntry = filesResp.data.entries.find((e) => e.name === finishedName) ?? filesResp.data.entries[0];
 
     // Save the latest recording info to the store for the completion banner (synthesize from the API response if FileEntry is missing).
     if (firstEntry) {
@@ -111,11 +112,10 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
         },
       });
     } else {
-      // Path-only fallback (entries is empty or unfetched). split always returns at least one element, so pop returns a string.
-      const name = d.output_path.split("/").pop() as string;
+      // Path-only fallback (the fresh scan returned no entries).
       useRecordingStore.setState({
         finishedRecording: {
-          name,
+          name: finishedName,
           path: d.output_path,
           durationSec: d.duration_sec,
           messageCount: null,
