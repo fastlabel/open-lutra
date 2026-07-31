@@ -153,4 +153,12 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Native <select> dropdowns on Linux/Windows are browser-rendered: the list
+     background follows the OS theme (white on a light desktop) while the text
+     color is inherited from the page (near-white here), leaving the options
+     unreadable. The popup ignores color-scheme, so options need explicit
+     colors. macOS browsers use OS-native menus and are unaffected. */
+  option {
+    @apply bg-popover text-popover-foreground;
+  }
 }
