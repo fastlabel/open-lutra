@@ -14,6 +14,9 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    // Allow access from the Linux Chromium check container (`make chromium-up`),
+    // which reaches the dev server via the compose-internal hostname.
+    allowedHosts: ["frontend"],
     proxy: {
       "/api": {
         target: process.env.API_URL || "http://localhost:8000",

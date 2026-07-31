@@ -123,6 +123,29 @@ services:
     profiles:
       - s3
 
+  # --- Linux Chromium: browser check environment (development only) ---
+  # Renders the app in a Linux-native Chromium (KasmVNC desktop, reachable at
+  # http://localhost:3000) to verify behavior that differs from macOS browsers,
+  # e.g. browser-rendered <select> popups on the operators' Ubuntu machines.
+  chromium:
+    image: lscr.io/linuxserver/chromium:latest
+    container_name: open-lutra-chromium
+    shm_size: "1gb"
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      # Open the app on startup. `frontend` resolves inside the compose
+      # network, so this works without the host-published port; the hostname
+      # must be listed in Vite's server.allowedHosts (vite.config.ts).
+      - CHROME_CLI=http://frontend:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      - frontend
+    profiles:
+      - browser
+    restart: unless-stopped
+
 volumes:
   frontend_node_modules:
   minio_data:

@@ -31,6 +31,8 @@ make generate          # Regenerate API types (requires: backend running)
 make build             # Build Docker images
 make minio-up          # Start the local MinIO sandbox + auto-create the bucket (for upload-feature testing)
 make minio-down        # Stop the local MinIO sandbox
+make chromium-up       # Start a Linux Chromium for UI checks in the operators' environment (view at :3000)
+make chromium-down     # Stop the Linux Chromium
 make prod-up           # Production start (host network)
 ```
 

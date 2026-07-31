@@ -3,6 +3,7 @@
 
 .PHONY: help up dev-up down restart logs ps build stream \
 	minio-up minio-down \
+	chromium-up chromium-down \
 	lint lint-backend lint-frontend \
 	test test-backend test-frontend \
 	test-cov test-cov-backend test-cov-frontend \
@@ -27,6 +28,10 @@ help:
 	@echo "Local S3 (MinIO, for testing the upload feature):"
 	@echo "  make minio-up   - Start MinIO + auto-create the bucket"
 	@echo "  make minio-down - Stop MinIO"
+	@echo ""
+	@echo "Linux browser (Chromium, for checking the UI in the operators' environment):"
+	@echo "  make chromium-up   - Start Linux Chromium (view at http://localhost:3000)"
+	@echo "  make chromium-down - Stop Linux Chromium"
 	@echo ""
 	@echo "Dev tools:"
 	@echo "  make lint              - Lint (all: backend + frontend)"
@@ -119,6 +124,22 @@ minio-up:
 # Stop MinIO
 minio-down:
 	docker compose --profile s3 down
+
+# ===== Linux browser (Chromium) =====
+
+# Start a Linux-native Chromium (KasmVNC) for checking the UI in the
+# operators' Ubuntu environment (e.g. browser-rendered <select> popups)
+chromium-up:
+	@echo "=== Starting Linux Chromium ==="
+	docker compose --profile browser up -d chromium
+	@echo "=== Linux Chromium started ==="
+	@echo "  Desktop: http://localhost:3000  (Chromium opens http://frontend:5173)"
+	@echo "  Note: the live video preview (MJPEG) needs the dev server started with"
+	@echo "        VITE_API_BASE=http://host.docker.internal:8000 make up"
+
+# Stop Linux Chromium (stop + remove only this container, leave the rest running)
+chromium-down:
+	docker compose --profile browser rm -sf chromium
 
 # ===== Dev tools =====
 

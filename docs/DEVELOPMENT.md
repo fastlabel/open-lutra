@@ -12,6 +12,7 @@
 - [Testing](#testing)
 - [Lint and Type Checking](#lint-and-type-checking)
 - [Frontend Development Notes](#frontend-development-notes)
+- [Checking the UI on Linux (Chromium)](#checking-the-ui-on-linux-chromium)
 - [Common Development Tasks](#common-development-tasks)
 
 ---
@@ -334,6 +335,39 @@ ignore_missing_imports = true
 | Server state | TanStack Query | Recording status, file list |
 | Real-time data | SSE → TanStack Query | Topic statistics, logs |
 | UI state | Zustand | Panel open/close, topic selection |
+
+---
+
+## Checking the UI on Linux (Chromium)
+
+The operators run the frontend on Ubuntu, where browsers draw some widgets
+themselves that macOS delegates to the OS — most notably `<select>` dropdowns,
+whose popup colors come from the OS theme rather than the page CSS. Bugs like
+white-on-white dropdown options (#68) are therefore invisible on macOS.
+
+`make chromium-up` starts a Linux-native Chromium in Docker
+(`lscr.io/linuxserver/chromium`, KasmVNC) attached to the compose network:
+
+```bash
+make up           # dev environment must be running
+make chromium-up  # then open http://localhost:3000 in your browser
+```
+
+The containerized Chromium opens `http://frontend:5173` (the Vite dev server's
+compose-internal hostname, allowed via `server.allowedHosts` in
+`frontend/vite.config.ts`). Stop it with `make chromium-down`.
+
+Notes:
+
+- The KasmVNC desktop uses a light theme by default — the same condition as the
+  operators' stock Ubuntu, which is what triggers OS-theme-dependent bugs.
+- The live video preview (MJPEG) bypasses the Vite proxy and connects to
+  `VITE_API_BASE` (default `http://localhost:8000`), which does not resolve
+  inside the container. To check it from the Linux browser, restart the dev
+  server with `VITE_API_BASE=http://host.docker.internal:8000 make up` (the
+  preview in your macOS browser stops working while this is set).
+- Tablet-like conditions (touch events, screen size) can be approximated with
+  Chrome DevTools device emulation inside the container.
 
 ---
 
