@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, status
 
 from app.dependencies import RecorderDep
+from app.features.recording.models import RecorderError
 from app.features.recording.schemas import (
     RecordingStartRequest,
     RecordingStartResponse,
@@ -44,8 +45,13 @@ async def start_recording(
         metadata=request.metadata,
     )
     start_time = recorder.get_status().start_time
-    # start_time is guaranteed to be set immediately after recorder.start() (the service stores it right after datetime.now()).
-    assert start_time is not None
+    if start_time is None:
+        # get_status() detected that the recorder died right after start() and
+        # reset the state (crash-at-startup race, e.g. on a full disk).
+        raise RecorderError(
+            "Recorder process exited immediately after starting; no recording is in progress. "
+            "A full disk is the most common cause; check the backend logs for details."
+        )
 
     # Notify the log panel that recording has started.
     topic_count = len(request.topics) if request.topics else 0

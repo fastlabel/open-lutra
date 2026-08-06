@@ -17,8 +17,29 @@ from pathlib import Path
 from types import TracebackType
 from typing import IO, Any
 
+from mcap.exceptions import McapError
 from mcap.reader import make_reader
 from mcap_ros2.decoder import DecoderFactory
+
+
+class CorruptedMCAPError(Exception):
+    """An MCAP file could not be parsed.
+
+    Raised in place of the mcap library's low-level parse errors so that the
+    message names the file and the typical causes (a recording cut short —
+    full disk, power loss, or a force-killed recorder — truncates the MCAP
+    mid-record).
+    """
+
+    @classmethod
+    def from_cause(cls, path: Path, cause: Exception) -> "CorruptedMCAPError":
+        """Build the user-facing error from a low-level mcap parse error."""
+        detail = str(cause) or cause.__class__.__name__
+        return cls(
+            f"MCAP file is unreadable (truncated or corrupted): {path.name} — {detail}. "
+            "This usually means the recording was cut short — e.g. the disk filled up, "
+            "the machine lost power, or the recorder was forcibly killed."
+        )
 
 
 @dataclass(frozen=True)
@@ -63,7 +84,14 @@ class MCAPReader:
 
     def __enter__(self) -> "MCAPReader":  # pragma: no cover - MCAP I/O boundary
         self._file = self._path.open("rb")
-        self._reader = make_reader(self._file, decoder_factories=[DecoderFactory()])
+        try:
+            self._reader = make_reader(self._file, decoder_factories=[DecoderFactory()])
+        except McapError as e:
+            # e.g. EndOfFile (empty message) for a 0-byte file left by a recorder
+            # that could not write anything.
+            self._file.close()
+            self._file = None
+            raise CorruptedMCAPError.from_cause(self._path, e) from e
         return self
 
     def __exit__(
@@ -83,7 +111,7 @@ class MCAPReader:
         Returns an empty dict if no summary exists (old or truncated MCAP).
         """
         assert self._reader is not None, "MCAPReader must be used as a context manager"
-        summary = self._reader.get_summary()
+        summary = self._get_summary()
         if summary is None or not summary.channels or not summary.schemas:
             return {}
         channels: dict[str, MCAPChannel] = {}
@@ -101,7 +129,7 @@ class MCAPReader:
         Returns (0, 0) if no summary exists.
         """
         assert self._reader is not None, "MCAPReader must be used as a context manager"
-        summary = self._reader.get_summary()
+        summary = self._get_summary()
         if summary is None or summary.statistics is None:
             return (0, 0)
         stats = summary.statistics
@@ -130,14 +158,24 @@ class MCAPReader:
             start_time=start_time_ns,
             end_time=end_time_ns,
         )
-        for schema, channel, message, decoded in iterator:
-            yield MCAPMessage(
-                topic=channel.topic,
-                msg_type=schema.name if schema else "unknown",
-                timestamp_ns=message.log_time,
-                decoded=decoded,
-                size_bytes=len(message.data),
-            )
+        try:
+            for schema, channel, message, decoded in iterator:
+                yield MCAPMessage(
+                    topic=channel.topic,
+                    msg_type=schema.name if schema else "unknown",
+                    timestamp_ns=message.log_time,
+                    decoded=decoded,
+                    size_bytes=len(message.data),
+                )
+        except McapError as e:
+            raise CorruptedMCAPError.from_cause(self._path, e) from e
+
+    def _get_summary(self) -> Any:  # pragma: no cover - MCAP I/O boundary
+        """Read the MCAP summary, translating parse errors of corrupt files."""
+        try:
+            return self._reader.get_summary()
+        except McapError as e:
+            raise CorruptedMCAPError.from_cause(self._path, e) from e
 
 
 def find_mcap_files(folder: Path) -> list[Path]:

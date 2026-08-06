@@ -91,6 +91,16 @@ class TestStartRecording:
         assert response.status_code == 200
         assert "output_path" in response.json()
 
+    def test_start_recording_crash_right_after_start_returns_explicit_500(
+        self, client: TestClient, mock_recorder: MagicMock
+    ) -> None:
+        """A recorder that dies between start() and the status read returns a named error, not a bare 500."""
+        # get_status() detected the crash and reset the state (start_time is None).
+        mock_recorder.get_status.return_value = RecorderStatus(is_recording=False)
+        response = client.post("/api/recording/start")
+        assert response.status_code == 500
+        assert "exited immediately after starting" in response.json()["detail"]
+
     def test_start_recording_with_topics(self, client: TestClient, mock_recorder: MagicMock) -> None:
         mock_recorder.get_status.return_value = RecorderStatus(
             is_recording=True,
