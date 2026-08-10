@@ -74,6 +74,14 @@ class RecordProcess:  # pragma: no cover
         deadline = time.monotonic() + timeout
 
         while time.monotonic() < deadline:
+            # A dead recorder will never subscribe; stop waiting so the caller
+            # can report the failure immediately instead of after the timeout.
+            if self.process.poll() is not None:
+                logger.warning(
+                    "Recorder process exited while waiting for DDS discovery (exit code=%s)",
+                    self.process.returncode,
+                )
+                break
             text = self._consume_buffer()
             if text:
                 for match in re.finditer(r"Subscribed to topic '([^']+)'", text):

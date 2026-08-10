@@ -1,5 +1,6 @@
 """Unit tests for ROS2BagRecorder."""
 
+import errno
 import json
 import signal
 import subprocess
@@ -14,6 +15,7 @@ from app.features.recording import (
     RecorderError,
     ROS2BagRecorder,
 )
+from app.features.recording.service import _disk_space_suffix, _format_gb, _free_disk_bytes
 from app.infra.ros2 import ROS2CommandError
 
 
@@ -367,6 +369,132 @@ class TestMetaWrite:
         """
         recorder.start(topics=["/topic"])
         assert recorder.is_recording is True
+
+
+class TestDiskHelpers:
+    """Tests for the free-disk-space helpers."""
+
+    def test_free_disk_bytes_returns_free_bytes_for_existing_path(self, tmp_path: Path) -> None:
+        free = _free_disk_bytes(tmp_path)
+        assert free is not None
+        assert free > 0
+
+    def test_free_disk_bytes_returns_none_for_missing_path(self, tmp_path: Path) -> None:
+        assert _free_disk_bytes(tmp_path / "does-not-exist") is None
+
+    def test_format_gb_formats_decimal_gb(self) -> None:
+        assert _format_gb(300_000_000) == "0.3 GB"
+        assert _format_gb(5_000_000_000) == "5.0 GB"
+        assert _format_gb(0) == "0.0 GB"
+
+    def test_disk_space_suffix_names_free_space_and_path(self) -> None:
+        with patch("app.features.recording.service._free_disk_bytes", return_value=300_000_000):
+            suffix = _disk_space_suffix(Path("/data/output"))
+        assert suffix == " — free disk space: 0.3 GB at /data/output"
+
+    def test_disk_space_suffix_empty_when_free_space_unavailable(self) -> None:
+        with patch("app.features.recording.service._free_disk_bytes", return_value=None):
+            assert _disk_space_suffix(Path("/data/output")) == ""
+
+
+class TestDiskFullErrors:
+    """Tests for surfacing disk-full failures with explicit messages (issue #72)."""
+
+    def test_start_rejected_when_disk_has_no_free_space(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
+    ) -> None:
+        """start() on a hard-full output volume fails before launching the recorder."""
+        with (
+            patch("app.features.recording.service._free_disk_bytes", return_value=0),
+            pytest.raises(RecorderError, match="Disk full: no free disk space left"),
+        ):
+            recorder.start(topics=["/topic"])
+        mock_ros2.bag_record.assert_not_called()
+
+    def test_start_allowed_when_free_space_unknown(self, recorder: ROS2BagRecorder) -> None:
+        """An uninspectable output volume does not block recording."""
+        with patch("app.features.recording.service._free_disk_bytes", return_value=None):
+            recorder.start(topics=["/topic"])
+        assert recorder.is_recording is True
+
+    def test_start_mkdir_enospc_names_disk_full(self, recorder: ROS2BagRecorder) -> None:
+        """An ENOSPC while creating the output directory is reported as a full disk."""
+        err = OSError(errno.ENOSPC, "No space left on device")
+        with (
+            patch.object(Path, "mkdir", side_effect=err),
+            pytest.raises(RecorderError, match="Disk full: cannot create the output directory"),
+        ):
+            recorder.start(topics=["/topic"])
+
+    def test_start_raises_when_recorder_dies_during_startup(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
+    ) -> None:
+        """A recorder process that dies before start() returns raises RecorderError."""
+        mock_record = mock_ros2.bag_record.return_value
+        mock_record.process.poll.return_value = 1
+        with pytest.raises(RecorderError, match=r"exited during startup \(exit code=1\)"):
+            recorder.start(topics=["/topic"])
+        assert recorder.is_recording is False
+        mock_record.cleanup.assert_called_once()
+
+    def test_startup_death_message_includes_free_space(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock
+    ) -> None:
+        """The startup-death message names the free space of the output volume.
+
+        Free space is small but non-zero (e.g. exhausted inodes), so the
+        hard-full pre-check passes and the death is detected after launch.
+        """
+        mock_ros2.bag_record.return_value.process.poll.return_value = 1
+        with (
+            patch("app.features.recording.service._free_disk_bytes", return_value=100_000_000),
+            pytest.raises(RecorderError, match=r"free disk space: 0\.1 GB"),
+        ):
+            recorder.start(topics=["/topic"])
+
+    def test_startup_death_cleans_up_qos_file(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
+        """The QoS file is cleaned up when the recorder dies during startup."""
+        mock_ros2.bag_record.return_value.process.poll.return_value = 1
+        with pytest.raises(RecorderError):
+            recorder.start(topics=["/topic"], qos_overrides={"/topic": "reliable"})
+        assert recorder._qos_file is None
+
+    def test_meta_write_enospc_notifies_operator(self, recorder: ROS2BagRecorder) -> None:
+        """An ENOSPC while writing recording_meta.json produces a danger log entry naming the disk."""
+        err = OSError(errno.ENOSPC, "No space left on device")
+        with (
+            patch("app.features.recording.service.write_recording_meta", side_effect=err),
+            patch.object(ROS2BagRecorder, "_notify_log") as notify,
+        ):
+            recorder.start(topics=["/topic"])
+        severity, message = notify.call_args.args
+        assert severity == "danger"
+        assert "Disk full" in message
+        assert recorder.is_recording is True
+
+    def test_meta_write_generic_failure_notifies_operator(self, recorder: ROS2BagRecorder) -> None:
+        """Non-ENOSPC meta-write failures also produce a danger log entry."""
+        with patch.object(ROS2BagRecorder, "_notify_log") as notify:
+            # conftest's mock bag_record does not create the recording dir, so the
+            # write fails with FileNotFoundError.
+            recorder.start(topics=["/topic"])
+        severity, message = notify.call_args.args
+        assert severity == "danger"
+        assert "Failed to write recording_meta.json" in message
+
+    def test_crash_notification_includes_free_space(self, recorder: ROS2BagRecorder, mock_ros2: MagicMock) -> None:
+        """A mid-recording crash notification names the free space of the output volume."""
+        recorder.start(topics=["/topic"])
+        mock_ros2.bag_record.return_value.process.poll.return_value = 1
+        with (
+            patch("app.features.recording.service._free_disk_bytes", return_value=0),
+            patch.object(ROS2BagRecorder, "_notify_log") as notify,
+        ):
+            recorder.get_status()
+        severity, message = notify.call_args.args
+        assert severity == "danger"
+        assert "exited abnormally (exit code=1)" in message
+        assert "free disk space: 0.0 GB" in message
 
 
 class TestDetectCrash:

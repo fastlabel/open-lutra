@@ -60,3 +60,30 @@ class TestRecorderErrorHandler:
         response = client.post("/api/recording/start")
         assert response.status_code == 500
         assert response.json()["detail"] == "Internal error"
+
+
+class TestCatchAllHandler:
+    """Unexpected exceptions -> 500 naming the exception instead of a bare 'Internal Server Error'."""
+
+    @pytest.fixture
+    def raw_client(self) -> TestClient:
+        """Client that returns the 500 response instead of re-raising server exceptions."""
+        app = create_app()
+        recorder = MagicMock()
+        recorder.is_recording = False
+        set_recorder(recorder)
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_names_exception_type_and_message(self, raw_client: TestClient) -> None:
+        recorder = get_recorder()
+        recorder.start.side_effect = ValueError("boom")
+        response = raw_client.post("/api/recording/start")
+        assert response.status_code == 500
+        assert "ValueError: boom" in response.json()["detail"]
+
+    def test_falls_back_to_type_for_empty_message(self, raw_client: TestClient) -> None:
+        recorder = get_recorder()
+        recorder.start.side_effect = RuntimeError()
+        response = raw_client.post("/api/recording/start")
+        assert response.status_code == 500
+        assert "RuntimeError" in response.json()["detail"]
