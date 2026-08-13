@@ -13,6 +13,8 @@ services:
       DEBUG: "false"
 
   frontend:
-    command: bash -c "corepack enable && { [ -d node_modules/.vite ] || pnpm install --frozen-lockfile; }; pnpm run dev"
+    # node_modules ships inside the image, so drop the install the base file
+    # runs at start and launch Vite directly — production needs no network.
+    command: pnpm run dev
     extra_hosts:
       - "backend:host-gateway"  # Host resolution for reaching the backend container on the host network

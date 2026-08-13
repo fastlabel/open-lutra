@@ -8,6 +8,11 @@
 #
 # Production:
 #   make prod-up  - Start production (host network)
+#
+# Every service with a `build:` also pins an `image:` tag. Compose otherwise
+# derives the tag from the project name (i.e. the directory name), so a renamed
+# directory — or an image tagged differently by `docker save` — reads as
+# "image missing" and triggers a build, which fails without network access.
 
 services:
   # --- Robot Simulator (development only) ---
@@ -15,6 +20,7 @@ services:
     build:
       context: ./simulator
       dockerfile: Dockerfile
+    image: open-lutra-simulator:latest
     container_name: ros2-publisher-simulator
     environment:
       - RECORDING_CONFIG=/app/config/simulator.yaml
@@ -41,6 +47,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: open-lutra-backend:latest
     container_name: open-lutra-backend
     # Forward .env into the container so optional features can read their
     # settings without each variable needing an explicit `environment:` entry.
@@ -69,10 +76,15 @@ services:
 
   # --- Frontend: Vite dev server ---
   frontend:
-    image: node:22-slim
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: open-lutra-frontend:latest
     container_name: open-lutra-frontend
     working_dir: /app
-    command: bash -c "corepack enable && pnpm install --frozen-lockfile && pnpm run dev"
+    # pnpm ships inside the image; the install re-runs on every start so that
+    # dependency changes land without rebuilding the image.
+    command: bash -c "pnpm install --frozen-lockfile && pnpm run dev"
     environment:
       - API_URL=http://backend:8000
       - VITE_DEV_MODE=${VITE_DEV_MODE:-false}
