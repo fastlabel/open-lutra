@@ -6,26 +6,15 @@
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-#
-# Production starts from pre-built images so it works without network access.
-# `image:` is pinned on every service that has a `build:` because Compose
-# otherwise derives the tag from the project name (i.e. the directory name);
-# a renamed directory or an image tagged differently by `docker save` would
-# read as "image missing" and trigger a build.
-
 services:
   backend:
-    image: open-lutra-backend:latest
     network_mode: host
     environment:
       DEBUG: "false"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: open-lutra-frontend:latest
-    # pnpm and node_modules ship inside the image, so this only starts Vite.
+    # node_modules ships inside the image, so drop the install the base file
+    # runs at start and launch Vite directly — production needs no network.
     command: pnpm run dev
     extra_hosts:
       - "backend:host-gateway"  # Host resolution for reaching the backend container on the host network
