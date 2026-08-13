@@ -538,24 +538,24 @@ Sensor topics (JointState, etc.):
 ### Production environment (`docker-compose.prod.yml`)
 
 ```
-┌──────────────────────────────────────────┐
-│              Linux host                   │
-│  network_mode: host                       │
-│                                           │
-│  ┌────────────┐     ┌────────────────┐    │
-│  │  backend   │     │   frontend     │    │
-│  │ :8000      │◄───►│   (nginx)      │    │
-│  │            │     │   :80          │    │
-│  └─────┬──────┘     └────────────────┘    │
-│        │ DDS                               │
-│  ┌─────▼──────────────────────────────┐   │
-│  │     Real Robot                     │   │
-│  └────────────────────────────────────┘   │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        Linux host                        │
+│                                                          │
+│  ┌────────────────────┐        ┌──────────────────────┐  │
+│  │      backend       │  HTTP  │       frontend       │  │
+│  │ network_mode: host │◄──────►│      (Vite dev)      │  │
+│  │ :8000              │        │        :5173         │  │
+│  └─────────┬──────────┘        │ backend:host-gateway │  │
+│            │ DDS               └──────────────────────┘  │
+│  ┌─────────▼──────────────────────────────────────────┐  │
+│  │                     Real Robot                     │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
 ```
 
-- `network_mode: host` allows ROS2 DDS discovery to talk to the real robot
-- The frontend serves prebuilt files with nginx + a reverse proxy to the API
+- `network_mode: host` on the backend allows ROS2 DDS discovery to talk to the real robot
+- The frontend is served by the same Vite dev server as development (`pnpm run dev` on :5173). There is no separate production build or static file server
+- Only the backend joins the host network, so the frontend container reaches it through the `backend:host-gateway` entry declared in `extra_hosts`
 
 ---
 
