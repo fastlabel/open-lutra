@@ -379,6 +379,7 @@ ignore_missing_imports = true
 
 ### Updating Docker Image Dependencies
 
-1. Python: edit `pyproject.toml` → `make build` to rebuild the image
-2. Node.js: edit `frontend/package.json` → `make build` to rebuild the image
-3. ROS2 packages: edit `apt-get install` in the `Dockerfile` → `make build`
+Which edits are picked up by a restart and which need `make build` differs per component, and differs again between the development and the production stack. See the "What lands where" table in each component's README:
+
+- [backend/README.md](../backend/README.md#what-lands-where) — Python dependencies, ROS 2 / apt packages, config YAML
+- [frontend/README.md](../frontend/README.md#what-lands-where) — Node.js dependencies, the pnpm version, Vite config

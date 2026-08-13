@@ -119,6 +119,8 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 | [docs/SETUP.md](docs/SETUP.md) | Setup guide (prerequisites, dev, prod, env vars) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture (system, data flow, Docker) |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide (style, branching, tests) |
+| [backend/README.md](backend/README.md) | Backend container layout (what a restart picks up, what needs a rebuild) |
+| [frontend/README.md](frontend/README.md) | Frontend container layout (what a restart picks up, what needs a rebuild) |
 | [docs/domain/](docs/domain/index.md) | Domain notes (ROS2, MCAP, LeRobot, quality analysis) |
 | [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types) |
 
