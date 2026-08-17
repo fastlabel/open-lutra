@@ -69,7 +69,7 @@ make up      # start dev environment (simulator + backend + frontend)
 ### Production (Ubuntu + real robot)
 
 ```bash
-cp .env.example .env   # set ROS_DOMAIN_ID to match your robot
+cp .env.example .env   # set RECORDING_CONFIG and OUTPUT_DIR; ROS_DOMAIN_ID lives in the YAML that RECORDING_CONFIG selects
 make prod-up           # production start (network_mode: host)
 ```
 

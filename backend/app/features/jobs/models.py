@@ -130,7 +130,7 @@ class LeRobotExportJob(Job):
             `_active_folders` release logic in JobQueue works unchanged).
         source_paths: Recording directories, each exported as one episode.
 
-    The mapping comes from the active robot config's `lerobot_export` section,
+    The mapping comes from the active recording config's `lerobot_export` section,
     read when the job runs.
     """
 
