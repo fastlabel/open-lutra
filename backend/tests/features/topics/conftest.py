@@ -31,7 +31,6 @@ def monitor(log_manager: LogManager, mock_subscriber: MagicMock) -> TopicMonitor
         subscribed_topics=["/joint_states"],
         log_manager=log_manager,
         gap_threshold_sec=3.0,
-        buffer_size=200,
     )
     service.set_subscriber(mock_subscriber)
     return service

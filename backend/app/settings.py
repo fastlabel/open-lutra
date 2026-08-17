@@ -162,7 +162,6 @@ class Settings(BaseSettings):
 
     # Topic monitor settings
     gap_threshold_sec: Annotated[float, Field(gt=0)] = 3.0
-    monitor_buffer_size: Annotated[int, Field(ge=1)] = 600
     max_log_entries: Annotated[int, Field(ge=1)] = 500
 
     # Server settings

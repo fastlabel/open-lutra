@@ -115,9 +115,9 @@ A real-time graph of loss rate rendered with uPlot. The Y axis is inverted (0% a
 
 | Metric | Update interval | Time to reflect | Description |
 |---|---|---|---|
-| `actual_hz` | 1s (SSE tick) | 3s window | Derived from the message count in the last 3s |
+| `actual_hz` | 1s (SSE tick) | 3-4s window | Message count divided by the elapsed time of the current counting window |
 | `baseline_hz` (fixed) | Immediate | Right after subscribe | Uses the YAML value as-is |
-| `baseline_hz` (dynamic) | One-shot | After 100 messages | 1s at 100Hz, 3.3s at 30Hz |
+| `baseline_hz` (dynamic) | One-shot | ~4s after the first message | 1s warmup, then locked in once the measurement spans 3s and 50 messages (topics slower than ~17Hz wait for the 50th sample) |
 | `loss_rate` | 1s (SSE tick) | 5s window | Difference between expected and actual counts over the last 5s |
 | `drop_count` | 1s (SSE tick) | 5s window | Computed alongside `loss_rate` (expected - actual) |
 | `status` | 1s (SSE tick) | Immediate | `danger` requires a 3s stall |
@@ -216,17 +216,21 @@ The metrics and decision logic referenced by the phases above.
 
 | Metric | Window | Description | Example |
 |---|---|---|---|
-| `actual_hz` | 3s | Derived from the message count over the last 3s. For fixed baselines, counter-based (O(1)); for dynamic learning, timestamp-based | 92.0 Hz |
-| `baseline_hz` | - | Baseline frequency. From YAML config (fixed) or dynamically learned (locked in after 100 messages) | 100.0 Hz |
+| `actual_hz` | 3s (tumbling) | Counter-based (O(1)) for every topic, regardless of how the baseline was obtained | 92.0 Hz |
+| `baseline_hz` | - | Baseline frequency. From YAML config (fixed) or dynamically learned (locked in ~4s after the first message) | 100.0 Hz |
 
 ```python
-# Fixed baseline (counter-based, O(1))
-actual_hz = message_count / elapsed_sec
-
-# Dynamic learning (timestamp-based)
-windowed = [t for t in timestamps if t > now - 3.0]
-actual_hz = (len(windowed) - 1) / (windowed[-1] - windowed[0])
+# Messages counted since the window opened, over monotonic elapsed time
+actual_hz = hz_count / (now - hz_count_start)
 ```
+
+The window is **tumbling**, not sliding: it is discarded and restarted once it
+exceeds 3s, so the effective width depends on how often `refresh_cache` runs
+(3-4s at the 1s SSE tick). While a freshly opened window holds less than 0.5s of
+data the previous value is reported, which keeps a healthy topic from briefly
+reading 0Hz. Because counting is driven by `time.monotonic()` rather than by
+message timestamps, a topic whose publisher stops decays to 0Hz within one to
+two windows instead of freezing at its last value.
 
 ### Baseline Hz
 
@@ -237,7 +241,7 @@ There are two ways to obtain the baseline Hz, controlled via the YAML config fil
 | Mode | Setting | UI display | Description |
 |---|---|---|---|
 | **Fixed** | `hz: 100` | `88/100Hz` | Uses the YAML value immediately. High reliability |
-| **Dynamic learning** | `hz:` (omitted) | `100/100Hz auto` | After subscribe, auto-derived from message intervals |
+| **Dynamic learning** | `hz:` (omitted) | `100/100Hz auto` | After subscribe, auto-derived from the measured arrival rate |
 
 ```yaml
 # config/simulator.yaml (or your own config)
@@ -249,9 +253,15 @@ expected_hz_patterns:
 
 **How dynamic learning works**:
 
-1. The first 50 messages are warm-up (timestamps are dropped to filter out the DDS initial burst)
-2. The next 50 (51-100) accumulate stable timestamps
-3. The `actual_hz` at the 100th message is locked in as `baseline_hz`
+1. For 1 second after the first message, nothing is measured (lets the DDS initial burst settle)
+2. The message count and clock are then snapshotted, and the measurement runs from that point
+3. Once the measurement spans 3 seconds **and** 50 messages, the rate locks in as `baseline_hz` (50 samples bound the ±1-message counting error to ~2%, matching the loss-rate thresholds)
+
+The measurement is a snapshot delta over the append-only message counter, so it
+is unaffected by how often stats are polled. Learning advances on the stats
+tick (SSE stream / `GET /api/topics`), so it progresses only while stats are
+being polled — harmless, since the learned value is consumed by those same
+polls.
 
 **Operational flow**: start unknown topics with dynamic learning (`hz:` omitted), confirm the stable value in the UI, then write it back to YAML as a fixed value.
 
@@ -260,7 +270,7 @@ expected_hz_patterns:
 | Baseline kind | Behavior |
 |---|---|
 | Fixed (YAML config) | Keeps `baseline_hz`. Only resets timing-related metrics |
-| Dynamic learning | Sets `baseline_hz` back to `None` and restarts learning (50 warm-up + 50 accumulation) |
+| Dynamic learning | Sets `baseline_hz` back to `None` and restarts learning (warmup + measurement) |
 
 **Scope**: `expected_hz_patterns` is referenced by both live monitoring (Phase 2) and post-recording MCAP analysis (Phase 3). In Phase 3 a matching `hz` overrides the auto-estimated expected Hz for that topic — it becomes the topic's `expected_frequency_hz` and drives the loss-rate denominator, the gap/loss detection thresholds, and the timeline's expected Hz. Topics with no matching `hz` (pattern omitted or `hz:` left blank) fall back to statistical re-estimation from timestamps (see [How MCAP analysis works](#how-mcap-analysis-works)).
 

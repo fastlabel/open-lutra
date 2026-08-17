@@ -7,7 +7,9 @@ can be tested without depending on rclpy.
 import time
 from types import SimpleNamespace
 from typing import ClassVar
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from app.features.topics.service import TopicMonitorService
 from app.shared.log_manager import LogManager
@@ -19,6 +21,20 @@ class _NoHeaderMsg:
 
 def _mock_msg() -> _NoHeaderMsg:
     return _NoHeaderMsg()
+
+
+def _learn_baseline(monitor: TopicMonitorService, topic: str, start: float) -> None:
+    """Drive a 10Hz message flow and stats polls under a mocked clock until the baseline locks in."""
+    clock = [start]
+    with patch("app.features.topics.service.time.monotonic", side_effect=lambda: clock[0]):
+        monitor.on_message(topic, _mock_msg())  # first message anchors the warmup
+        clock[0] = start + 1.0
+        monitor.get_topic_stats()  # warmup elapsed -> measurement snapshot
+        for i in range(60):  # >=50 samples spanning >=3s
+            clock[0] = start + 1.0 + (i + 1) * 0.1
+            monitor.on_message(topic, _mock_msg())
+        clock[0] = start + 7.5
+        monitor.get_topic_stats()  # lock-in tick
 
 
 # ---------------------------------------------------------------------------
@@ -192,25 +208,47 @@ class TestOnMessage:
     def test_baseline_hz_learned(
         self, monitor: TopicMonitorService, mock_subscriber: MagicMock, log_manager: LogManager
     ) -> None:
-        """Baseline Hz is auto-learned after the warmup (50 messages) and 50 more learning messages."""
+        """Baseline Hz locks in after the warmup once >=50 samples span >=3s, and is logged."""
         self._setup_subscribed(monitor, mock_subscriber)
-        # Warmup (50) + learning (50) = 100 messages
-        for _ in range(100):
-            monitor.on_message("/joint_states", _mock_msg())
+        _learn_baseline(monitor, "/joint_states", start=100.0)
 
         stats = monitor.get_topic_stats()
-        assert stats[0].baseline_hz is not None
+        assert stats[0].baseline_hz == pytest.approx(10.0, abs=0.5)
         logs, _ = log_manager.get_logs()
         assert any("Baseline Hz" in log.message for log in logs)
 
     def test_baseline_not_learned_during_warmup(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
-        """Baseline Hz is not learned during warmup (the first 50 messages)."""
+        """No measurement starts while the warmup second has not elapsed since the first message."""
         self._setup_subscribed(monitor, mock_subscriber)
-        for _ in range(50):
-            monitor.on_message("/joint_states", _mock_msg())
-
-        stats = monitor.get_topic_stats()
+        clock = [100.0]
+        with patch("app.features.topics.service.time.monotonic", side_effect=lambda: clock[0]):
+            for i in range(50):
+                clock[0] = 100.0 + i * 0.01
+                monitor.on_message("/joint_states", _mock_msg())
+            clock[0] = 100.6  # < 1s after the first message
+            stats = monitor.get_topic_stats()
         assert stats[0].baseline_hz is None
+
+    def test_baseline_unaffected_by_stats_polling_during_learning(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """Stats polls (SSE ticks) interleaved with a slow topic's learning must not corrupt the baseline.
+
+        The polls restart the actual_hz tumbling window; the learning measurement
+        is snapshot-based on message_count and must stay unaffected.
+        """
+        self._setup_subscribed(monitor, mock_subscriber)
+        clock = [100.0]
+        with patch("app.features.topics.service.time.monotonic", side_effect=lambda: clock[0]):
+            # 2Hz topic with a stats poll every second.
+            for i in range(60):
+                clock[0] = 100.0 + i * 0.5
+                monitor.on_message("/joint_states", _mock_msg())
+                if i % 2 == 0:
+                    monitor.get_topic_stats()
+            clock[0] = 130.5
+            stats = monitor.get_topic_stats()
+        assert stats[0].baseline_hz == pytest.approx(2.0, abs=0.1)
 
     def test_latest_message_updated(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         """latest_message is updated on message receipt (1 in every 10)."""
@@ -373,9 +411,7 @@ class TestResetBaseline:
             ("/joint_states", ["sensor_msgs/msg/JointState"]),
         ]
         monitor.on_discover_tick()
-        # Warmup (50) + learning (50) = 100 messages
-        for _ in range(100):
-            monitor.on_message("/joint_states", _mock_msg())
+        _learn_baseline(monitor, "/joint_states", start=100.0)
 
     def test_resets_baseline_hz(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         """baseline_hz is reset to None."""
@@ -396,13 +432,17 @@ class TestResetBaseline:
         assert stats[0].loss_rate == 0.0
 
     def test_relearns_after_reset(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
-        """After reset, 100 messages (warmup 50 + learning 50) re-learn the baseline Hz."""
+        """After reset, a fresh warmup + measurement cycle re-learns the correct baseline Hz.
+
+        The value assertion matters: a learner still holding its pre-reset
+        snapshot would relearn against the restarted message_count and produce
+        a wildly low Hz instead of failing outright.
+        """
         self._setup_with_baseline(monitor, mock_subscriber)
         monitor.reset_baseline()
-        for _ in range(100):
-            monitor.on_message("/joint_states", _mock_msg())
+        _learn_baseline(monitor, "/joint_states", start=200.0)
         stats = monitor.get_topic_stats()
-        assert stats[0].baseline_hz is not None
+        assert stats[0].baseline_hz == pytest.approx(10.0, abs=0.5)
 
     def test_logs_reset(
         self, monitor: TopicMonitorService, mock_subscriber: MagicMock, log_manager: LogManager
@@ -451,9 +491,7 @@ class TestPauseResume:
             ("/joint_states", ["sensor_msgs/msg/JointState"]),
         ]
         monitor.on_discover_tick()
-        # Lock in the baseline Hz with warmup + learning
-        for _ in range(100):
-            monitor.on_message("/joint_states", _mock_msg())
+        _learn_baseline(monitor, "/joint_states", start=100.0)
         baseline = monitor.get_topic_stats()[0].baseline_hz
         assert baseline is not None
 
