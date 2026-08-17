@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class LeRobotConfigResponse(BaseModel):
     """The active robot's LeRobot export mapping summary (for the export dialog)."""
 
-    configured: bool = Field(..., description="Whether the active robot config declares a lerobot_export mapping")
+    configured: bool = Field(..., description="Whether the active recording config declares a lerobot_export mapping")
     robot_type: str | None = Field(..., description="Robot type from the mapping (null when not configured)")
     cameras: list[str] = Field(..., description="Camera names produced by the mapping (empty when not configured)")
 

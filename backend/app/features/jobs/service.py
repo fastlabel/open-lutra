@@ -705,7 +705,7 @@ def _run_export_dataset(  # pragma: no cover
 ) -> None:
     """Thin wrapper around `run_export()` for `asyncio.to_thread`.
 
-    The mapping is read from the active robot config's `lerobot_export` section.
+    The mapping is read from the active recording config's `lerobot_export` section.
     """
     from app.features.lerobot_export import load_active_config, run_export
 

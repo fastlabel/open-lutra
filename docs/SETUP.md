@@ -59,7 +59,7 @@ Use `RECORDING_CONFIG` in `.env` to select a recording configuration. The topic 
 ```bash
 # .env
 RECORDING_CONFIG=config/simulator.yaml   # Required: use the bundled simulator config
-# RECORDING_CONFIG=config/myrobot.yaml   # Your own physical-robot config (copy simulator.yaml as a template)
+# RECORDING_CONFIG=config/myrobot.yaml   # Your own physical-robot recording config (copy simulator.yaml as a template)
 ```
 
 ### 4. Start the Development Environment
@@ -141,7 +141,7 @@ Runs the Python (ruff) and TypeScript (biome) code formatters.
 ```bash
 # 1. Configure environment variables
 cp .env.example .env
-# Edit .env: set RECORDING_CONFIG to your physical-robot config (copy config/simulator.yaml as a template)
+# Edit .env: set RECORDING_CONFIG to your physical-robot recording config (copy config/simulator.yaml as a template)
 
 # 2. (Optional) Add custom ROS2 message packages
 # If your robot publishes topics that use custom message types, follow
@@ -194,7 +194,7 @@ expected_hz_patterns:
 
 | Preset | File | Use Case |
 |---|---|---|
-| Simulator (default) | `config/simulator.yaml` | 4 cameras (30Hz) + 2 joint-data channels (100Hz); also serves as a template for physical-robot configs |
+| Simulator (default) | `config/simulator.yaml` | 4 cameras (30Hz) + 2 joint-data channels (100Hz); also serves as a template for physical-robot recording configs |
 
 #### YAML Configuration Items
 

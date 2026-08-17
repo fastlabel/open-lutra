@@ -1,4 +1,4 @@
-"""Tests for loading the LeRobot mapping from the active robot config."""
+"""Tests for loading the LeRobot mapping from the active recording config."""
 
 import pytest
 

@@ -1,6 +1,6 @@
 /** Dialog for exporting selected recordings to a LeRobot v3.0 dataset.
  *
- * The topic→feature mapping comes from the active robot config's
+ * The topic→feature mapping comes from the active recording config's
  * `lerobot_export` section, so this dialog only needs an output name. After
  * submission it keeps showing the job's live progress / result (driven by the
  * jobs SSE cache) so there is visible feedback in normal mode too — the
@@ -25,7 +25,8 @@ function MappingInfo({ config, loading }: { config: LeRobotConfigResponse | unde
   if (!config?.configured) {
     return (
       <div className="text-sm text-muted-foreground">
-        No <code>lerobot_export</code> mapping in the active robot config. Add one to the robot's YAML to enable export.
+        No <code>lerobot_export</code> mapping in the active recording config. Add one to the recording config YAML to
+        enable export.
       </div>
     );
   }
