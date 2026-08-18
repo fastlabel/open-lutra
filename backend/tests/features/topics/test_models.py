@@ -166,6 +166,21 @@ class TestMaybeLearnBaseline:
         # The tick fires long after the topic stalled; elapsed must stop at 106.0.
         assert stats.maybe_learn_baseline(120.0) == pytest.approx(10.0, abs=0.2)
 
+    def test_ultra_slow_topic_learns_nonzero(self) -> None:
+        """Intervals longer than the 3s display window still learn the real rate, never 0.0.
+
+        A learned 0.0 would be sticky: baseline_hz stops being None, so learning
+        never re-fires, while loss_rate and the warning status both require
+        baseline_hz > 0 and would stay disabled until a manual reset.
+        """
+        stats = self._stats()
+        self._feed(stats, 100.0, 1, 1.0)
+        stats.maybe_learn_baseline(101.0)  # snapshot
+        self._feed(stats, 105.0, 50, 5.0)  # 0.2Hz: last arrival at 350.0
+        learned = stats.maybe_learn_baseline(351.0)
+        assert learned == pytest.approx(0.2, abs=0.01)
+        assert learned > 0
+
 
 # ---------------------------------------------------------------------------
 # loss_rate

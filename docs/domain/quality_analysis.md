@@ -229,8 +229,9 @@ exceeds 3s, so the effective width depends on how often `refresh_cache` runs
 (3-4s at the 1s SSE tick). While a freshly opened window holds less than 0.5s of
 data the previous value is reported, which keeps a healthy topic from briefly
 reading 0Hz. Because counting is driven by `time.monotonic()` rather than by
-message timestamps, a topic whose publisher stops decays to 0Hz within one to
-two windows instead of freezing at its last value.
+message timestamps, a topic whose publisher stops decays to 0Hz instead of
+freezing at its last value; at the 1s SSE tick it reaches exactly 0 within
+about 1-5 seconds, depending on where the stall lands in the window.
 
 ### Baseline Hz
 
