@@ -7,7 +7,6 @@ import pytest
 
 rclpy = pytest.importorskip("rclpy", reason="rclpy is required (run via 'make test')")
 
-import time  # noqa: E402
 from unittest.mock import MagicMock  # noqa: E402
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -38,7 +37,6 @@ def mock_monitor() -> MagicMock:
             msg_type="sensor_msgs/msg/JointState",
             actual_hz=99.3,
             status="ok",
-            last_received_at=time.monotonic(),
             message_count=5230,
             is_subscribed=True,
             baseline_hz=100.0,

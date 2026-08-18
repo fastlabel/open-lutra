@@ -35,7 +35,6 @@ export function TopicList() {
       msg_type: "unknown",
       actual_hz: 0,
       status: "inactive",
-      last_received_at: null,
       message_count: 0,
       is_subscribed: false,
       baseline_hz: null,

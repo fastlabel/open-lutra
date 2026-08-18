@@ -14,7 +14,6 @@ export interface TopicInfo {
   msg_type: string;
   actual_hz: number;
   status: string;
-  last_received_at: string | null;
   message_count: number;
   is_subscribed: boolean;
   baseline_hz: number | null;

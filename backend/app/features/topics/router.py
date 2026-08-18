@@ -191,7 +191,6 @@ async def topic_stream(request: Request, monitor: MonitorDep) -> StreamingRespon
                     "msg_type": d.msg_type,
                     "actual_hz": 0,
                     "status": "inactive",
-                    "last_received_at": None,
                     "message_count": 0,
                     "is_subscribed": False,
                 }

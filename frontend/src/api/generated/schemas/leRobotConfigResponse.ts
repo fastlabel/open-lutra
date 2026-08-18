@@ -10,7 +10,7 @@
  * The active robot's LeRobot export mapping summary (for the export dialog).
  */
 export interface LeRobotConfigResponse {
-  /** Whether the active robot config declares a lerobot_export mapping */
+  /** Whether the active recording config declares a lerobot_export mapping */
   configured: boolean;
   /** Robot type from the mapping (null when not configured) */
   robot_type: string | null;
