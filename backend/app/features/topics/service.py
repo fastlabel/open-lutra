@@ -11,7 +11,6 @@ import contextlib
 import logging
 import threading
 import time
-from collections import deque
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -26,9 +25,6 @@ if TYPE_CHECKING:
     from app.shared.log_manager import LogManager
 
 logger = logging.getLogger(__name__)
-
-# Minimum number of samples required to compute a baseline Hz.
-_BASELINE_SAMPLES = 50
 
 # ROS2 system topics excluded from discovery.
 _SYSTEM_TOPICS = frozenset({"/parameter_events", "/rosout"})
@@ -74,7 +70,6 @@ class TopicMonitorService:
         log_manager: LogManager,
         *,
         gap_threshold_sec: float = 3.0,
-        buffer_size: int = 200,
         resolve_expected_hz: Callable[[str], float | None] | None = None,
         stamp_quality: bool = False,
     ) -> None:
@@ -85,7 +80,6 @@ class TopicMonitorService:
         self._subscribed_topic_names = set(subscribed_topics)
         self._subscribed_set: set[str] = set()
         self._discovered_topics: dict[str, str] = {}
-        self._buffer_size = buffer_size
         self._gap_threshold_sec = gap_threshold_sec
         self._resolve_expected_hz = resolve_expected_hz
         self._stamp_quality = stamp_quality
@@ -102,12 +96,22 @@ class TopicMonitorService:
     def get_topic_stats(self) -> list[TopicInfo]:
         """Return statistics for every subscribed topic.
 
-        Refreshes caches in bulk before producing the API response.
+        Advances dynamic baseline learning and refreshes caches in bulk before
+        producing the API response. Learning runs before the cache refresh so
+        a freshly locked-in baseline feeds this tick's status / loss_rate.
         Used by: GET /api/topics, GET /api/topics/stream.
         """
         now = time.monotonic()
         with self._lock:
             for s in self._topic_stats.values():
+                learned = s.maybe_learn_baseline(now)
+                if learned is not None:
+                    self._log_manager.add(
+                        "info",
+                        f"Baseline Hz for {s.name}: {learned:.0f}Hz (dynamic learning)",
+                        s.name,
+                    )
+                    logger.info("Baseline Hz for %s: %.1f (dynamic learning)", s.name, learned)
                 s.refresh_cache(now)
             return [s.to_api() for s in self._topic_stats.values()]
 
@@ -316,17 +320,16 @@ class TopicMonitorService:
         Called at very high rates (e.g. 500Hz x 6 topics = 3000 calls/sec), so
         keep the work performed under the lock minimal.
 
-        monotonic: used for stall detection (no message also means no stamp)
-        and window bookkeeping.
-        header.stamp: used for frequency and loss_rate computation
-        (jitter-free, accurate value).
+        monotonic: used for stall detection (no message also means no stamp),
+        frequency computation, and window bookkeeping.
+        header.stamp: used for loss detection, where per-interval thresholding
+        needs a jitter-free value.
         """
         if self._paused:
             return
         now = time.monotonic()
 
-        # Extract header.stamp (None when the message type has no header;
-        # falls back to monotonic).
+        # Extract header.stamp (None when the message type has no header).
         stamp = extract_stamp_sec(msg)
 
         with self._lock:
@@ -354,25 +357,11 @@ class TopicMonitorService:
 
             # Timestamp handling.
             # _last_msg_time: stall detection (monotonic).
-            # on_stamp: Hz computation (monotonic) + dynamic learning (stamp preferred).
+            # on_stamp: Hz counter (monotonic) + loss detection (stamp).
             stats._last_msg_time = now
             stats.on_stamp(now, stamp)
             stats.message_count += 1
             stats.tick_loss_window(now)
-
-            # Dynamic baseline-Hz learning (only when no fixed baseline is set).
-            if stats.baseline_hz is None and not stats.baseline_fixed:
-                if stats.message_count == _BASELINE_SAMPLES:
-                    stats.timestamps.clear()
-                elif stats.message_count == _BASELINE_SAMPLES * 2:
-                    stats.refresh_cache(now)
-                    stats.baseline_hz = stats._cached_actual_hz
-                    self._log_manager.add(
-                        "info",
-                        f"Baseline Hz for {topic_name}: {stats.baseline_hz:.0f}Hz (dynamic learning)",
-                        topic_name,
-                    )
-                    logger.info("Baseline Hz for %s: %.1f (dynamic learning)", topic_name, stats.baseline_hz)
 
             # Live mode.
             is_live = stats._live_mode
@@ -407,7 +396,6 @@ class TopicMonitorService:
         stats = TopicStats(
             name=topic_name,
             msg_type=msg_type_str,
-            timestamps=deque(maxlen=self._buffer_size),
             is_subscribed=True,
             _gap_threshold_sec=self._gap_threshold_sec,
             stamp_quality=self._stamp_quality,
@@ -466,13 +454,13 @@ class TopicMonitorService:
     def _reset_stats_timing(stats: TopicStats) -> None:
         """Reset timing-related metrics."""
         stats.message_count = 0
-        stats.timestamps.clear()
         stats.first_received_at = None
         stats.total_gap_sec = 0.0
         stats.gaps.clear()
         stats._window_start = 0.0
         stats._window_count = 0
         stats._last_loss_rate = 0.0
+        stats._last_drop_count = 0
         stats._last_msg_time = 0.0
         stats._last_stamp = 0.0
         stats._stamp_window_start = 0.0
@@ -480,6 +468,8 @@ class TopicMonitorService:
         stats._stamp_msg_count = 0
         stats._hz_count = 0
         stats._hz_count_start = 0.0
+        stats._learner.reset()
         stats._cached_actual_hz = 0.0
+        stats._cached_at = 0.0
         stats._cached_status = "inactive"
         stats._capture_next = False

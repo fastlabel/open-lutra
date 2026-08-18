@@ -7,17 +7,16 @@ See docs/domain/quality_analysis.md for the quality metric definitions.
 """
 
 import time
-from collections import deque
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 from app.features.topics.schemas import TopicInfo
 
 # Time window for computing actual_hz (seconds).
 _HZ_WINDOW_SEC = 3.0
 
-# Cache refresh interval for actual_hz (seconds).
-_HZ_CACHE_INTERVAL_SEC = 0.5
+# Minimum amount of data a window must hold before actual_hz is measurable (seconds).
+_HZ_MIN_SAMPLE_SEC = 0.5
 
 # Sliding window for gap tracking (seconds).
 _QUALITY_WINDOW_SEC = 10.0
@@ -35,16 +34,75 @@ class GapRecord:
 
 
 @dataclass
+class BaselineLearner:
+    """Snapshot-based measurement policy for a topic's baseline Hz.
+
+    Lifecycle: idle (until the warmup elapses) -> measuring (snapshot taken)
+    -> done (the owner commits the proposed value and stops stepping).
+
+    Holds only the snapshot; every observation (first receive time,
+    append-only message count, last arrival time) is passed in by the owner,
+    so no counter exists twice. Reading the append-only message count keeps
+    the measurement immune to the tumbling-window restarts performed by
+    refresh_cache.
+    """
+
+    # Settling time for the DDS initial burst (seconds).
+    _WARMUP_SEC: ClassVar[float] = 1.0
+    # Minimum measurement duration (seconds).
+    _MIN_SEC: ClassVar[float] = 3.0
+    # Minimum sample count. Arrival counting has a +-1 message quantization
+    # error, so 50 samples bounds it to ~2% (the loss_rate warning thresholds
+    # sit at 2-5%).
+    _MIN_SAMPLES: ClassVar[int] = 50
+
+    _count_start: int = field(default=0, repr=False)
+    _time_start: float = field(default=0.0, repr=False)  # 0.0 = not started
+
+    def step(
+        self,
+        now: float,
+        first_received_at: float | None,
+        message_count: int,
+        last_msg_time: float,
+    ) -> float | None:
+        """Advance the measurement by one step; returns the Hz to lock in, or None.
+
+        Proposes only — the caller commits the returned value. The baseline
+        locks in once the measured span covers both _MIN_SEC and _MIN_SAMPLES.
+        """
+        if first_received_at is None:
+            return None
+        if self._time_start == 0.0:
+            if now - first_received_at >= self._WARMUP_SEC:
+                self._time_start = now
+                self._count_start = message_count
+            return None
+        count = message_count - self._count_start
+        # Measure up to the last arrival so a stall right before this call
+        # does not dilute the measured value.
+        elapsed = last_msg_time - self._time_start
+        if count < self._MIN_SAMPLES or elapsed < self._MIN_SEC:
+            return None
+        return count / elapsed
+
+    def reset(self) -> None:
+        """Discard the current measurement so learning starts over."""
+        self._count_start = 0
+        self._time_start = 0.0
+
+
+@dataclass
 class TopicStats:
     """Statistics for a single topic.
 
-    When baseline_fixed is True, runs in a lightweight counter-based mode
-    that skips the timestamp deque bookkeeping.
+    actual_hz is measured with a tumbling counter over a monotonic window, so
+    the bookkeeping is O(1) per message regardless of how the baseline Hz was
+    obtained.
     """
 
     name: str
     msg_type: str
-    timestamps: deque[float] = field(default_factory=lambda: deque(maxlen=200))
     message_count: int = 0
     is_subscribed: bool = False
     baseline_hz: float | None = None
@@ -73,9 +131,11 @@ class TopicStats:
     _gap_threshold_sec: float = field(default=3.0, repr=False)
     _hz_drop_threshold: float = field(default=0.5, repr=False)
 
-    # Counter-based Hz computation (used when baseline is fixed)
+    # Tumbling-window counter backing actual_hz (monotonic)
     _hz_count: int = field(default=0, repr=False)
     _hz_count_start: float = field(default=0.0, repr=False)
+    # Dynamic baseline learning (never steps for topics with a fixed baseline)
+    _learner: BaselineLearner = field(default_factory=BaselineLearner, repr=False)
     # Last received time (used for gap detection across all modes)
     _last_msg_time: float = field(default=0.0, repr=False)
     # On-demand message capture (flag is raised on API request; the next received message is converted)
@@ -97,14 +157,15 @@ class TopicStats:
         """Update quality metrics on message receipt.
 
         Args:
-            now: value of time.monotonic(). Used for counter-based Hz computation.
-            stamp: header.stamp (seconds). Used for loss detection and dynamic
-                   baseline learning. When None, falls back to ``now``.
+            now: value of time.monotonic(). Drives the actual_hz counter.
+            stamp: header.stamp (seconds). Used for loss detection only; when
+                   None (message type without a header), that detection is
+                   skipped.
 
         The _last_msg_time used for gap detection is set directly with the
         monotonic value in service.py.
         """
-        # Counter-based Hz computation (for fixed baselines): always use monotonic.
+        # Hz counting is always monotonic, so a stalled topic decays towards 0.
         self._hz_count += 1
         if self._hz_count_start == 0.0:
             self._hz_count_start = now
@@ -123,15 +184,13 @@ class TopicStats:
                     self._stamp_loss_count += lost
             self._last_stamp = stamp
 
-        # Dynamic learning: when a stamp is available, push it into the deque so
-        # that frequency estimation is unaffected by jitter.
-        if not self.baseline_fixed:
-            self.timestamps.append(stamp if stamp is not None else now)
-
     def refresh_cache(self, now: float) -> None:
         """Refresh the actual_hz / loss_rate / status caches (call once per SSE tick)."""
         self._cached_actual_hz = self._compute_actual_hz(now)
         self._cached_at = now
+        # Tumbling window: once the current one is used up, start counting again.
+        if self._hz_count_start > 0.0 and now - self._hz_count_start > _HZ_WINDOW_SEC:
+            self.start_hz_window(now)
         self._cached_status = self._compute_status(now)
         if self._cached_status == "danger":
             self._last_loss_rate = 0.0
@@ -143,6 +202,26 @@ class TopicStats:
     def actual_hz(self) -> float:
         """Return the cached actual_hz."""
         return self._cached_actual_hz
+
+    def start_hz_window(self, now: float) -> None:
+        """Discard the current actual_hz window and start counting again at ``now``."""
+        self._hz_count = 0
+        self._hz_count_start = now
+
+    def maybe_learn_baseline(self, now: float) -> float | None:
+        """Advance dynamic baseline-Hz learning by one step (call once per stats tick).
+
+        Delegates the measurement policy to BaselineLearner and commits the
+        proposed value into baseline_hz. Returns the learned Hz on the lock-in
+        call, None otherwise. No-op for topics that already have a baseline
+        (fixed or previously learned).
+        """
+        if self.baseline_hz is not None:
+            return None
+        learned = self._learner.step(now, self.first_received_at, self.message_count, self._last_msg_time)
+        if learned is not None:
+            self.baseline_hz = learned
+        return learned
 
     def tick_loss_window(self, now: float) -> None:
         """Update the counter used to compute loss_rate.
@@ -204,45 +283,18 @@ class TopicStats:
         )
 
     def _compute_actual_hz(self, now: float) -> float:
-        """Compute actual_hz."""
-        if self.baseline_fixed:
-            return self._compute_hz_from_counter(now)
-        return self._compute_hz_from_timestamps()
+        """Compute actual_hz from the message counter (O(1), no side effects).
 
-    def _compute_hz_from_counter(self, now: float) -> float:
-        """Counter-based Hz computation (used with fixed baselines; O(1))."""
+        Returns 0.0 while no message has ever been counted. Once a window is
+        open but still shorter than _HZ_MIN_SAMPLE_SEC, the previous value is
+        kept: too little data to measure is not the same as no data at all.
+        """
         if self._hz_count_start == 0.0:
             return 0.0
         elapsed = now - self._hz_count_start
-        if elapsed < 0.5:
-            return 0.0  # Need at least 0.5 seconds of data
-        hz = self._hz_count / elapsed
-        # Reset the counter once the window is exceeded
-        if elapsed > _HZ_WINDOW_SEC:
-            self._hz_count = 0
-            self._hz_count_start = now
-        return hz
-
-    def _compute_hz_from_timestamps(self) -> float:
-        """Timestamp-based Hz computation (used for dynamic learning)."""
-        if len(self.timestamps) < 2:
-            return 0.0
-        now = self.timestamps[-1]
-        cutoff = now - _HZ_WINDOW_SEC
-        # Scan the deque from the tail backwards, counting entries newer than the cutoff.
-        count = 0
-        first_t = now
-        for t in reversed(self.timestamps):
-            if t <= cutoff:
-                break
-            first_t = t
-            count += 1
-        if count < 2:
-            return 0.0
-        elapsed = now - first_t
-        if elapsed <= 0:
-            return 0.0
-        return (count - 1) / elapsed
+        if elapsed < _HZ_MIN_SAMPLE_SEC:
+            return self._cached_actual_hz
+        return self._hz_count / elapsed
 
     def _compute_loss_rate(self, now: float) -> None:
         """Compute loss rate and drop count.
