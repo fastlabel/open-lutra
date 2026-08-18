@@ -255,11 +255,6 @@ class TopicStats:
         return max(0.0, 1.0 - (windowed_gap_sec / elapsed))
 
     @property
-    def last_received_at(self) -> float | None:
-        """Return the time at which the most recent message was received."""
-        return self._last_msg_time if self._last_msg_time > 0 else None
-
-    @property
     def status(self) -> str:
         """Return the cached status."""
         return self._cached_status
@@ -271,7 +266,6 @@ class TopicStats:
             msg_type=self.msg_type,
             actual_hz=round(self._cached_actual_hz, 1),
             status=self._cached_status,
-            last_received_at=self._cached_at if self.message_count > 0 else None,
             message_count=self.message_count,
             is_subscribed=self.is_subscribed,
             baseline_hz=round(self.baseline_hz, 1) if self.baseline_hz else None,

@@ -1,6 +1,5 @@
 """Topic monitoring schemas."""
 
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -27,7 +26,6 @@ class TopicInfo(BaseModel):
     msg_type: str
     actual_hz: float
     status: str
-    last_received_at: datetime | None
     message_count: int
     is_subscribed: bool
     baseline_hz: float | None

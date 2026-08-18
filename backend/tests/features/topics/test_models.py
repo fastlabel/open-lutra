@@ -297,23 +297,6 @@ class TestContinuityScore:
 
 
 # ---------------------------------------------------------------------------
-# last_received_at
-# ---------------------------------------------------------------------------
-
-
-class TestLastReceivedAt:
-    """Tests for the last_received_at property."""
-
-    def test_empty(self) -> None:
-        stats = TopicStats(name="/t", msg_type="std_msgs/msg/String")
-        assert stats.last_received_at is None
-
-    def test_with_last_msg_time(self) -> None:
-        stats = TopicStats(name="/t", msg_type="std_msgs/msg/String", _last_msg_time=3.0)
-        assert stats.last_received_at == 3.0
-
-
-# ---------------------------------------------------------------------------
 # status
 # ---------------------------------------------------------------------------
 
