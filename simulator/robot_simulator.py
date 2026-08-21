@@ -92,10 +92,7 @@ class RobotSimulator(Node):
         self._joint_tick = 0  # tick count of the 100Hz timer
 
         # Fault injection
-        self._fault = FaultInjector(
-            SIM_MODE,
-            log=lambda level, msg: getattr(self.get_logger(), level)(msg),
-        )
+        self._fault = FaultInjector(SIM_MODE, log=self._log_fault)
 
         # Camera frames (per topic)
         self._camera_frames = _load_camera_frames()
@@ -131,6 +128,18 @@ class RobotSimulator(Node):
             self.create_timer(1.0 / CAMERA_HZ, self._publish_cameras)
 
         self._fault.log_config()
+
+    def _log_fault(self, level: str, msg: str) -> None:
+        """Emit a fault-mode log line, one call site per severity.
+
+        rclpy caches a severity per logging call site and raises when the same
+        site is reused at a different level, so a single dispatch expression
+        cannot serve both info and warn.
+        """
+        if level == "warn":
+            self.get_logger().warn(msg)
+        else:
+            self.get_logger().info(msg)
 
     def _make_header(self, frame_id: str) -> Header:
         header = Header()
