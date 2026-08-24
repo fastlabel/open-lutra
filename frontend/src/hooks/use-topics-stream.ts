@@ -18,6 +18,7 @@ export interface LogEntry {
 }
 
 import { sseKeys } from "@/lib/query-keys";
+import { upsertTopicStats } from "@/lib/topic-stats";
 import { useQualityHistoryStore } from "@/stores/quality-history-store";
 
 /** SSE connection status. */
@@ -44,13 +45,26 @@ export function useTopicsStream(enabled = true) {
 
     setStatus("connecting");
 
-    es.onopen = () => setStatus("connected");
+    // The first topic_stats after a (re)connect carries every row (the server
+    // diffs against an empty per-connection state) and must replace the list:
+    // after a backend restart, merging would leave rows from the server's
+    // previous life frozen in the UI. Later events carry only changed rows.
+    let replaceNext = true;
+
+    es.onopen = () => {
+      replaceNext = true;
+      setStatus("connected");
+    };
 
     es.addEventListener("topic_stats", (e) => {
-      const data: TopicInfo[] = JSON.parse(e.data);
-      queryClient.setQueryData(sseKeys.topicStats(), data);
-      // Accumulate quality time-series data.
-      useQualityHistoryStore.getState().push(data);
+      const changed: TopicInfo[] = JSON.parse(e.data);
+      const next = replaceNext
+        ? changed
+        : upsertTopicStats(queryClient.getQueryData<TopicInfo[]>(sseKeys.topicStats()) ?? [], changed);
+      replaceNext = false;
+      queryClient.setQueryData(sseKeys.topicStats(), next);
+      // The quality history advances every tick, even when no row changed.
+      useQualityHistoryStore.getState().push(next);
     });
 
     es.addEventListener("log", (e) => {
