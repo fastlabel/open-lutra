@@ -284,20 +284,31 @@ class TopicMonitorService:
             return sorted(self._subscribed_set)
 
     def on_discover_tick(self) -> None:
-        """Discover all topics on the DDS domain and subscribe to new ones."""
+        """Discover all topics on the DDS domain, subscribe to new ones, and prune vanished ones."""
         if self._subscriber is None:
             return
         topic_names_and_types = self._subscriber.discover_topics()
 
         with self._lock:
+            seen: set[str] = set()
             for name, types in topic_names_and_types:
                 if name in _SYSTEM_TOPICS or any(name.startswith(p) for p in _SYSTEM_TOPIC_PREFIXES):
                     continue
+                seen.add(name)
                 msg_type = types[0] if types else "unknown"
                 self._discovered_topics[name] = msg_type
 
                 if name in self._subscribed_topic_names and name not in self._subscribed_set:
                     self._subscribe_to_topic(name, msg_type)
+
+            # Prune topics that disappeared from DDS so the topic list (and the
+            # SSE payload built from it) does not grow for the process lifetime.
+            # Selected or config-declared topics are kept: their rows must stay
+            # visible, and their msg_type is still needed to resubscribe.
+            for name in list(self._discovered_topics):
+                if name in seen or name in self._subscribed_set or name in self._subscribed_topic_names:
+                    continue
+                del self._discovered_topics[name]
 
     def on_gap_check_tick(self) -> None:
         """Periodically check for topics that have stalled."""

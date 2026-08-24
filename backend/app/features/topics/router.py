@@ -16,6 +16,7 @@ from app.features.topics.schemas import (
     SubscriptionResponse,
     TopicsResponse,
 )
+from app.features.topics.stream import TopicStreamDiffer, build_topic_rows
 from app.shared.log_manager import get_log_manager
 
 logger = logging.getLogger(__name__)
@@ -169,34 +170,25 @@ async def topic_stream(request: Request, monitor: MonitorDep) -> StreamingRespon
     """SSE stream for real-time topic monitoring.
 
     Event types:
-      - topic_stats: topic statistics (1Hz)
+      - topic_stats: full topic-statistics snapshot (on connect + periodically)
+      - topic_stats_delta: rows changed/removed since the previous tick (1Hz)
       - log: new log entries (as they occur)
     """
     log_manager = get_log_manager()
 
     async def event_generator() -> AsyncGenerator[str, None]:
         last_log_id = 0
+        differ = TopicStreamDiffer()
 
         while True:
             if await request.is_disconnected():
                 break
 
-            # Send subscribed + discovered topics together (once per second).
-            stats = monitor.get_topic_stats()
-            discovered = monitor.get_discovered_topics()
-            # Merge unsubscribed topics as inactive entries.
-            all_topics = [s.model_dump(mode="json") for s in stats] + [
-                {
-                    "name": d.name,
-                    "msg_type": d.msg_type,
-                    "actual_hz": 0,
-                    "status": "inactive",
-                    "message_count": 0,
-                    "is_subscribed": False,
-                }
-                for d in discovered
-            ]
-            yield f"event: topic_stats\ndata: {json.dumps(all_topics)}\n\n"
+            # Send subscribed + discovered topics together (once per second):
+            # a full snapshot on connect and every few ticks, deltas in between.
+            rows = build_topic_rows(monitor.get_topic_stats(), monitor.get_discovered_topics())
+            event_name, payload = differ.next_event(rows)
+            yield f"event: {event_name}\ndata: {json.dumps(payload)}\n\n"
 
             # Send any new logs that arrived since the last check.
             new_logs = log_manager.get_logs_since(last_log_id)

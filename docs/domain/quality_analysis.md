@@ -108,7 +108,7 @@ A real-time graph of loss rate rendered with uPlot. The Y axis is inverted (0% a
 | Item | Details |
 |---|---|
 | Implementation | `TopicMonitor` (rclpy node) |
-| Delivery | SSE `topic_stats` event (every 1s) |
+| Delivery | SSE `topic_stats` snapshot + per-second `topic_stats_delta` diffs (see [sse.md](sse.md)) |
 | Gap detection | Emits a log immediately on occurrence (bottom Log tab) |
 
 #### When each metric updates

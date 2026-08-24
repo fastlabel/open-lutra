@@ -299,8 +299,10 @@ Two state-management approaches are used:
 
 ```
 SSE (/api/topics/stream)
-  ├─ topic_stats event (every second)
+  ├─ topic_stats event (full snapshot: on connect + every 10s)
   │   └─ queryClient.setQueryData(sseKeys.topicStats(), data)
+  ├─ topic_stats_delta event (every second: changed/removed rows only)
+  │   └─ queryClient.setQueryData(sseKeys.topicStats(), mergeTopicStatsDelta(prev, delta))
   └─ log event (as they occur)
       └─ queryClient.setQueryData(sseKeys.logs(), ...)
 

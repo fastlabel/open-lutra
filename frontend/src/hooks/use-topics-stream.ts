@@ -18,6 +18,7 @@ export interface LogEntry {
 }
 
 import { sseKeys } from "@/lib/query-keys";
+import { mergeTopicStatsDelta, type TopicStatsDelta } from "@/lib/topic-stats-delta";
 import { useQualityHistoryStore } from "@/stores/quality-history-store";
 
 /** SSE connection status. */
@@ -46,11 +47,21 @@ export function useTopicsStream(enabled = true) {
 
     es.onopen = () => setStatus("connected");
 
+    // Full snapshot (on connect + periodically): replace the whole list.
     es.addEventListener("topic_stats", (e) => {
       const data: TopicInfo[] = JSON.parse(e.data);
       queryClient.setQueryData(sseKeys.topicStats(), data);
       // Accumulate quality time-series data.
       useQualityHistoryStore.getState().push(data);
+    });
+
+    // Per-tick delta: merge changed/removed rows into the cached list.
+    es.addEventListener("topic_stats_delta", (e) => {
+      const delta: TopicStatsDelta = JSON.parse(e.data);
+      const merged = mergeTopicStatsDelta(queryClient.getQueryData<TopicInfo[]>(sseKeys.topicStats()) ?? [], delta);
+      queryClient.setQueryData(sseKeys.topicStats(), merged);
+      // The quality history advances every tick, even when no row changed.
+      useQualityHistoryStore.getState().push(merged);
     });
 
     es.addEventListener("log", (e) => {

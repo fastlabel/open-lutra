@@ -116,6 +116,52 @@ class TestOnDiscoverTick:
         service = TopicMonitorService(subscribed_topics=[], log_manager=log_manager)
         service.on_discover_tick()  # No exception raised
 
+    def test_prunes_vanished_unsubscribed_topic(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """An unsubscribed topic that disappears from DDS is dropped from the list."""
+        mock_subscriber.discover_topics.return_value = [
+            ("/camera/image", ["sensor_msgs/msg/Image"]),
+        ]
+        monitor.on_discover_tick()
+        assert len(monitor.get_discovered_topics()) == 1
+
+        mock_subscriber.discover_topics.return_value = []
+        monitor.on_discover_tick()
+        assert monitor.get_discovered_topics() == []
+
+    def test_keeps_vanished_selected_topic(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        """A selected (config-declared) topic keeps its discovered entry when its publisher vanishes.
+
+        The monitor fixture declares /joint_states as a subscribe target; a
+        failed subscribe leaves it discovered-but-unsubscribed, and pruning
+        must not make its row disappear.
+        """
+        mock_subscriber.subscribe_topic.return_value = None  # Subscribe fails
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+        assert [d.name for d in monitor.get_discovered_topics()] == ["/joint_states"]
+
+        mock_subscriber.discover_topics.return_value = []
+        monitor.on_discover_tick()
+        assert [d.name for d in monitor.get_discovered_topics()] == ["/joint_states"]
+
+    def test_keeps_stats_row_for_vanished_subscribed_topic(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """A subscribed topic whose publisher vanishes keeps its stats row (it will show as stalled)."""
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+        assert len(monitor.get_topic_stats()) == 1
+
+        mock_subscriber.discover_topics.return_value = []
+        monitor.on_discover_tick()
+        assert [s.name for s in monitor.get_topic_stats()] == ["/joint_states"]
+
 
 # ---------------------------------------------------------------------------
 # on_message
