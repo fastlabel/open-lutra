@@ -7,9 +7,10 @@ import { BulkExportButton } from "../ui/bulk-export-button";
 import { ExportDialog } from "../ui/export-dialog";
 
 // Mock the API layer so the test does not depend on generated hooks / network.
-const { mutateMock, jobMock } = vi.hoisted(() => ({
+const { mutateMock, jobMock, configMock } = vi.hoisted(() => ({
   mutateMock: vi.fn(),
   jobMock: vi.fn<() => unknown>(() => undefined),
+  configMock: vi.fn<() => unknown>(),
 }));
 
 vi.mock("@/api/generated/lerobot/lerobot", () => ({
@@ -17,10 +18,7 @@ vi.mock("@/api/generated/lerobot/lerobot", () => ({
 }));
 
 vi.mock("@/hooks/use-api", () => ({
-  useLeRobotConfig: () => ({
-    data: { configured: true, robot_type: "sim", cameras: ["cam"] },
-    isLoading: false,
-  }),
+  useLeRobotConfig: () => configMock(),
 }));
 
 // The dialog tracks the enqueued job via useJob; mock it (no QueryClient in this test).
@@ -36,6 +34,11 @@ beforeEach(() => {
   mutateMock.mockReset();
   jobMock.mockReset();
   jobMock.mockReturnValue(undefined);
+  configMock.mockReset();
+  configMock.mockReturnValue({
+    data: { configured: true, robot_type: "sim", cameras: ["cam"] },
+    isLoading: false,
+  });
 });
 
 afterEach(() => {
@@ -52,6 +55,26 @@ describe("BulkExportButton", () => {
     useRecordingsStore.setState({ checkedFolders: new Set(["rec1", "rec2"]) });
     renderButton();
     expect(screen.getByRole("button", { name: /Export to LeRobot/ })).toBeInTheDocument();
+  });
+
+  it("disables the button when the recording config has no lerobot_export mapping", () => {
+    configMock.mockReturnValue({
+      data: { configured: false, robot_type: null, cameras: [] },
+      isLoading: false,
+    });
+    useRecordingsStore.setState({ checkedFolders: new Set(["rec1"]) });
+    renderButton();
+    const button = screen.getByRole("button", { name: /Export to LeRobot/ });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.queryByRole("heading", { name: "Export to LeRobot" })).not.toBeInTheDocument();
+  });
+
+  it("disables the button while the lerobot config is still loading", () => {
+    configMock.mockReturnValue({ data: undefined, isLoading: true });
+    useRecordingsStore.setState({ checkedFolders: new Set(["rec1"]) });
+    renderButton();
+    expect(screen.getByRole("button", { name: /Export to LeRobot/ })).toBeDisabled();
   });
 
   it("opens the export dialog with the output field", () => {
