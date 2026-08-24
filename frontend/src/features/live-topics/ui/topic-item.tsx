@@ -1,5 +1,6 @@
 /** Row component for the topic list (single-line layout). */
 
+import { memo } from "react";
 import type { TopicInfo } from "@/api/generated/schemas";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsRecording, useUpdateSubscriptions } from "@/hooks/use-api";
@@ -44,7 +45,16 @@ function HzLabel({ topic }: { topic: TopicInfo }) {
   return <span>{actual_hz.toFixed(0)}Hz</span>;
 }
 
-export function TopicItem({ topic, isMissing = false }: { topic: TopicInfo; isMissing?: boolean }) {
+/** Memoized: SSE writes go through TanStack Query structural sharing, so the
+ * `topic` reference only changes for rows whose values actually changed —
+ * memo keeps the other ~100 rows from re-rendering on every 1Hz tick. */
+export const TopicItem = memo(function TopicItem({
+  topic,
+  isMissing = false,
+}: {
+  topic: TopicInfo;
+  isMissing?: boolean;
+}) {
   const isSelected = useLiveTopicsStore((s) => s.selectedTopics.has(topic.name));
   const isPreviewed = useLiveTopicsStore((s) => s.previewedTopics.includes(topic.name));
   const isLive = useLiveTopicsStore((s) => s.isLive);
@@ -98,4 +108,4 @@ export function TopicItem({ topic, isMissing = false }: { topic: TopicInfo; isMi
       </div>
     </div>
   );
-}
+});
