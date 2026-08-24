@@ -171,7 +171,6 @@ function thresholdPlugin(): uPlot.Plugin {
 export function LossRateChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const uplotRef = useRef<uPlot | null>(null);
-  const prevKeyRef = useRef("");
   const snapshots = useQualityHistoryStore((state) => state.snapshots);
   const allTopicNames = useQualityHistoryStore((state) => state.topicNames);
   const markers = useQualityHistoryStore((state) => state.markers);
@@ -184,20 +183,16 @@ export function LossRateChart() {
 
   const scrollOffsetRef = useRef<number | null>(null);
 
+  // The instance is recreated only when the series composition changes, so the
+  // effect keys off this string instead of the array/data references (per-second
+  // snapshot pushes must not destroy and rebuild the canvas — data updates go
+  // through the setData effect below).
+  const topicsKey = topicNames.join(",");
+
   // Create/recreate the uPlot instance
+  // biome-ignore lint/correctness/useExhaustiveDependencies: topicNames is fully represented by topicsKey; initial data is read from the store on purpose
   useEffect(() => {
     if (!containerRef.current || topicNames.length === 0) return;
-
-    const key = topicNames.join(",");
-    if (uplotRef.current && prevKeyRef.current === key) {
-      return;
-    }
-    prevKeyRef.current = key;
-
-    if (uplotRef.current) {
-      uplotRef.current.destroy();
-      uplotRef.current = null;
-    }
 
     const series: uPlot.Series[] = [
       { label: "Time", value: (_u, v) => (v != null ? fmtElapsed(v) : "--") },
@@ -242,14 +237,17 @@ export function LossRateChart() {
       legend: { show: false },
     };
 
-    uplotRef.current = new uPlot(opts, buildLossRateData(snapshots, topicNames), containerRef.current);
+    uplotRef.current = new uPlot(
+      opts,
+      buildLossRateData(useQualityHistoryStore.getState().snapshots, topicNames),
+      containerRef.current,
+    );
 
     return () => {
       uplotRef.current?.destroy();
       uplotRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topicNames, snapshots]);
+  }, [topicsKey]);
 
   // Data updates + 30-second window control
   useEffect(() => {
