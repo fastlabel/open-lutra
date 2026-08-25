@@ -20,16 +20,8 @@ import { useLeRobotConfig } from "@/hooks/use-api";
 import { useJob } from "@/hooks/use-jobs-stream";
 
 /** Active robot mapping summary shown above the output-name field. */
-function MappingInfo({ config, loading }: { config: LeRobotConfigResponse | undefined; loading: boolean }) {
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
-  if (!config?.configured) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No <code>lerobot_export</code> mapping in the active recording config. Add one to the recording config YAML to
-        enable export.
-      </div>
-    );
-  }
+function MappingInfo({ config }: { config: LeRobotConfigResponse | undefined }) {
+  if (!config?.configured) return null;
   return (
     <div className="text-sm text-muted-foreground">
       {config.robot_type} · cameras: {config.cameras.join(", ") || "(none)"}
@@ -92,7 +84,7 @@ export function ExportDialog({
   onExported: () => void;
 }) {
   // --- Server state ---
-  const { data: config, isLoading: configLoading } = useLeRobotConfig();
+  const { data: config } = useLeRobotConfig();
   const mutation = useStartLeRobotExport();
 
   // --- Local state (reset each time the dialog opens) ---
@@ -111,8 +103,8 @@ export function ExportDialog({
     }
   }, [open]);
 
-  const configured = config?.configured ?? false;
-  const canSubmit = configured && outputName.trim() !== "" && folders.length > 0 && !mutation.isPending;
+  const canSubmit =
+    (config?.configured ?? false) && outputName.trim() !== "" && folders.length > 0 && !mutation.isPending;
 
   const handleExport = () => {
     setSubmitError(null);
@@ -156,7 +148,7 @@ export function ExportDialog({
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Mapping</Label>
-                <MappingInfo config={config} loading={configLoading} />
+                <MappingInfo config={config} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lerobot-output">Output name</Label>
@@ -165,7 +157,6 @@ export function ExportDialog({
                   value={outputName}
                   onChange={(e) => setOutputName(e.target.value)}
                   placeholder="e.g. pick_and_place_v1"
-                  disabled={!configured}
                   autoFocus
                 />
                 <p className="text-[13px] text-muted-foreground">Written to _lerobot_exports/&lt;name&gt;/</p>
