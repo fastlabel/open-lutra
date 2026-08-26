@@ -1,0 +1,3701 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenLUTRA",
+    "description": "ROS2 topic recorder for teleoperation robots (ROS2-standard topics)",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/recording/start": {
+      "post": {
+        "tags": [
+          "recording"
+        ],
+        "summary": "Start Recording",
+        "description": "Start recording ROS2 topics.",
+        "operationId": "startRecording",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingStartRequest",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingStartResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already recording"
+          },
+          "500": {
+            "description": "Failed to start recording"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recording/stop": {
+      "post": {
+        "tags": [
+          "recording"
+        ],
+        "summary": "Stop Recording",
+        "description": "Stop the recording and kick off quality analysis in the background.",
+        "operationId": "stopRecording",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingStopResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not currently recording"
+          }
+        }
+      }
+    },
+    "/api/recording/status": {
+      "get": {
+        "tags": [
+          "recording"
+        ],
+        "summary": "Get Recording Status",
+        "description": "Return the current recording status.",
+        "operationId": "getRecordingStatus",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recordings": {
+      "get": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "List Recordings",
+        "description": "List recording folders directly under the output directory.",
+        "operationId": "getRecordings",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "Delete Recordings",
+        "description": "Delete multiple recording folders in one call.",
+        "operationId": "deleteRecordings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recordings/task-names": {
+      "get": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "List Task Names",
+        "description": "Return previously-used task_name values, deduped and most-recent first.\n\nPowers the autocomplete on the recording-start form.",
+        "operationId": "getRecordingTaskNames",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskNamesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recordings/rename": {
+      "put": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "Rename Recording",
+        "description": "Rename the recording folder and its mcap files.",
+        "operationId": "renameRecording",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenameResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recordings/{name}": {
+      "patch": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "Update Recording Meta Endpoint",
+        "description": "Partially update task_name / tags in recording_meta.json.\n\nCreates the file on PATCH even for older recording folders that do\nnot yet have one.",
+        "operationId": "updateRecordingMeta",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMetaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateMetaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics": {
+      "get": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "List Topics",
+        "description": "List statistics for all topics.",
+        "operationId": "getTopics",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/message": {
+      "get": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Get Latest Message",
+        "description": "Return the latest message data for the given topic.\n\nOn-demand capture mode: the first request only raises a flag and returns\nnull; the next received message populates ``latest_message``. Clients\nre-fetch via ``refetchInterval`` to pick up the actual data. The contents\nof ``message`` depend on the ROS message type (``msg_type``) and the\nstructure varies dynamically.",
+        "operationId": "getTopicMessage",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Topic name (e.g. /joint_states)",
+              "title": "Topic"
+            },
+            "description": "Topic name (e.g. /joint_states)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestMessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/image/stream": {
+      "get": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Stream Topic Image",
+        "description": "MJPEG stream: deliver an image topic in real time.\n\nStreams at 30fps while in Live mode, and 2fps otherwise.",
+        "operationId": "streamTopicImage",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Image topic name",
+              "title": "Topic"
+            },
+            "description": "Image topic name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/live/start": {
+      "post": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Start Live",
+        "description": "Start Live mode for the given topic.",
+        "operationId": "startLive",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target topic for Live mode",
+              "title": "Topic"
+            },
+            "description": "Target topic for Live mode"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveToggleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/live/stop": {
+      "post": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Stop Live",
+        "description": "Stop Live mode.",
+        "operationId": "stopLive",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target topic for Live mode",
+              "title": "Topic"
+            },
+            "description": "Target topic for Live mode"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveToggleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/live/stream": {
+      "get": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Stream Live Positions",
+        "description": "SSE stream: deliver sensor positions captured in Live mode at 30fps.",
+        "operationId": "streamLivePositions",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Sensor topic name",
+              "title": "Topic"
+            },
+            "description": "Sensor topic name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/reset-baseline": {
+      "post": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Reset Baseline",
+        "description": "Reset baseline Hz and quality metrics for all topics.",
+        "operationId": "resetBaseline",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/topics/pause": {
+      "post": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Pause Monitor",
+        "description": "Pause real-time monitoring.",
+        "operationId": "pauseMonitor",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/topics/resume": {
+      "post": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Resume Monitor",
+        "description": "Resume real-time monitoring.",
+        "operationId": "resumeMonitor",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/topics/subscriptions": {
+      "put": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Update Subscriptions",
+        "description": "Update the set of subscribed topics being monitored.",
+        "operationId": "updateSubscriptions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topics/stream": {
+      "get": {
+        "tags": [
+          "topics"
+        ],
+        "summary": "Topic Stream",
+        "description": "SSE stream for real-time topic monitoring.\n\nEvent types:\n  - topic_stats: topic statistics (1Hz)\n  - log: new log entries (as they occur)",
+        "operationId": "topicStream",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Config",
+        "description": "Expose application configuration to the frontend.",
+        "operationId": "getConfig",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/memory": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Memory",
+        "description": "Get the memory usage of the backend process.",
+        "operationId": "getMemory",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/quality": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Quality",
+        "description": "Get the MCAP file quality report (no side effects).\n\nReturns the cached report if available, otherwise returns only the\ncurrent status. To kick off analysis, use POST /api/analysis/quality/analyze.",
+        "operationId": "getQuality",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/quality/analyze": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Start Quality Analysis",
+        "description": "Start quality analysis (idempotent: returns the existing job status if already running).",
+        "operationId": "startQualityAnalysis",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/timeline": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Timeline",
+        "description": "Get the timeline data (no side effects).\n\nReturns cached data if available, otherwise returns only the current\nstatus. To kick off analysis, use POST /api/analysis/timeline/analyze.",
+        "operationId": "getTimeline",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/timeline/analyze": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Start Timeline Analysis",
+        "description": "Start timeline analysis (idempotent: returns the existing job status if already running).",
+        "operationId": "startTimelineAnalysis",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/timeline/messages": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Timeline Messages",
+        "description": "Get message details for the specified time range (used for rug plots).\n\nRead from MCAP each time without caching. Use this for narrow time ranges.",
+        "operationId": "getTimelineMessages",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Topic"
+            }
+          },
+          {
+            "name": "from_sec",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "From Sec"
+            }
+          },
+          {
+            "name": "to_sec",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "To Sec"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagesDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/video": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get Video Status",
+        "description": "Return the MP4 generation status (no side effects).\n\nIf MP4 files already exist, returns the file list.\nGeneration is triggered via POST /api/media/video/generate.",
+        "operationId": "getVideoStatus",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/video/generate": {
+      "post": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Start Video Generation",
+        "description": "Start MP4 generation (idempotent: returns the existing job status if already running).",
+        "operationId": "startVideoGeneration",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/video/file": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get Video File",
+        "description": "Stream a generated MP4 file.",
+        "operationId": "getVideoFile",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/joints": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get Joints",
+        "description": "Return JointState time-series data.\n\nDecodes JointState messages from MCAP and returns a position time series.\nUse decimation to down-sample (default: 1 = all data).",
+        "operationId": "getJoints",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Topic"
+            }
+          },
+          {
+            "name": "decimation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Decimation"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JointTopicsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "List Jobs",
+        "description": "Get the current job list (active + history).",
+        "operationId": "getJobs",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/stream": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Stream Jobs",
+        "description": "Stream job status changes over SSE.\n\nSends the current queue snapshot on connect, then streams status change events.",
+        "operationId": "streamJobs",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validation": {
+      "get": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Get Validation",
+        "description": "Return the cached validation report (no side effects).\n\nTrigger a new run via POST /api/validation/analyze.",
+        "operationId": "getValidation",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validation/analyze": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Start Validation",
+        "description": "Trigger validation (idempotent: returns the existing job's status if running).",
+        "operationId": "startValidation",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lerobot/config": {
+      "get": {
+        "tags": [
+          "lerobot"
+        ],
+        "summary": "Get Config",
+        "description": "Return the active robot's LeRobot export mapping summary for the dialog.",
+        "operationId": "getLeRobotConfig",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeRobotConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lerobot/export": {
+      "post": {
+        "tags": [
+          "lerobot"
+        ],
+        "summary": "Start Export",
+        "description": "Validate the selection and enqueue a LeRobot export job.",
+        "operationId": "startLeRobotExport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lerobot/exports/{name}/download": {
+      "get": {
+        "tags": [
+          "lerobot"
+        ],
+        "summary": "Download Export",
+        "description": "Bundle an exported dataset into a single zip and stream it for download.",
+        "operationId": "downloadLeRobotExport",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload": {
+      "get": {
+        "tags": [
+          "upload"
+        ],
+        "summary": "Get Upload",
+        "description": "Return the current upload state (no side effects).\n\nTrigger an upload via ``POST /api/upload/start``.",
+        "operationId": "getUpload",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/start": {
+      "post": {
+        "tags": [
+          "upload"
+        ],
+        "summary": "Start Upload",
+        "description": "Trigger an upload.\n\nIdempotent: returns the existing job's status when one is already\nrunning. When no job is active this always overwrites the previously\nuploaded object (no skip-if-cached, per issue #6).",
+        "operationId": "startUpload",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Relative path inside the output directory",
+              "title": "Path"
+            },
+            "description": "Relative path inside the output directory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/start-bulk": {
+      "post": {
+        "tags": [
+          "upload"
+        ],
+        "summary": "Start Bulk Upload",
+        "description": "Enqueue uploads for multiple recordings in one call.\n\nReturns 400 when the upload feature is not fully configured (destination\nmissing or key template invalid). Per-folder errors (invalid path,\nmissing directory) are reported as ``failed`` entries inside ``results``\nwithout aborting the rest of the batch.",
+        "operationId": "startBulkUpload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkUploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BulkUploadRequest": {
+        "properties": {
+          "folders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Folders",
+            "description": "Recording folder names to enqueue for upload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "folders"
+        ],
+        "title": "BulkUploadRequest",
+        "description": "Request body for ``POST /api/upload/start-bulk``."
+      },
+      "BulkUploadResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BulkUploadResultItem"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "title": "BulkUploadResponse",
+        "description": "Response for ``POST /api/upload/start-bulk``.\n\nBest-effort: each requested folder is reported in ``results`` regardless of\nwhether the enqueue succeeded. Order matches the request's ``folders`` list.\n\nGlobal configuration errors (destination not set / key template invalid)\nare surfaced as HTTP 400 by the service rather than as per-folder failures,\nsince they would otherwise be repeated identically across every entry."
+      },
+      "BulkUploadResultItem": {
+        "properties": {
+          "folder": {
+            "type": "string",
+            "title": "Folder"
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^(uploading|failed)$",
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "folder",
+          "status",
+          "error"
+        ],
+        "title": "BulkUploadResultItem",
+        "description": "Per-folder outcome inside a bulk-upload response.\n\n* ``uploading`` \u2014 the folder was enqueued, or an upload was already in flight\n  for it (the existing job is returned per the queue's dedup guard).\n* ``failed`` \u2014 the folder could not be enqueued (path traversal, missing\n  directory). The reason is in ``error``."
+      },
+      "ConfigResponse": {
+        "properties": {
+          "ros_domain_id": {
+            "type": "integer",
+            "title": "Ros Domain Id"
+          },
+          "robot_name": {
+            "type": "string",
+            "title": "Robot Name"
+          },
+          "default_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Default Topics"
+          },
+          "stamp_quality": {
+            "type": "boolean",
+            "title": "Stamp Quality"
+          },
+          "upload_enabled": {
+            "type": "boolean",
+            "title": "Upload Enabled"
+          },
+          "metadata_fields": {
+            "items": {
+              "$ref": "#/components/schemas/MetadataFieldResponse"
+            },
+            "type": "array",
+            "title": "Metadata Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ros_domain_id",
+          "robot_name",
+          "default_topics",
+          "stamp_quality",
+          "upload_enabled",
+          "metadata_fields"
+        ],
+        "title": "ConfigResponse",
+        "description": "Response for GET /api/config."
+      },
+      "DeleteRequest": {
+        "properties": {
+          "folders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Folders",
+            "description": "Names of recording folders to delete"
+          }
+        },
+        "type": "object",
+        "required": [
+          "folders"
+        ],
+        "title": "DeleteRequest",
+        "description": "Request body for DELETE /api/recordings."
+      },
+      "DeleteResponse": {
+        "properties": {
+          "deleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deleted"
+        ],
+        "title": "DeleteResponse",
+        "description": "Response for DELETE /api/recordings."
+      },
+      "DiscoveredTopic": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "msg_type": {
+            "type": "string",
+            "title": "Msg Type"
+          },
+          "is_subscribed": {
+            "type": "boolean",
+            "title": "Is Subscribed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "msg_type",
+          "is_subscribed"
+        ],
+        "title": "DiscoveredTopic",
+        "description": "A topic discovered in the DDS domain that has not yet been subscribed."
+      },
+      "ExportRequest": {
+        "properties": {
+          "folders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Folders",
+            "description": "Recording folder names; each becomes one episode"
+          },
+          "output_name": {
+            "type": "string",
+            "title": "Output Name",
+            "description": "Dataset directory name under _lerobot_exports/"
+          }
+        },
+        "type": "object",
+        "required": [
+          "folders",
+          "output_name"
+        ],
+        "title": "ExportRequest",
+        "description": "Request body for POST /api/lerobot/export."
+      },
+      "ExportResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "output_name": {
+            "type": "string",
+            "title": "Output Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Job status (queued / running / completed / failed)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "output_name",
+          "status"
+        ],
+        "title": "ExportResponse",
+        "description": "Response for POST /api/lerobot/export."
+      },
+      "FileEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Recording folder name"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path relative to output_dir"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Total size of files in the folder (bytes)"
+          },
+          "modified_at": {
+            "type": "number",
+            "title": "Modified At",
+            "description": "mtime of the folder itself (UNIX seconds)"
+          },
+          "topic_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Count"
+          },
+          "recording_start_ns": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recording Start Ns"
+          },
+          "duration_ns": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ns"
+          },
+          "message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Count"
+          },
+          "has_quality_report": {
+            "type": "boolean",
+            "title": "Has Quality Report",
+            "description": "Whether quality_report.json exists"
+          },
+          "validation_overall_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Overall Status",
+            "description": "Overall validation status from validation_result.json (pass / warn / fail / error). null when no validation report exists."
+          },
+          "upload_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Status",
+            "description": "Latest upload status from upload_state.json (idle / uploading / uploaded / failed). null when no upload state exists."
+          },
+          "task_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Name"
+          },
+          "recording_config_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recording Config Name"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "size",
+          "modified_at",
+          "topic_count",
+          "recording_start_ns",
+          "duration_ns",
+          "message_count",
+          "has_quality_report",
+          "validation_overall_status",
+          "upload_status",
+          "task_name",
+          "recording_config_name",
+          "tags",
+          "metadata"
+        ],
+        "title": "FileEntry",
+        "description": "Metadata for a single recording folder.\n\nRepresents one subdirectory (= recording folder) under `output_dir`. By\ndesign a recording folder holds a flat set of files with no nested\nhierarchy, so the API does not expose the child file list \u2014 it returns\nonly the flags and total size needed by the UI."
+      },
+      "FilesResponse": {
+        "properties": {
+          "output_dir": {
+            "type": "string",
+            "title": "Output Dir"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/FileEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "output_dir",
+          "entries"
+        ],
+        "title": "FilesResponse",
+        "description": "Response for GET /api/recordings."
+      },
+      "GapInfo": {
+        "properties": {
+          "timestamp_sec": {
+            "type": "number",
+            "title": "Timestamp Sec",
+            "description": "Seconds elapsed since recording start"
+          },
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec",
+            "description": "Gap length in seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp_sec",
+          "duration_sec"
+        ],
+        "title": "GapInfo",
+        "description": "Timestamp gap information (legacy, fixed-multiplier based)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse",
+        "description": "Response for GET /api/health."
+      },
+      "JobProgressSchema": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "title": "Step"
+          },
+          "step_label": {
+            "type": "string",
+            "title": "Step Label"
+          },
+          "current": {
+            "type": "integer",
+            "title": "Current"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "step_label",
+          "current",
+          "total"
+        ],
+        "title": "JobProgressSchema",
+        "description": "API schema for job progress."
+      },
+      "JobSchema": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Job type (quality / timeline)"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Job status (queued / running / completed / failed)"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/JobProgressSchema"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "type",
+          "folder",
+          "status",
+          "progress",
+          "error",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "JobSchema",
+        "description": "API schema for a job."
+      },
+      "JobsResponse": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobSchema"
+            },
+            "type": "array",
+            "title": "Jobs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobs"
+        ],
+        "title": "JobsResponse",
+        "description": "Response for GET /api/jobs."
+      },
+      "JointData": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "joint_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Joint Names"
+          },
+          "timestamps": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Timestamps",
+            "description": "Seconds relative to the recording start"
+          },
+          "positions": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Positions",
+            "description": "Position array at each timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "joint_names",
+          "timestamps",
+          "positions"
+        ],
+        "title": "JointData",
+        "description": "JointState time-series data."
+      },
+      "JointTopicsResponse": {
+        "properties": {
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/JointData"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topics"
+        ],
+        "title": "JointTopicsResponse",
+        "description": "Response for GET /api/files/joints."
+      },
+      "LatestMessageResponse": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "ROS-message-type-dependent dict; null when no message has been received yet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "LatestMessageResponse",
+        "description": "Response for GET /api/topics/message.\n\nBecause capture is on-demand, `message` is null on the first request and\nbefore any message has been received. Clients should treat null as\n\"waiting for the next message to arrive\"."
+      },
+      "LeRobotConfigResponse": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured",
+            "description": "Whether the active recording config declares a lerobot_export mapping"
+          },
+          "robot_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Robot Type",
+            "description": "Robot type from the mapping (null when not configured)"
+          },
+          "cameras": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cameras",
+            "description": "Camera names produced by the mapping (empty when not configured)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured",
+          "robot_type",
+          "cameras"
+        ],
+        "title": "LeRobotConfigResponse",
+        "description": "The active robot's LeRobot export mapping summary (for the export dialog)."
+      },
+      "LiveToggleResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(started|stopped)$",
+            "title": "Status",
+            "description": "Result of the Live mode transition"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Target topic name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "topic"
+        ],
+        "title": "LiveToggleResponse",
+        "description": "Response for POST /api/topics/live/start and POST /api/topics/live/stop."
+      },
+      "LossEvent": {
+        "properties": {
+          "timestamp_sec": {
+            "type": "number",
+            "title": "Timestamp Sec",
+            "description": "Seconds elapsed since recording start"
+          },
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec",
+            "description": "Length of the empty interval in seconds"
+          },
+          "lost_count": {
+            "type": "integer",
+            "title": "Lost Count",
+            "description": "Estimated number of lost messages"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "minor(1-2) / major(3+)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp_sec",
+          "duration_sec",
+          "lost_count",
+          "severity"
+        ],
+        "title": "LossEvent",
+        "description": "Message loss event (IQR statistical threshold + rounded estimate).\n\nWhen used with header.stamp timestamps, jitter is removed so loss\ndetection is highly accurate."
+      },
+      "MemoryInfo": {
+        "properties": {
+          "used_bytes": {
+            "type": "integer",
+            "title": "Used Bytes"
+          },
+          "limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "used_bytes",
+          "limit_bytes"
+        ],
+        "title": "MemoryInfo",
+        "description": "Response for GET /api/system/memory."
+      },
+      "MessageDetailItem": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "timestamp_sec": {
+            "type": "number",
+            "title": "Timestamp Sec"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "timestamp_sec",
+          "size_bytes"
+        ],
+        "title": "MessageDetailItem",
+        "description": "Per-message info used by the rug plot."
+      },
+      "MessageSizeStats": {
+        "properties": {
+          "min_bytes": {
+            "type": "integer",
+            "title": "Min Bytes"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "title": "Max Bytes"
+          },
+          "avg_bytes": {
+            "type": "integer",
+            "title": "Avg Bytes"
+          },
+          "std_bytes": {
+            "type": "number",
+            "title": "Std Bytes"
+          },
+          "zero_size_count": {
+            "type": "integer",
+            "title": "Zero Size Count",
+            "description": "Number of zero-byte messages (possibly malformed frames)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_bytes",
+          "max_bytes",
+          "avg_bytes",
+          "std_bytes",
+          "zero_size_count"
+        ],
+        "title": "MessageSizeStats",
+        "description": "Message size statistics."
+      },
+      "MessagesDetailResponse": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "expected_hz": {
+            "type": "number",
+            "title": "Expected Hz"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageDetailItem"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "expected_hz",
+          "messages"
+        ],
+        "title": "MessagesDetailResponse",
+        "description": "Response body for GET /api/analysis/timeline/messages."
+      },
+      "MetadataFieldOptionResponse": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "MetadataFieldOptionResponse",
+        "description": "A selectable value for a pre-registered metadata field."
+      },
+      "MetadataFieldResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "select",
+              "number",
+              "text"
+            ],
+            "title": "Type"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/MetadataFieldOptionResponse"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "type",
+          "pattern",
+          "placeholder",
+          "options"
+        ],
+        "title": "MetadataFieldResponse",
+        "description": "A pre-registered metadata field the operator sets before recording."
+      },
+      "QualityReport": {
+        "properties": {
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec"
+          },
+          "total_messages": {
+            "type": "integer",
+            "title": "Total Messages"
+          },
+          "total_topics": {
+            "type": "integer",
+            "title": "Total Topics"
+          },
+          "file_size_bytes": {
+            "type": "integer",
+            "title": "File Size Bytes"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicQuality"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_sec",
+          "total_messages",
+          "total_topics",
+          "file_size_bytes",
+          "topics"
+        ],
+        "title": "QualityReport",
+        "description": "Overall quality report."
+      },
+      "QualityResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(ready|analyzing|not_found|error)$",
+            "title": "Status"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "report",
+          "error"
+        ],
+        "title": "QualityResponse",
+        "description": "Response body for GET /api/analysis/quality."
+      },
+      "RecordingStartRequest": {
+        "properties": {
+          "topics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topics",
+            "description": "Topics to record. If None, the default configuration is used."
+          },
+          "task_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Name",
+            "description": "Task name. When provided, used as a prefix for the recording directory name."
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Pre-registered metadata (key -> value) persisted into recording_meta.json."
+          }
+        },
+        "type": "object",
+        "title": "RecordingStartRequest",
+        "description": "Recording start request."
+      },
+      "RecordingStartResponse": {
+        "properties": {
+          "output_path": {
+            "type": "string",
+            "title": "Output Path"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "output_path",
+          "start_time"
+        ],
+        "title": "RecordingStartResponse",
+        "description": "Recording start response."
+      },
+      "RecordingStatus": {
+        "properties": {
+          "is_recording": {
+            "type": "boolean",
+            "title": "Is Recording"
+          },
+          "output_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Path"
+          },
+          "start_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time"
+          },
+          "elapsed_sec": {
+            "type": "number",
+            "title": "Elapsed Sec"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_recording",
+          "output_path",
+          "start_time",
+          "elapsed_sec"
+        ],
+        "title": "RecordingStatus",
+        "description": "Current recording status."
+      },
+      "RecordingStopResponse": {
+        "properties": {
+          "output_path": {
+            "type": "string",
+            "title": "Output Path"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec"
+          }
+        },
+        "type": "object",
+        "required": [
+          "output_path",
+          "start_time",
+          "end_time",
+          "duration_sec"
+        ],
+        "title": "RecordingStopResponse",
+        "description": "Recording stop response."
+      },
+      "RenameRequest": {
+        "properties": {
+          "old_name": {
+            "type": "string",
+            "title": "Old Name",
+            "description": "Name of the recording folder to rename"
+          },
+          "new_name": {
+            "type": "string",
+            "title": "New Name",
+            "description": "New folder name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "old_name",
+          "new_name"
+        ],
+        "title": "RenameRequest",
+        "description": "Request body for PUT /api/recordings/rename."
+      },
+      "RenameResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RenameResponse",
+        "description": "Response for PUT /api/recordings/rename."
+      },
+      "SubscriptionRequest": {
+        "properties": {
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics",
+            "description": "List of topic names to subscribe to"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topics"
+        ],
+        "title": "SubscriptionRequest",
+        "description": "Request body for PUT /api/topics/subscriptions."
+      },
+      "SubscriptionResponse": {
+        "properties": {
+          "subscribed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Subscribed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subscribed"
+        ],
+        "title": "SubscriptionResponse",
+        "description": "Response for PUT /api/topics/subscriptions."
+      },
+      "TaskNamesResponse": {
+        "properties": {
+          "task_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Task Names",
+            "description": "Deduped list of task_name values (most recent first)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_names"
+        ],
+        "title": "TaskNamesResponse",
+        "description": "Response for GET /api/recordings/task-names.\n\nReturns task_name values collected from existing recordings, ordered\nby most recently used. Used to power autocomplete on the frontend's\nrecording-start form."
+      },
+      "TimelineBin": {
+        "properties": {
+          "t": {
+            "type": "number",
+            "title": "T",
+            "description": "Bin start time (seconds since recording start)"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Actual number of messages in the bin"
+          },
+          "expected": {
+            "type": "number",
+            "title": "Expected",
+            "description": "Expected number of messages in the bin (float)"
+          },
+          "has_gap": {
+            "type": "boolean",
+            "title": "Has Gap",
+            "description": "Whether this bin contains a major loss (3+ frames)"
+          },
+          "has_minor_loss": {
+            "type": "boolean",
+            "title": "Has Minor Loss",
+            "description": "Whether this bin contains a minor loss (1-2 frames)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "t",
+          "count",
+          "expected",
+          "has_gap",
+          "has_minor_loss"
+        ],
+        "title": "TimelineBin",
+        "description": "A single timeline bin."
+      },
+      "TimelineData": {
+        "properties": {
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec"
+          },
+          "bin_width_sec": {
+            "type": "number",
+            "title": "Bin Width Sec"
+          },
+          "recording_start_ns": {
+            "type": "integer",
+            "title": "Recording Start Ns",
+            "description": "Recording start time (ns, header.stamp based). Origin for the rug plot's relative time display. 0 means legacy cache."
+          },
+          "log_time_offset_ns": {
+            "type": "integer",
+            "title": "Log Time Offset Ns",
+            "description": "Difference between log_time and header.stamp (ns). Adding this to recording_start_ns produces the filter range used against the MCAP log_time chunk index. Needed to correctly scan time ranges when the robot clock is not NTP-synced and drifts significantly."
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineTopic"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_sec",
+          "bin_width_sec",
+          "recording_start_ns",
+          "log_time_offset_ns",
+          "topics"
+        ],
+        "title": "TimelineData",
+        "description": "Overall timeline data."
+      },
+      "TimelineGap": {
+        "properties": {
+          "start_sec": {
+            "type": "number",
+            "title": "Start Sec"
+          },
+          "end_sec": {
+            "type": "number",
+            "title": "End Sec"
+          },
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec"
+          },
+          "lost_count": {
+            "type": "integer",
+            "title": "Lost Count",
+            "description": "Estimated number of lost messages"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "minor (1-2 frames) / major (3+ frames)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_sec",
+          "end_sec",
+          "duration_sec",
+          "lost_count",
+          "severity"
+        ],
+        "title": "TimelineGap",
+        "description": "Loss event on the timeline (IQR statistics based)."
+      },
+      "TimelineResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(ready|analyzing|not_found|error)$",
+            "title": "Status"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimelineData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TimelineResponse",
+        "description": "Response body for GET /api/analysis/timeline."
+      },
+      "TimelineTopic": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "msg_type": {
+            "type": "string",
+            "title": "Msg Type"
+          },
+          "expected_hz": {
+            "type": "number",
+            "title": "Expected Hz"
+          },
+          "bins": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineBin"
+            },
+            "type": "array",
+            "title": "Bins"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineGap"
+            },
+            "type": "array",
+            "title": "Gaps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "msg_type",
+          "expected_hz",
+          "bins",
+          "gaps"
+        ],
+        "title": "TimelineTopic",
+        "description": "Per-topic timeline data."
+      },
+      "TopicInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "msg_type": {
+            "type": "string",
+            "title": "Msg Type"
+          },
+          "actual_hz": {
+            "type": "number",
+            "title": "Actual Hz"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count"
+          },
+          "is_subscribed": {
+            "type": "boolean",
+            "title": "Is Subscribed"
+          },
+          "baseline_hz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Hz"
+          },
+          "baseline_fixed": {
+            "type": "boolean",
+            "title": "Baseline Fixed"
+          },
+          "loss_rate": {
+            "type": "number",
+            "title": "Loss Rate"
+          },
+          "drop_count": {
+            "type": "integer",
+            "title": "Drop Count"
+          },
+          "continuity_score": {
+            "type": "number",
+            "title": "Continuity Score"
+          },
+          "qos_reliability": {
+            "type": "string",
+            "title": "Qos Reliability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "msg_type",
+          "actual_hz",
+          "status",
+          "message_count",
+          "is_subscribed",
+          "baseline_hz",
+          "baseline_fixed",
+          "loss_rate",
+          "drop_count",
+          "continuity_score",
+          "qos_reliability"
+        ],
+        "title": "TopicInfo",
+        "description": "Information about a monitored topic."
+      },
+      "TopicQuality": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "msg_type": {
+            "type": "string",
+            "title": "Msg Type"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count"
+          },
+          "actual_frequency_hz": {
+            "type": "number",
+            "title": "Actual Frequency Hz"
+          },
+          "expected_frequency_hz": {
+            "type": "number",
+            "title": "Expected Frequency Hz"
+          },
+          "loss_rate": {
+            "type": "number",
+            "title": "Loss Rate"
+          },
+          "frequency_std_hz": {
+            "type": "number",
+            "title": "Frequency Std Hz"
+          },
+          "data_continuity_score": {
+            "type": "number",
+            "title": "Data Continuity Score"
+          },
+          "gap_count": {
+            "type": "integer",
+            "title": "Gap Count"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/GapInfo"
+            },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "loss_events": {
+            "items": {
+              "$ref": "#/components/schemas/LossEvent"
+            },
+            "type": "array",
+            "title": "Loss Events",
+            "description": "Accurate loss events based on IQR"
+          },
+          "loss_count": {
+            "type": "integer",
+            "title": "Loss Count",
+            "description": "Total estimated lost messages across all loss events"
+          },
+          "minor_loss_count": {
+            "type": "integer",
+            "title": "Minor Loss Count",
+            "description": "Number of minor (1-2 frame) loss events"
+          },
+          "major_loss_count": {
+            "type": "integer",
+            "title": "Major Loss Count",
+            "description": "Number of major (3+ frame) loss events"
+          },
+          "timestamp_source": {
+            "type": "string",
+            "title": "Timestamp Source",
+            "description": "Timestamp source (header_stamp/log_time)"
+          },
+          "avg_message_size_bytes": {
+            "type": "integer",
+            "title": "Avg Message Size Bytes"
+          },
+          "size_stats": {
+            "$ref": "#/components/schemas/MessageSizeStats"
+          },
+          "start_delay_sec": {
+            "type": "number",
+            "title": "Start Delay Sec",
+            "description": "Delay from recording start to this topic's first message (seconds)"
+          },
+          "end_early_sec": {
+            "type": "number",
+            "title": "End Early Sec",
+            "description": "Empty interval from this topic's last message to recording end (seconds)"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "msg_type",
+          "message_count",
+          "actual_frequency_hz",
+          "expected_frequency_hz",
+          "loss_rate",
+          "frequency_std_hz",
+          "data_continuity_score",
+          "gap_count",
+          "gaps",
+          "loss_events",
+          "loss_count",
+          "minor_loss_count",
+          "major_loss_count",
+          "timestamp_source",
+          "avg_message_size_bytes",
+          "size_stats",
+          "start_delay_sec",
+          "end_early_sec",
+          "status"
+        ],
+        "title": "TopicQuality",
+        "description": "Per-topic quality metrics."
+      },
+      "TopicsResponse": {
+        "properties": {
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicInfo"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "discovered_topics": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveredTopic"
+            },
+            "type": "array",
+            "title": "Discovered Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topics",
+          "discovered_topics"
+        ],
+        "title": "TopicsResponse",
+        "description": "Response for GET /api/topics."
+      },
+      "UpdateMetaRequest": {
+        "properties": {
+          "task_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Name",
+            "description": "Task name"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "List of tags"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Pre-registered metadata (key -> value)"
+          }
+        },
+        "type": "object",
+        "title": "UpdateMetaRequest",
+        "description": "Request body for PATCH /api/recordings/{name}.\n\nPartial update \u2014 only the specified fields are written. Fields left as\nNone are not modified."
+      },
+      "UpdateMetaResponse": {
+        "properties": {
+          "task_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Name"
+          },
+          "recording_config_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recording Config Name"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_name",
+          "recording_config_name",
+          "tags",
+          "metadata"
+        ],
+        "title": "UpdateMetaResponse",
+        "description": "Response for PATCH /api/recordings/{name}."
+      },
+      "UploadResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(idle|uploading|uploaded|failed|not_found)$",
+            "title": "Status"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "state",
+          "error"
+        ],
+        "title": "UploadResponse",
+        "description": "Response for ``GET /api/upload`` and ``POST /api/upload/start``.\n\n``status`` reflects the current upload phase as observed by the service:\n\n* ``uploaded`` \u2014 persisted ``upload_state.json`` carries that status.\n* ``uploading`` \u2014 persisted state with that status, or an active job in\n  the queue.\n* ``failed`` \u2014 persisted state with that status, the last job ended in\n  failure, or the start path rejected the request (e.g. destination\n  misconfigured).\n* ``idle`` \u2014 persisted state explicitly marked as idle.\n* ``not_found`` \u2014 no persisted state and no active job."
+      },
+      "UploadState": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "uploading",
+              "uploaded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "etag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Etag"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "bytes_transferred": {
+            "type": "integer",
+            "title": "Bytes Transferred"
+          },
+          "uploaded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "destination",
+          "key",
+          "etag",
+          "size_bytes",
+          "bytes_transferred",
+          "uploaded_at",
+          "error"
+        ],
+        "title": "UploadState",
+        "description": "Persisted upload state for one recording.\n\nFields are required (no defaults) so JSON written by older versions\nsurfaces as a parse error instead of silently defaulting to zero values.\n\n`destination` and `key` are destination-agnostic: for the S3 destination\nthey map to bucket name and object key; future destinations (GCS / local\nserver) fill in equivalents (bucket + object name, host + path). `etag`\nis the destination's result identifier (S3 ETag, GCS generation, local\nhash) and is `None` when the destination does not return one."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ValidationReport": {
+        "properties": {
+          "overall_status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "warn",
+              "fail",
+              "error"
+            ],
+            "title": "Overall Status"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationResultItem"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "task_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Name"
+          },
+          "executed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Executed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall_status",
+          "results",
+          "task_name",
+          "executed_at"
+        ],
+        "title": "ValidationReport",
+        "description": "All validation results for one recording."
+      },
+      "ValidationResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(ready|analyzing|not_found|error)$",
+            "title": "Status"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValidationReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "report",
+          "error"
+        ],
+        "title": "ValidationResponse",
+        "description": "Response for GET / POST /api/validation."
+      },
+      "ValidationResultItem": {
+        "properties": {
+          "validator_name": {
+            "type": "string",
+            "title": "Validator Name"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(builtin|custom)$",
+            "title": "Source"
+          },
+          "source_module": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Module",
+            "description": "Only set for custom validators. Example: \"app.features.validation.custom.my_check\""
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "warn",
+              "fail",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "validator_name",
+          "source",
+          "source_module",
+          "status",
+          "message",
+          "details"
+        ],
+        "title": "ValidationResultItem",
+        "description": "A single validator's outcome."
+      },
+      "VideoProgress": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "title": "Step",
+            "description": "Current step (classify/read/mp4/telemetry)"
+          },
+          "step_label": {
+            "type": "string",
+            "title": "Step Label",
+            "description": "Human-readable label for the step"
+          },
+          "current": {
+            "type": "integer",
+            "title": "Current",
+            "description": "Current progress (camera index for mp4)"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "step_label",
+          "current",
+          "total"
+        ],
+        "title": "VideoProgress",
+        "description": "Video generation progress info."
+      },
+      "VideoResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(ready|generating|not_generated|error)$",
+            "title": "Status"
+          },
+          "videos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Videos"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VideoProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id",
+            "description": "ID of the in-flight generation job (subscribe to progress via SSE /api/jobs/stream)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "videos",
+          "progress",
+          "error",
+          "job_id"
+        ],
+        "title": "VideoResponse",
+        "description": "Response for GET /api/media/video."
+      }
+    }
+  }
+}

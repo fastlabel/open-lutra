@@ -27,7 +27,7 @@ make test-cov-frontend # Test + coverage (vitest)
 make format            # Format (everything: backend + frontend)
 make format-backend    # Format (ruff)
 make format-frontend   # Format (biome)
-make generate          # Regenerate API types (requires: backend running)
+make generate          # Regenerate API types (exports OpenAPI + runs orval; no running backend needed)
 make build             # Build Docker images
 make minio-up          # Start the local MinIO sandbox + auto-create the bucket (for upload-feature testing)
 make minio-down        # Stop the local MinIO sandbox
@@ -74,7 +74,7 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 - **No internal references**: Biome's `noRestrictedImports` makes direct references to `@/features/*/*` an error.
 - **Placement rule**: Modules used by only one feature live inside that feature; modules shared across multiple features live in `hooks/`, `lib/`, or `stores/`.
 - **Keep individual files small**: Small UI components inside a feature go in `features/xxx/ui/`. Once shared across multiple features, promote them to `components/ui/`.
-- **API type generation**: orval auto-generates TanStack Query hooks + types from OpenAPI (`make generate`; run while the backend is up).
+- **API type generation**: orval auto-generates TanStack Query hooks + types from OpenAPI (`make generate`). The schema is exported from the app by `python -m app.openapi` into `frontend/openapi.json` (committed), so no running backend is needed; CI fails if the committed schema drifts from the code.
 - **Import rule**: Types are imported directly from `@/api/generated/schemas`. Do not re-export types from `use-api.ts`. Use generated type names as-is (alias only on name collision).
 - **Use orval-generated types**: API response/request types must use the orval-generated schemas (`@/api/generated/schemas`). Do not define types manually. After backend schema changes, regenerate with `make generate`.
 

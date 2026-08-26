@@ -41,7 +41,7 @@ help:
 	@echo "  make format            - Format (all: backend + frontend)"
 	@echo "  make format-backend    - Format (ruff)"
 	@echo "  make format-frontend   - Format (biome)"
-	@echo "  make generate          - Regenerate API types (requires: backend running)"
+	@echo "  make generate          - Regenerate API types (exports OpenAPI + runs orval)"
 	@echo "  make setup             - Initial setup (install dependencies)"
 	@echo "  make clean             - Clear caches"
 	@echo ""
@@ -187,8 +187,11 @@ format-frontend:
 	@echo "=== Format (Frontend) ==="
 	cd frontend && pnpm exec biome check --write src/
 
-# Regenerate API types (run while the backend is up)
+# Regenerate API types: export the OpenAPI schema from the app, then run orval.
+# Runs on the host; neither Docker nor a running backend is required.
 generate:
+	@echo "=== Exporting OpenAPI schema ==="
+	cd backend && uv run python -m app.openapi > ../frontend/openapi.json
 	@echo "=== Regenerating API types (orval) ==="
 	rm -rf frontend/src/api/generated
 	cd frontend && pnpm exec orval

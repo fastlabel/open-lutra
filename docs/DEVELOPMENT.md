@@ -345,7 +345,7 @@ ignore_missing_imports = true
 2. Add the endpoint in `backend/app/features/{domain}/router.py` (always set `operation_id`)
 3. If needed, implement business logic in `backend/app/features/{domain}/service.py`
 4. Add tests
-5. Regenerate the frontend API types: `make generate` (run while the backend is up)
+5. Regenerate the frontend API types: `make generate` (exports `frontend/openapi.json` from the app and runs orval; no running backend needed). Commit the updated `openapi.json` together with the generated code — CI checks that it matches the backend
 6. If you added SSE events, update `docs/domain/sse.md`
 
 ### Supporting a New Topic Type

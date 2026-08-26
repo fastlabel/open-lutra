@@ -40,6 +40,12 @@ jobs:
       - name: Test + coverage (pytest)
         run: uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
 
+      - name: Check committed OpenAPI schema matches the code
+        # Fails when an API change was made without running `make generate`
+        run: |
+          uv run python -m app.openapi > ../frontend/openapi.json
+          git diff --exit-code -- ../frontend/openapi.json
+
   frontend:
     name: Frontend (lint + test + build)
     runs-on: ubuntu-latest
@@ -63,6 +69,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check generated API client matches openapi.json
+        # Fails when openapi.json was updated without re-running orval (`make generate`)
+        run: |
+          pnpm exec orval
+          git diff --exit-code -- src/api/generated
 
       - name: Build (vite)
         # vite build generates routeTree.gen.ts (gitignored)
