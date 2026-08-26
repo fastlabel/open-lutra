@@ -1,18 +1,12 @@
-"""Tests for the configuration and system info API endpoints.
+"""Tests for the configuration and system info API endpoints."""
 
-NOTE: app.main requires rclpy, so this can only run inside Docker (make test).
-"""
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 
-rclpy = pytest.importorskip("rclpy", reason="rclpy is required (run via 'make test')")
-
-from unittest.mock import MagicMock  # noqa: E402
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.dependencies import set_monitor, set_recorder  # noqa: E402
-from app.main import create_app  # noqa: E402
+from app.dependencies import set_monitor, set_recorder
+from app.main import create_app
 
 
 @pytest.fixture

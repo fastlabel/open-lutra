@@ -19,10 +19,10 @@ make lint              # Lint (everything: backend + frontend)
 make lint-backend      # Lint (ruff + mypy)
 make lint-frontend     # Lint (tsc + biome)
 make test              # Test (everything: backend + frontend)
-make test-backend      # Test (pytest, inside Docker)
+make test-backend      # Test (pytest)
 make test-frontend     # Test (vitest)
 make test-cov          # Test + coverage (everything)
-make test-cov-backend  # Test + coverage (pytest, inside Docker)
+make test-cov-backend  # Test + coverage (pytest)
 make test-cov-frontend # Test + coverage (vitest)
 make format            # Format (everything: backend + frontend)
 make format-backend    # Format (ruff)
@@ -84,10 +84,9 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 
 - **Maintain 100% coverage** — verify with `make test-cov`.
 - The test structure mirrors the `backend/app/` directory structure (`backend/tests/features/recording/test_service.py` → `backend/app/features/recording/service.py`).
-- Untestable code (rclpy runtime, Docker-only, MCAP I/O) is excluded via `pragma: no cover` and not tested.
+- Backend tests run on the host without Docker or rclpy (`app.main` imports rclpy lazily inside the lifespan). Untestable code (rclpy runtime, Docker-only, MCAP I/O) is excluded via `pragma: no cover` and not tested.
 - Endpoint functions in `router.py` are HTTP glue code and are excluded with `pragma: no cover`. Pure logic is extracted out of the router and tested (e.g., `scanner.py`).
-- Tests that only run inside Docker (rclpy-dependent) are auto-skipped with `pytest.importorskip("rclpy")`.
-- Tests must not depend on filesystem permissions (chmod); use `unittest.mock.patch` instead (chmod fails as Docker root).
+- Tests must not depend on filesystem permissions (chmod); use `unittest.mock.patch` instead (chmod fails as root in CI / Dev Container).
 
 ## Coding Style
 

@@ -37,9 +37,8 @@ jobs:
       - name: Type check (mypy)
         run: uv run mypy app/
 
-      - name: Test (pytest)
-        # rclpy-dependent tests are auto-skipped via pytest.importorskip("rclpy")
-        run: uv run pytest tests/ -v
+      - name: Test + coverage (pytest)
+        run: uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
 
   frontend:
     name: Frontend (lint + test + build)

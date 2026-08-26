@@ -1,22 +1,16 @@
-"""Tests for the topic monitoring API endpoints.
+"""Tests for the topic monitoring API endpoints."""
 
-NOTE: app.main requires rclpy, so this can only run inside Docker (make test).
-"""
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 
-rclpy = pytest.importorskip("rclpy", reason="rclpy is required (run via 'make test')")
-
-from unittest.mock import MagicMock  # noqa: E402
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.dependencies import set_monitor, set_recorder  # noqa: E402
-from app.features.topics import (  # noqa: E402
+from app.dependencies import set_monitor, set_recorder
+from app.features.topics import (
     DiscoveredTopic,
     TopicInfo,
 )
-from app.main import create_app  # noqa: E402
+from app.main import create_app
 
 
 @pytest.fixture

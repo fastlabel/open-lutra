@@ -33,10 +33,10 @@ help:
 	@echo "  make lint-backend      - Lint (ruff + mypy)"
 	@echo "  make lint-frontend     - Lint (tsc + biome)"
 	@echo "  make test              - Test (all: backend + frontend)"
-	@echo "  make test-backend      - Test (pytest, inside Docker)"
+	@echo "  make test-backend      - Test (pytest)"
 	@echo "  make test-frontend     - Test (vitest)"
 	@echo "  make test-cov          - Test + coverage (all)"
-	@echo "  make test-cov-backend  - Test + coverage (pytest, inside Docker)"
+	@echo "  make test-cov-backend  - Test + coverage (pytest)"
 	@echo "  make test-cov-frontend - Test + coverage (vitest)"
 	@echo "  make format            - Format (all: backend + frontend)"
 	@echo "  make format-backend    - Format (ruff)"
@@ -146,10 +146,10 @@ lint-frontend:
 # Test (all)
 test: test-backend test-frontend
 
-# Test (backend, inside Docker: requires rclpy)
+# Test (backend: runs on the host; rclpy is not required)
 test-backend:
-	@echo "=== Tests: Backend (Docker) ==="
-	docker compose exec backend bash -c "source /opt/ros/humble/setup.bash && uv sync --extra dev && uv run pytest tests/ -v"
+	@echo "=== Tests: Backend (pytest) ==="
+	cd backend && uv run pytest tests/ -v
 
 # Test (frontend)
 test-frontend:
@@ -161,10 +161,10 @@ test-frontend:
 # Test + coverage (all)
 test-cov: test-cov-backend test-cov-frontend
 
-# Test + coverage (backend, inside Docker)
+# Test + coverage (backend: runs on the host; rclpy is not required)
 test-cov-backend:
-	@echo "=== Tests + Coverage: Backend (Docker) ==="
-	docker compose exec backend bash -c "source /opt/ros/humble/setup.bash && uv sync --extra dev && uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=100"
+	@echo "=== Tests + Coverage: Backend (pytest) ==="
+	cd backend && uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
 
 # Test + coverage (frontend)
 test-cov-frontend:
