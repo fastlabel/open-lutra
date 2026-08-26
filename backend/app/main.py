@@ -1,9 +1,18 @@
-"""FastAPI application entry point."""
+"""FastAPI application entry point.
+
+Importing this module must not require the ROS 2 runtime: `create_app()` only
+wires routers and middleware, so tests and tooling (OpenAPI export) can import
+it on a host without rclpy. rclpy-dependent modules are imported inside
+`_initialize_services()`, which runs when uvicorn starts the lifespan.
+"""
+
+from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +34,11 @@ from app.features.upload.router import router as upload_router
 from app.features.validation import load_custom_validators
 from app.features.validation.router import router as validation_router
 from app.infra.ros2 import ROS2Command
-from app.infra.ros2.thread import TopicMonitorThread
 from app.settings import Settings, get_settings
 from app.shared.log_manager import LogManager, set_log_manager
+
+if TYPE_CHECKING:
+    from app.infra.ros2.thread import TopicMonitorThread
 
 # Path to the built frontend files
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -56,18 +67,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     _shutdown_services(recorder, monitor_thread)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
-
-    Args:
-        settings: Optional settings override for tests.
 
     Returns:
         The configured FastAPI application.
     """
-    if settings is None:
-        settings = get_settings()
-
     app = FastAPI(
         title="OpenLUTRA",
         description="ROS2 topic recorder for teleoperation robots (ROS2-standard topics)",
@@ -125,6 +130,9 @@ app = create_app()
 
 def _initialize_services() -> tuple[ROS2BagRecorder, TopicMonitorThread]:
     """Initialize all services and register them in the DI container."""
+    # rclpy is only available inside the ROS 2 image; keep it out of module import.
+    from app.infra.ros2 import thread as ros2_thread
+
     settings = get_settings()
     _configure_log_level(settings)
     logger.info("Starting OpenLUTRA")
@@ -142,7 +150,7 @@ def _initialize_services() -> tuple[ROS2BagRecorder, TopicMonitorThread]:
     recorder = ROS2BagRecorder(settings, ros2)
     set_recorder(recorder)
 
-    monitor_thread = TopicMonitorThread(settings, log_manager)
+    monitor_thread = ros2_thread.TopicMonitorThread(settings, log_manager)
     set_monitor(monitor_thread.start())
 
     # Load custom validators (failures do not abort startup).

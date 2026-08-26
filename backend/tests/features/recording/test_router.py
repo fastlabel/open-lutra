@@ -1,26 +1,20 @@
-"""Tests for the recording API endpoints.
+"""Tests for the recording API endpoints."""
 
-NOTE: app.main requires rclpy, so this can only run inside Docker (make test).
-"""
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 
-rclpy = pytest.importorskip("rclpy", reason="rclpy is required (run via 'make test')")
-
-from datetime import datetime  # noqa: E402
-from pathlib import Path  # noqa: E402
-from unittest.mock import MagicMock  # noqa: E402
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.dependencies import set_recorder  # noqa: E402
-from app.features.recording import (  # noqa: E402
+from app.dependencies import set_recorder
+from app.features.recording import (
     AlreadyRecordingError,
     NotRecordingError,
     RecorderStatus,
     StopResult,
 )
-from app.main import create_app  # noqa: E402
+from app.main import create_app
 
 
 @pytest.fixture
@@ -121,9 +115,7 @@ class TestStartRecording:
         )
         response = client.post("/api/recording/start", json={"topics": ["/topic"], "task_name": "pick"})
         assert response.status_code == 200
-        mock_recorder.start.assert_called_with(
-            topics=["/topic"], qos_overrides=None, task_name="pick", metadata=None
-        )
+        mock_recorder.start.assert_called_with(topics=["/topic"], qos_overrides=None, task_name="pick", metadata=None)
 
     def test_start_recording_with_metadata(self, client: TestClient, mock_recorder: MagicMock) -> None:
         mock_recorder.get_status.return_value = RecorderStatus(

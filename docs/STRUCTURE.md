@@ -255,17 +255,17 @@ backend/tests/
 ├── dependencies/
 │   ├── test_path_validators.py          # Path validation (resolve_safe_path, require_dir, require_file)
 │   ├── test_services.py                 # DI dependency functions (get_recorder, get_monitor)
-│   └── test_exception_handlers.py       # Exception handlers [rclpy-dependent]
+│   └── test_exception_handlers.py       # Exception handlers
 ├── features/
 │   ├── recording/
 │   │   ├── conftest.py                  # Recorder fixtures (settings, mock_ros2)
 │   │   ├── test_service.py              # ROS2BagRecorder (start, stop, status, QoS)
-│   │   └── test_router.py               # Recording API endpoints [rclpy-dependent]
+│   │   └── test_router.py               # Recording API endpoints
 │   ├── topics/
 │   │   ├── conftest.py                  # Monitor fixtures (log_manager, mock_subscriber)
 │   │   ├── test_models.py               # TopicStats properties (actual_hz, status, etc.)
 │   │   ├── test_service.py              # TopicMonitorService (discover, message, gap_check)
-│   │   └── test_router.py               # Topic API endpoints [rclpy-dependent]
+│   │   └── test_router.py               # Topic API endpoints
 │   ├── recordings/
 │   │   └── test_scanner.py              # scan_output_dir, read_metadata_summary
 │   ├── analysis/
@@ -275,7 +275,7 @@ backend/tests/
 │   ├── media/
 │   │   └── test_models.py               # JointStateMapping (topic classification for preview)
 │   └── config/
-│       └── test_router.py               # Config API endpoints [rclpy-dependent]
+│       └── test_router.py               # Config API endpoints
 ├── infra/ros2/
 │   ├── test_message.py                  # sanitize_value (message conversion)
 │   └── test_qos.py                      # QoSOverrideFile (YAML generation / deletion)

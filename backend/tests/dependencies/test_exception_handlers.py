@@ -1,22 +1,17 @@
 """Tests for the exception handlers.
 
 Verifies that each recording exception is mapped to the correct HTTP status code.
-
-NOTE: app.main requires rclpy, so this can only run inside Docker (make test).
 """
 
+from unittest.mock import MagicMock
+
 import pytest
+from fastapi.testclient import TestClient
 
-rclpy = pytest.importorskip("rclpy", reason="rclpy is required (run via 'make test')")
-
-from unittest.mock import MagicMock  # noqa: E402
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from app.dependencies import set_recorder  # noqa: E402
-from app.dependencies.services import get_recorder  # noqa: E402
-from app.features.recording import AlreadyRecordingError, NotRecordingError, RecorderError  # noqa: E402
-from app.main import create_app  # noqa: E402
+from app.dependencies import set_recorder
+from app.dependencies.services import get_recorder
+from app.features.recording import AlreadyRecordingError, NotRecordingError, RecorderError
+from app.main import create_app
 
 
 @pytest.fixture
