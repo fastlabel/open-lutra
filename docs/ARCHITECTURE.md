@@ -252,10 +252,9 @@ Direct references matching `@/features/*/*` are forbidden by Biome's `noRestrict
 
 ### orval (auto-generated API types and hooks)
 
-Generates TanStack Query hooks + TypeScript types from the backend's OpenAPI schema.
+Generates TanStack Query hooks + TypeScript types from the backend's OpenAPI schema. The schema is exported from `create_app()` by `backend/app/openapi.py` into `frontend/openapi.json` (committed, and checked against the code in CI), so generation runs on the host without Docker or a running backend.
 
 ```bash
-# Run while the backend is up
 make generate
 ```
 

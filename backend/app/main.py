@@ -11,13 +11,10 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from app.dependencies import register_exception_handlers, set_monitor, set_recorder, set_ros2_command
 from app.features.analysis.router import router as analysis_router
@@ -39,9 +36,6 @@ from app.shared.log_manager import LogManager, set_log_manager
 
 if TYPE_CHECKING:
     from app.infra.ros2.thread import TopicMonitorThread
-
-# Path to the built frontend files
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 # Logging configuration (updated in lifespan based on settings.debug)
 logging.basicConfig(
@@ -103,18 +97,6 @@ def create_app() -> FastAPI:
     app.include_router(validation_router)
     app.include_router(lerobot_export_router)
     app.include_router(upload_router)
-
-    # Serve the built frontend (production mode)
-    if FRONTEND_DIR.is_dir():
-        app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
-
-        @app.get("/{full_path:path}", operation_id="serveFrontend")
-        async def serve_frontend(full_path: str) -> FileResponse:
-            """Serve the frontend SPA for non-API routes."""
-            file_path = FRONTEND_DIR / full_path
-            if file_path.is_file():
-                return FileResponse(file_path)
-            return FileResponse(FRONTEND_DIR / "index.html")
 
     return app
 

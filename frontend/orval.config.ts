@@ -2,7 +2,8 @@ import { defineConfig } from "orval";
 
 export default defineConfig({
   api: {
-    input: "http://localhost:8000/openapi.json",
+    // Exported by `make generate` via `python -m app.openapi`; no running backend needed.
+    input: "./openapi.json",
     output: {
       mode: "tags-split",
       target: "src/api/generated",
