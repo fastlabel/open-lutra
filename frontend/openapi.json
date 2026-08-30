@@ -696,6 +696,28 @@
         }
       }
     },
+    "/api/system/storage": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Storage",
+        "description": "Get the capacity of the volume that holds the recordings.",
+        "operationId": "getStorage",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/analysis/quality": {
       "get": {
         "tags": [
@@ -2718,6 +2740,60 @@
         ],
         "title": "RenameResponse",
         "description": "Response for PUT /api/recordings/rename."
+      },
+      "StorageInfo": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Output directory whose volume was measured"
+          },
+          "total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bytes",
+            "description": "Capacity of the volume, including filesystem-reserved blocks. used_bytes + free_bytes is therefore smaller than this on ext4 and friends. null when the volume cannot be inspected."
+          },
+          "used_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Bytes",
+            "description": "Bytes in use on the volume. null when uninspectable."
+          },
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Bytes",
+            "description": "Bytes still writable by the recorder. null when uninspectable."
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "total_bytes",
+          "used_bytes",
+          "free_bytes"
+        ],
+        "title": "StorageInfo",
+        "description": "Response for GET /api/system/storage."
       },
       "SubscriptionRequest": {
         "properties": {

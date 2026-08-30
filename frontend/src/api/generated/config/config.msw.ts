@@ -20,7 +20,8 @@ import type {
 import type {
   ConfigResponse,
   HealthResponse,
-  MemoryInfo
+  MemoryInfo,
+  StorageInfo
 } from '../schemas';
 
 
@@ -29,6 +30,8 @@ export const getHealthCheckResponseMock = (overrideResponse: Partial<Extract<Hea
 export const getGetConfigResponseMock = (overrideResponse: Partial<Extract<ConfigResponse, object>> = {}): ConfigResponse => ({ros_domain_id: faker.number.int(), robot_name: faker.string.alpha({length: {min: 10, max: 20}}), default_topics: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), stamp_quality: faker.datatype.boolean(), upload_enabled: faker.datatype.boolean(), metadata_fields: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({key: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), type: faker.helpers.arrayElement(['select','number','text'] as const), pattern: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), placeholder: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}),null,]), options: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({value: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}})}))})), ...overrideResponse})
 
 export const getGetMemoryResponseMock = (overrideResponse: Partial<Extract<MemoryInfo, object>> = {}): MemoryInfo => ({used_bytes: faker.number.int(), limit_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
+
+export const getGetStorageResponseMock = (overrideResponse: Partial<Extract<StorageInfo, object>> = {}): StorageInfo => ({path: faker.string.alpha({length: {min: 10, max: 20}}), total_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), used_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), free_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
 
 
 export const getHealthCheckMockHandler = (overrideResponse?: HealthResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<HealthResponse> | HealthResponse), options?: RequestHandlerOptions) => {
@@ -66,8 +69,21 @@ export const getGetMemoryMockHandler = (overrideResponse?: MemoryInfo | ((info: 
       })
   }, options)
 }
+
+export const getGetStorageMockHandler = (overrideResponse?: StorageInfo | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<StorageInfo> | StorageInfo), options?: RequestHandlerOptions) => {
+  return http.get('*/api/system/storage', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetStorageResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
 export const getConfigMock = () => [
   getHealthCheckMockHandler(),
   getGetConfigMockHandler(),
-  getGetMemoryMockHandler()
+  getGetMemoryMockHandler(),
+  getGetStorageMockHandler()
 ]

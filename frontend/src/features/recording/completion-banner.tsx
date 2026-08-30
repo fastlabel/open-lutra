@@ -14,9 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useDeleteRecordings } from "@/hooks/use-api";
+import { useDeleteRecordings, useStorage } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
-import { formatDuration, formatSize } from "@/lib/format";
+import { formatCapacity, formatDuration, formatSize } from "@/lib/format";
 import { toast } from "@/stores/toast-store";
 import { useRecordingStore } from "./store";
 
@@ -25,6 +25,7 @@ export function RecordingCompletionBanner() {
   const finished = useRecordingStore((s) => s.finishedRecording);
   const dismiss = useRecordingStore((s) => s.dismissFinishedRecording);
 
+  const { data: storage } = useStorage();
   const deleteMutation = useDeleteRecordings();
   const addLog = useAddLog();
 
@@ -34,6 +35,9 @@ export function RecordingCompletionBanner() {
   if (finished.messageCount != null) meta.push(`${finished.messageCount.toLocaleString()} msgs`);
   if (finished.topicCount != null) meta.push(`${finished.topicCount} topics`);
   if (finished.size > 0) meta.push(formatSize(finished.size));
+  // What the recording left behind: refreshed once the post-recording jobs
+  // finish writing, so this reflects the analysis artifacts too.
+  if (storage?.free_bytes != null) meta.push(`${formatCapacity(storage.free_bytes)} free`);
 
   const handleDelete = () =>
     deleteMutation.mutate(

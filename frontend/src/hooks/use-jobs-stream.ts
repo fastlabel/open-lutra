@@ -16,6 +16,7 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { getGetQualityQueryKey, getGetTimelineQueryKey } from "@/api/generated/analysis/analysis";
+import { getGetStorageQueryKey } from "@/api/generated/config/config";
 import { getGetJointsQueryKey, getGetVideoStatusQueryKey } from "@/api/generated/media/media";
 import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
 import type { JobSchema } from "@/api/generated/schemas";
@@ -68,6 +69,11 @@ export function useJobsStream() {
 
     /** Invalidate related queries when a job completes or fails. */
     const invalidateRelated = (job: JobSchema) => {
+      // Every job type writes into the output volume (analysis JSON, MP4, zip,
+      // exported dataset), so a finished job is the point at which the recording
+      // screen's free-space readout is worth re-reading. Invalidating while that
+      // screen is closed costs nothing: the refetch happens when it next mounts.
+      queryClient.invalidateQueries({ queryKey: getGetStorageQueryKey() });
       const keys = JOB_COMPLETION_INVALIDATIONS[job.type];
       if (!keys) return;
       for (const queryKey of keys) {

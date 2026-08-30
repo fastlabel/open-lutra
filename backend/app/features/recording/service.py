@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import errno
 import logging
-import shutil
 import signal
 import subprocess
 import time
@@ -25,6 +24,7 @@ from app.features.recording.models import (
 )
 from app.features.recordings.meta import RecordingMeta, write_recording_meta
 from app.infra.ros2 import QoSOverrideFile, ROS2Command, ROS2CommandError
+from app.shared.disk import read_disk_usage
 
 if TYPE_CHECKING:
     from app.infra.ros2.record_process import RecordProcess
@@ -40,10 +40,8 @@ def _free_disk_bytes(path: Path) -> int | None:
     Returns None when the path cannot be inspected (e.g. it does not exist),
     so callers can skip the disk hint instead of failing.
     """
-    try:
-        return shutil.disk_usage(path).free
-    except OSError:
-        return None
+    usage = read_disk_usage(path)
+    return usage.free_bytes if usage is not None else None
 
 
 def _format_gb(num_bytes: int) -> str:

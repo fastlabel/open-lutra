@@ -7,6 +7,7 @@ import {
   useIsRecording,
   useMemory,
   useRecordingStatus,
+  useStorage,
   useTaskNames,
   useTopics,
   useValidation,
@@ -33,6 +34,7 @@ const QUERY_KEYS = {
   recordingStatus: ["/api/recording/status"],
   topics: ["/api/topics"],
   memory: ["/api/system/memory"],
+  storage: ["/api/system/storage"],
   taskNames: ["/api/recordings/task-names"],
   validation: (path: string) => ["/api/validation", { path }] as const,
 } as const;
@@ -136,6 +138,22 @@ describe("useMemory", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data?.used_bytes).toBe(512);
     expect(result.current.data?.limit_bytes).toBe(1024);
+  });
+});
+
+describe("useStorage", () => {
+  it("unwraps StorageInfo via select", async () => {
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(QUERY_KEYS.storage, {
+      data: { path: "/data/output", total_bytes: 3000, used_bytes: 1000, free_bytes: 1900 },
+      status: 200,
+    });
+
+    const { result } = renderHook(() => useStorage(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(result.current.data?.free_bytes).toBe(1900);
+    expect(result.current.data?.path).toBe("/data/output");
   });
 });
 

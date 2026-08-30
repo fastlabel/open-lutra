@@ -23,7 +23,8 @@ import type {
 import type {
   ConfigResponse,
   HealthResponse,
-  MemoryInfo
+  MemoryInfo,
+  StorageInfo
 } from '../schemas';
 
 import { fetchClient } from '../../fetch-client';
@@ -361,6 +362,119 @@ export function useGetMemory<TData = Awaited<ReturnType<typeof getMemory>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetMemoryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type getStorageResponse200 = {
+  data: StorageInfo
+  status: 200
+}
+
+export type getStorageResponseSuccess = (getStorageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getStorageResponse = (getStorageResponseSuccess)
+
+export const getGetStorageUrl = () => {
+
+
+
+
+  return `/api/system/storage`
+}
+
+/**
+ * Get the capacity of the volume that holds the recordings.
+ * @summary Get Storage
+ */
+export const getStorage = async ( options?: RequestInit): Promise<getStorageResponse> => {
+
+  return fetchClient<getStorageResponse>(getGetStorageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorageQueryKey = () => {
+    return [
+    `/api/system/storage`
+    ] as const;
+    }
+
+
+export const getGetStorageQueryOptions = <TData = Awaited<ReturnType<typeof getStorage>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorage>>> = ({ signal }) => getStorage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetStorageQueryResult = NonNullable<Awaited<ReturnType<typeof getStorage>>>
+export type GetStorageQueryError = unknown
+
+
+export function useGetStorage<TData = Awaited<ReturnType<typeof getStorage>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStorage>>,
+          TError,
+          Awaited<ReturnType<typeof getStorage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetStorage<TData = Awaited<ReturnType<typeof getStorage>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStorage>>,
+          TError,
+          Awaited<ReturnType<typeof getStorage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetStorage<TData = Awaited<ReturnType<typeof getStorage>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Storage
+ */
+
+export function useGetStorage<TData = Awaited<ReturnType<typeof getStorage>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStorage>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetStorageQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

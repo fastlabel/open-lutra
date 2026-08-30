@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatElapsed, formatRecordingDate, formatSize } from "../format";
+import { formatCapacity, formatDuration, formatElapsed, formatRecordingDate, formatSize } from "../format";
+
+const GB = 1024 * 1024 * 1024;
 
 describe("formatSize", () => {
   it("renders 0 bytes", () => {
@@ -25,6 +27,28 @@ describe("formatSize", () => {
   it("renders in GB (1GB and above)", () => {
     expect(formatSize(1024 * 1024 * 1024)).toBe("1.00GB");
     expect(formatSize(1024 * 1024 * 1024 * 5.4)).toBe("5.40GB");
+  });
+});
+
+describe("formatCapacity", () => {
+  it("renders whole TB with 1 decimal at 1024GB and above", () => {
+    expect(formatCapacity(1024 * GB)).toBe("1.0 TB");
+    expect(formatCapacity(2048 * GB)).toBe("2.0 TB");
+  });
+
+  it("rounds to whole GB between 10GB and 1TB", () => {
+    expect(formatCapacity(10 * GB)).toBe("10 GB");
+    expect(formatCapacity(731.45 * GB)).toBe("731 GB");
+  });
+
+  it("keeps 1 decimal below 10GB, where the remaining space matters", () => {
+    expect(formatCapacity(1 * GB)).toBe("1.0 GB");
+    expect(formatCapacity(9.94 * GB)).toBe("9.9 GB");
+  });
+
+  it("falls back to MB below 1GB", () => {
+    expect(formatCapacity(500 * 1024 * 1024)).toBe("500 MB");
+    expect(formatCapacity(0)).toBe("0 MB");
   });
 });
 
