@@ -394,7 +394,7 @@ export const getGetStorageUrl = () => {
 }
 
 /**
- * Get the capacity of the volume that holds the recordings.
+ * Get the free space on the volume that holds the recordings.
  * @summary Get Storage
  */
 export const getStorage = async ( options?: RequestInit): Promise<getStorageResponse> => {

@@ -1,38 +1,25 @@
-"""Capacity inspection for the filesystem that holds a given path.
+"""Free-space inspection for the filesystem that holds a given path.
 
 `statvfs` reports the filesystem a path lives on, so passing the output
-directory (a bind-mounted host volume inside the container) yields the capacity
-of that volume rather than the container's own overlay filesystem. cgroup has no
-notion of a disk-space limit, so there is no container-level counterpart to
-`memory_reader.py` here.
+directory (a bind-mounted host volume inside the container) yields the free
+space of that volume rather than the container's own overlay filesystem. cgroup
+has no notion of a disk-space limit, so there is no container-level counterpart
+to `memory_reader.py` here.
 """
 
 import logging
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class DiskUsage:
-    """Capacity of a filesystem, in bytes.
+def read_free_bytes(path: Path) -> int | None:
+    """Return the bytes still writable on the filesystem containing `path`.
 
-    `total` counts every block including the ones reserved for the superuser
-    (5% by default on ext4), while `free` counts only the blocks available to
-    an unprivileged process. `used + free` is therefore smaller than `total` on
-    such filesystems, so a "how full is it" ratio must be derived from a
-    consistent pair rather than mixing the three.
-    """
-
-    total_bytes: int
-    used_bytes: int
-    free_bytes: int
-
-
-def read_disk_usage(path: Path) -> DiskUsage | None:
-    """Return the capacity of the filesystem containing `path`.
+    Counts only the blocks available to an unprivileged process, so the blocks
+    reserved for the superuser (5% by default on ext4) are excluded -- this is
+    what the recorder can actually write, not the volume's nominal capacity.
 
     Returns None when the path cannot be inspected (e.g. it does not exist), so
     callers can degrade instead of failing. A hard-mounted network share that
@@ -41,8 +28,7 @@ def read_disk_usage(path: Path) -> DiskUsage | None:
     waits. Callers must therefore keep it off the event loop.
     """
     try:
-        usage = shutil.disk_usage(path)
+        return shutil.disk_usage(path).free
     except OSError as e:
-        logger.debug("Failed to read disk usage for %s: %s", path, e)
+        logger.debug("Failed to read free space for %s: %s", path, e)
         return None
-    return DiskUsage(total_bytes=usage.total, used_bytes=usage.used, free_bytes=usage.free)

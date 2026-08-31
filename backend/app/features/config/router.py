@@ -7,7 +7,7 @@ from app.features.config.memory_reader import read_limit_bytes, read_usage_bytes
 from app.features.config.schemas import ConfigResponse, HealthResponse, MemoryInfo, StorageInfo
 from app.features.upload.service import is_upload_enabled
 from app.settings import get_settings
-from app.shared.disk import read_disk_usage
+from app.shared.disk import read_free_bytes
 
 router = APIRouter(prefix="/api", tags=["config"])
 
@@ -42,6 +42,6 @@ async def get_memory() -> MemoryInfo:  # pragma: no cover
 # network mount would otherwise block the event loop.
 @router.get("/system/storage", response_model=StorageInfo, operation_id="getStorage")
 def get_storage() -> StorageInfo:
-    """Get the capacity of the volume that holds the recordings."""
+    """Get the free space on the volume that holds the recordings."""
     output_dir = get_settings().output_dir
-    return to_storage_info(output_dir, read_disk_usage(output_dir))
+    return to_storage_info(output_dir, read_free_bytes(output_dir))

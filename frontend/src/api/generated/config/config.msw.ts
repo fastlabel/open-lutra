@@ -31,7 +31,7 @@ export const getGetConfigResponseMock = (overrideResponse: Partial<Extract<Confi
 
 export const getGetMemoryResponseMock = (overrideResponse: Partial<Extract<MemoryInfo, object>> = {}): MemoryInfo => ({used_bytes: faker.number.int(), limit_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
 
-export const getGetStorageResponseMock = (overrideResponse: Partial<Extract<StorageInfo, object>> = {}): StorageInfo => ({path: faker.string.alpha({length: {min: 10, max: 20}}), total_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), used_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), free_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
+export const getGetStorageResponseMock = (overrideResponse: Partial<Extract<StorageInfo, object>> = {}): StorageInfo => ({path: faker.string.alpha({length: {min: 10, max: 20}}), free_bytes: faker.helpers.arrayElement([faker.number.int(),null,]), ...overrideResponse})
 
 
 export const getHealthCheckMockHandler = (overrideResponse?: HealthResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<HealthResponse> | HealthResponse), options?: RequestHandlerOptions) => {

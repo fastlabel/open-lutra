@@ -110,7 +110,7 @@ backend/app/
 │       ├── message.py         # Message conversion / sanitization
 │       └── thread.py          # Background thread management
 └── shared/                    # Modules shared across multiple features
-    ├── disk.py                # Capacity of the volume holding the recordings (statvfs)
+    ├── disk.py                # Free space of the volume holding the recordings (statvfs)
     ├── log_manager.py         # Log management
     └── stamp.py               # ROS2 message header.stamp extraction utility
 ```
@@ -284,7 +284,7 @@ backend/tests/
 │   ├── test_message.py                  # sanitize_value (message conversion)
 │   └── test_qos.py                      # QoSOverrideFile (YAML generation / deletion)
 └── shared/
-    ├── test_disk.py                     # read_disk_usage (capacity / uninspectable path)
+    ├── test_disk.py                     # read_free_bytes (free space / uninspectable path)
     ├── test_log_manager.py              # LogManager (append, fetch, filter)
     └── test_stamp.py                    # extract_stamp_sec/ns (header.stamp extraction)
 ```

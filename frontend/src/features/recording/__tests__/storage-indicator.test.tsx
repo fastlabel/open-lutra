@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StorageInfo } from "@/api/generated/schemas";
 import { StorageIndicator } from "../storage-indicator";
 
-type StorageResult = { data: StorageInfo | undefined; isFetching: boolean; refetch: () => void };
+type StorageResult = {
+  data: StorageInfo | undefined;
+  isPending: boolean;
+  isFetching: boolean;
+  refetch: () => void;
+};
 
 const { useStorageMock, refetchMock } = vi.hoisted(() => ({
   useStorageMock: vi.fn<() => StorageResult>(),
@@ -15,17 +20,15 @@ vi.mock("@/hooks/use-api", () => ({
 }));
 
 function storage(overrides: Partial<StorageInfo> = {}): StorageInfo {
-  return {
-    path: "/data/output",
-    total_bytes: 1024 ** 4,
-    used_bytes: 224 * 1024 ** 3,
-    free_bytes: 731 * 1024 ** 3,
-    ...overrides,
-  };
+  return { path: "/data/output", free_bytes: 731 * 1024 ** 3, ...overrides };
+}
+
+function result(overrides: Partial<StorageResult> = {}): StorageResult {
+  return { data: storage(), isPending: false, isFetching: false, refetch: refetchMock, ...overrides };
 }
 
 beforeEach(() => {
-  useStorageMock.mockReturnValue({ data: storage(), isFetching: false, refetch: refetchMock });
+  useStorageMock.mockReturnValue(result());
 });
 
 afterEach(() => {
@@ -34,25 +37,28 @@ afterEach(() => {
 });
 
 describe("StorageIndicator", () => {
-  it("renders the free space of the output volume", () => {
+  it("renders the free space of the output volume, with the volume in the tooltip", () => {
     render(<StorageIndicator />);
-    expect(screen.getByText("731 GB free")).toBeInTheDocument();
+    expect(screen.getByText("731 GB free")).toHaveAttribute("title", "/data/output");
   });
 
-  it("reports an uninspectable volume instead of a byte count", () => {
-    useStorageMock.mockReturnValue({
-      data: storage({ total_bytes: null, used_bytes: null, free_bytes: null }),
-      isFetching: false,
-      refetch: refetchMock,
-    });
+  it("says it is still reading before the first fetch resolves", () => {
+    // Distinct from a failure: a normal page load must not read as an error.
+    useStorageMock.mockReturnValue(result({ data: undefined, isPending: true, isFetching: true }));
     render(<StorageIndicator />);
-    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Reading…")).toBeInTheDocument();
   });
 
-  it("renders before the first fetch resolves", () => {
-    useStorageMock.mockReturnValue({ data: undefined, isFetching: true, refetch: refetchMock });
+  it("reports a failed request separately from an uninspectable volume", () => {
+    useStorageMock.mockReturnValue(result({ data: undefined }));
     render(<StorageIndicator />);
-    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Read failed")).toBeInTheDocument();
+  });
+
+  it("names the volume it could not inspect", () => {
+    useStorageMock.mockReturnValue(result({ data: storage({ free_bytes: null }) }));
+    render(<StorageIndicator />);
+    expect(screen.getByText("Unavailable")).toHaveAttribute("title", "Cannot inspect /data/output");
   });
 
   it("re-reads the volume when the refresh button is pressed", () => {
@@ -62,7 +68,7 @@ describe("StorageIndicator", () => {
   });
 
   it("disables the refresh button while a read is in flight", () => {
-    useStorageMock.mockReturnValue({ data: storage(), isFetching: true, refetch: refetchMock });
+    useStorageMock.mockReturnValue(result({ isFetching: true }));
     render(<StorageIndicator />);
     expect(screen.getByLabelText("Refresh free space")).toBeDisabled();
   });

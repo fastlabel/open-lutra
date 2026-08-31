@@ -8,7 +8,6 @@ from app.features.config.schemas import (
     StorageInfo,
 )
 from app.settings import MetadataField
-from app.shared.disk import DiskUsage
 
 
 def to_metadata_field_responses(fields: list[MetadataField]) -> list[MetadataFieldResponse]:
@@ -33,15 +32,10 @@ def to_metadata_field_responses(fields: list[MetadataField]) -> list[MetadataFie
     ]
 
 
-def to_storage_info(path: Path, usage: DiskUsage | None) -> StorageInfo:
-    """Convert the output volume's capacity to an API response.
+def to_storage_info(path: Path, free_bytes: int | None) -> StorageInfo:
+    """Convert the output volume's free space to an API response.
 
-    An uninspectable volume still reports its path, with the byte counts left
-    null so the frontend can show the path it failed on.
+    An uninspectable volume still reports its path, with the byte count left
+    null so the frontend can name the volume it failed on.
     """
-    return StorageInfo(
-        path=str(path),
-        total_bytes=usage.total_bytes if usage else None,
-        used_bytes=usage.used_bytes if usage else None,
-        free_bytes=usage.free_bytes if usage else None,
-    )
+    return StorageInfo(path=str(path), free_bytes=free_bytes)

@@ -16,18 +16,12 @@ class StorageInfo(BaseModel):
     """Response for GET /api/system/storage."""
 
     path: str = Field(..., description="Output directory whose volume was measured")
-    total_bytes: int | None = Field(
-        ...,
-        description=(
-            "Capacity of the volume, including filesystem-reserved blocks. "
-            "used_bytes + free_bytes is therefore smaller than this on ext4 and "
-            "friends. null when the volume cannot be inspected."
-        ),
-    )
-    used_bytes: int | None = Field(..., description="Bytes in use on the volume. null when uninspectable.")
     free_bytes: int | None = Field(
         ...,
-        description="Bytes still writable by the recorder. null when uninspectable.",
+        description=(
+            "Bytes still writable by the recorder, excluding the blocks a filesystem "
+            "reserves for the superuser. null when the volume cannot be inspected."
+        ),
     )
 
 

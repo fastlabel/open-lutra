@@ -12,10 +12,6 @@
 export interface StorageInfo {
   /** Output directory whose volume was measured */
   path: string;
-  /** Capacity of the volume, including filesystem-reserved blocks. used_bytes + free_bytes is therefore smaller than this on ext4 and friends. null when the volume cannot be inspected. */
-  total_bytes: number | null;
-  /** Bytes in use on the volume. null when uninspectable. */
-  used_bytes: number | null;
-  /** Bytes still writable by the recorder. null when uninspectable. */
+  /** Bytes still writable by the recorder, excluding the blocks a filesystem reserves for the superuser. null when the volume cannot be inspected. */
   free_bytes: number | null;
 }

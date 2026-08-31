@@ -24,7 +24,7 @@ from app.features.recording.models import (
 )
 from app.features.recordings.meta import RecordingMeta, write_recording_meta
 from app.infra.ros2 import QoSOverrideFile, ROS2Command, ROS2CommandError
-from app.shared.disk import read_disk_usage
+from app.shared.disk import read_free_bytes
 
 if TYPE_CHECKING:
     from app.infra.ros2.record_process import RecordProcess
@@ -32,16 +32,6 @@ if TYPE_CHECKING:
     from app.shared.log_manager import LogSeverity
 
 logger = logging.getLogger(__name__)
-
-
-def _free_disk_bytes(path: Path) -> int | None:
-    """Return the free bytes of the filesystem containing `path`.
-
-    Returns None when the path cannot be inspected (e.g. it does not exist),
-    so callers can skip the disk hint instead of failing.
-    """
-    usage = read_disk_usage(path)
-    return usage.free_bytes if usage is not None else None
 
 
 def _format_gb(num_bytes: int) -> str:
@@ -61,7 +51,7 @@ def _disk_space_suffix(path: Path) -> str:
     output volume. Returns ' — free disk space: X GB at <path>', or '' when
     the free space cannot be determined.
     """
-    free = _free_disk_bytes(path)
+    free = read_free_bytes(path)
     if free is None:
         return ""
     return f" — free disk space: {_format_gb(free)} at {path}"
@@ -200,7 +190,7 @@ class ROS2BagRecorder:
         upfront. Skipped when the free space cannot be determined. A
         configurable threshold (recording_min_free_gb) is planned separately.
         """
-        if _free_disk_bytes(self._output_dir) == 0:
+        if read_free_bytes(self._output_dir) == 0:
             raise RecorderError(
                 f"Disk full: no free disk space left at {self._output_dir}. "
                 "Free up space before starting a recording."

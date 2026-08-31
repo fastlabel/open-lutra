@@ -145,7 +145,7 @@ describe("useStorage", () => {
   it("unwraps StorageInfo via select", async () => {
     const { wrapper, queryClient } = createWrapper();
     queryClient.setQueryData(QUERY_KEYS.storage, {
-      data: { path: "/data/output", total_bytes: 3000, used_bytes: 1000, free_bytes: 1900 },
+      data: { path: "/data/output", free_bytes: 1900 },
       status: 200,
     });
 
