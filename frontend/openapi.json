@@ -696,6 +696,28 @@
         }
       }
     },
+    "/api/system/storage": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Storage",
+        "description": "Get the free space on the volume that holds the recordings.",
+        "operationId": "getStorage",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/analysis/quality": {
       "get": {
         "tags": [
@@ -2718,6 +2740,34 @@
         ],
         "title": "RenameResponse",
         "description": "Response for PUT /api/recordings/rename."
+      },
+      "StorageInfo": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Output directory whose volume was measured"
+          },
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Bytes",
+            "description": "Bytes still writable by the recorder, excluding the blocks a filesystem reserves for the superuser. null when the volume cannot be inspected."
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "free_bytes"
+        ],
+        "title": "StorageInfo",
+        "description": "Response for GET /api/system/storage."
       },
       "SubscriptionRequest": {
         "properties": {

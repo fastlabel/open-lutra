@@ -8,6 +8,25 @@ export function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`;
 }
 
+/** Format a storage capacity coarsely (whole GB, one decimal below 10GB or in TB).
+ *
+ * Deliberately less precise than formatSize: a volume's free space is read at a
+ * few discrete moments rather than continuously, and digits that imply live
+ * tracking would misrepresent how fresh the number is.
+ *
+ * Each band picks its unit from the value *as it will be rendered*, so a number
+ * that rounds up past its band is promoted instead of printed out of range
+ * (1023.7 GB is "1.0 TB", not "1024 GB").
+ */
+export function formatCapacity(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  const gb = mb / 1024;
+  if (Math.round(gb) >= 1024) return `${(gb / 1024).toFixed(1)} TB`;
+  if (Number(gb.toFixed(1)) >= 10) return `${Math.round(gb)} GB`;
+  if (Math.round(mb) >= 1024) return `${gb.toFixed(1)} GB`;
+  return `${Math.round(mb)} MB`;
+}
+
 /** Format a recording time (nanoseconds) as "MM/DD HH:mm~HH:mm". */
 export function formatRecordingDate(startNs: number | null, durationNs?: number | null): string {
   if (startNs == null) return "---";

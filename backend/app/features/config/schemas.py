@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MemoryInfo(BaseModel):
@@ -10,6 +10,19 @@ class MemoryInfo(BaseModel):
 
     used_bytes: int
     limit_bytes: int | None
+
+
+class StorageInfo(BaseModel):
+    """Response for GET /api/system/storage."""
+
+    path: str = Field(..., description="Output directory whose volume was measured")
+    free_bytes: int | None = Field(
+        ...,
+        description=(
+            "Bytes still writable by the recorder, excluding the blocks a filesystem "
+            "reserves for the superuser. null when the volume cannot be inspected."
+        ),
+    )
 
 
 class HealthResponse(BaseModel):

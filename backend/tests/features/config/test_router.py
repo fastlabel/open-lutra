@@ -1,12 +1,13 @@
 """Tests for the configuration and system info API endpoints."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.dependencies import set_monitor, set_recorder
 from app.main import create_app
+from app.settings import get_settings
 
 
 @pytest.fixture
@@ -33,6 +34,28 @@ class TestConfig:
         assert "default_topics" in data
         assert isinstance(data["default_topics"], list)
         assert isinstance(data["upload_enabled"], bool)
+
+
+class TestStorage:
+    """Tests for GET /api/system/storage."""
+
+    def test_reports_the_output_volume_free_space(self, client: TestClient) -> None:
+        with patch("app.features.config.router.read_free_bytes", return_value=550_000):
+            response = client.get("/api/system/storage")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["path"] == str(get_settings().output_dir)
+        assert data["free_bytes"] == 550_000
+
+    def test_uninspectable_volume_returns_a_null_count(self, client: TestClient) -> None:
+        with patch("app.features.config.router.read_free_bytes", return_value=None):
+            response = client.get("/api/system/storage")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["path"] == str(get_settings().output_dir)
+        assert data["free_bytes"] is None
 
 
 class TestHealth:
