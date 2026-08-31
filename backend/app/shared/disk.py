@@ -34,8 +34,11 @@ class DiskUsage:
 def read_disk_usage(path: Path) -> DiskUsage | None:
     """Return the capacity of the filesystem containing `path`.
 
-    Returns None when the path cannot be inspected (e.g. it does not exist, or
-    an unresponsive network mount), so callers can degrade instead of failing.
+    Returns None when the path cannot be inspected (e.g. it does not exist), so
+    callers can degrade instead of failing. A hard-mounted network share that
+    stops responding is not one of those cases: `statvfs` blocks in the kernel
+    rather than raising, so there is nothing to degrade to and the call simply
+    waits. Callers must therefore keep it off the event loop.
     """
     try:
         usage = shutil.disk_usage(path)

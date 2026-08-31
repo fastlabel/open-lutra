@@ -45,8 +45,12 @@ def _free_disk_bytes(path: Path) -> int | None:
 
 
 def _format_gb(num_bytes: int) -> str:
-    """Format a byte count as a decimal-GB string (e.g. '0.3 GB')."""
-    return f"{num_bytes / 1_000_000_000:.1f} GB"
+    """Format a byte count as a GB string (e.g. '0.3 GB').
+
+    A GB is 1024**3 here, matching the frontend's formatCapacity/formatSize, so
+    the same volume never reads as two different figures across the UI.
+    """
+    return f"{num_bytes / 1024**3:.1f} GB"
 
 
 def _disk_space_suffix(path: Path) -> str:

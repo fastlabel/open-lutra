@@ -382,13 +382,15 @@ class TestDiskHelpers:
     def test_free_disk_bytes_returns_none_for_missing_path(self, tmp_path: Path) -> None:
         assert _free_disk_bytes(tmp_path / "does-not-exist") is None
 
-    def test_format_gb_formats_decimal_gb(self) -> None:
-        assert _format_gb(300_000_000) == "0.3 GB"
-        assert _format_gb(5_000_000_000) == "5.0 GB"
+    def test_format_gb_uses_binary_gb(self) -> None:
+        """A GB is 1024**3, so the number matches the frontend's readout of the same volume."""
+        assert _format_gb(1024**3) == "1.0 GB"
+        assert _format_gb(5 * 1024**3) == "5.0 GB"
+        assert _format_gb(300 * 1024**2) == "0.3 GB"
         assert _format_gb(0) == "0.0 GB"
 
     def test_disk_space_suffix_names_free_space_and_path(self) -> None:
-        with patch("app.features.recording.service._free_disk_bytes", return_value=300_000_000):
+        with patch("app.features.recording.service._free_disk_bytes", return_value=300 * 1024**2):
             suffix = _disk_space_suffix(Path("/data/output"))
         assert suffix == " — free disk space: 0.3 GB at /data/output"
 
