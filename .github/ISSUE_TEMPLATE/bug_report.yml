@@ -1,0 +1,242 @@
+name: Bug report
+description: Something is broken or behaves differently from what you expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. **Japanese or English is fine.**
+
+        Before you start:
+
+        - Search the [existing issues](https://github.com/fastlabel/open-lutra/issues?q=is%3Aissue) for a duplicate.
+        - Check [Troubleshooting in docs/SETUP.md](https://github.com/fastlabel/open-lutra/blob/main/docs/SETUP.md#troubleshooting) — topics not showing up, Docker build failures, and recordings not being saved are covered there.
+        - **Do not paste your `.env` file.** It can contain credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, …). Paste the output of `GET /api/config` instead, and redact keys, internal hostnames, and any other confidential values from the logs you attach.
+        - Found a security vulnerability? **Do not open a public issue** — follow [SECURITY.md](https://github.com/fastlabel/open-lutra/blob/main/SECURITY.md).
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched the existing issues and did not find a duplicate.
+          required: true
+        - label: I removed credentials and other confidential information from everything I pasted below.
+          required: true
+        - label: This is not a security vulnerability report.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What goes wrong, in one or two sentences.
+      placeholder: Recording stops after ~30 seconds and the UI shows no error.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Pick the closest one. If you are unsure, choose "Other / not sure".
+      options:
+        - Recording (start / stop, ros2 bag record)
+        - Live topic monitoring (Hz, miss rate, SSE)
+        - Quality analysis / timeline
+        - Recordings browser (list, detail, delete)
+        - Preview (MP4 / joint data)
+        - Validation
+        - Upload (S3 / local destination)
+        - LeRobot export
+        - Setup / configuration (.env, config YAML, Docker)
+        - ROS2 / DDS (topic discovery, custom message types)
+        - UI (general layout, shortcuts, appearance)
+        - Documentation
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Number the steps so we can follow them exactly.
+      placeholder: |
+        1. `make prod-up`
+        2. Select the 4 camera topics in the left panel
+        3. Press the record button
+        4. Wait ~30 seconds
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exact error message or toast text if there is one.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Intermittently
+        - Happened once, could not reproduce
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## Environment
+
+        OpenLUTRA runs on your own machine next to your own robot, so this section is where most bugs are actually resolved. Please fill it in even if the problem looks unrelated to your setup.
+
+  - type: input
+    id: version
+    attributes:
+      label: OpenLUTRA version
+      description: "Release tag and the commit you are on (`git rev-parse --short HEAD`). Docker images are not published yet, so the commit is what identifies your build."
+      placeholder: v0.2.0 (4efe813)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: run-mode
+    attributes:
+      label: How are you running it?
+      options:
+        - "Development: make up (bundled simulator, bridge network)"
+        - "Development: make dev-up (VITE_DEV_MODE=true)"
+        - "Production: make prod-up (network_mode: host)"
+        - Other (please describe under "Additional context")
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-source
+    attributes:
+      label: What is publishing the topics?
+      options:
+        - Bundled simulator
+        - Physical robot
+        - Neither — I am only browsing existing recordings
+        - Other (please describe under "Additional context")
+    validations:
+      required: true
+
+  - type: input
+    id: host-os
+    attributes:
+      label: Host OS and architecture
+      description: The OS running Docker, not the OS inside the container.
+      placeholder: Ubuntu 22.04 / x86_64
+    validations:
+      required: true
+
+  - type: input
+    id: docker
+    attributes:
+      label: Docker and Docker Compose versions
+      description: "Output of `docker version --format '{{.Server.Version}}'` and `docker compose version --short`."
+      placeholder: Docker 27.3.1 / Compose 2.29.7
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-config
+    attributes:
+      label: Output of GET /api/config
+      description: "Run `curl -s localhost:8000/api/config`. This reports `ros_domain_id`, `robot_name`, `stamp_quality`, and `upload_enabled` — it contains no credentials."
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: recording-config
+    attributes:
+      label: Recording config YAML
+      description: "The `config/*.yaml` selected by `RECORDING_CONFIG`. Strongly recommended for anything involving recording, live monitoring, or quality analysis — `expected_hz_patterns`, `stamp_quality`, and `recording_start_delay_sec` are frequent root causes. Trim topic lists or field names you cannot share."
+      render: yaml
+
+  - type: textarea
+    id: robot
+    attributes:
+      label: Robot and hardware details
+      description: |
+        For reports involving a physical robot. Whatever you can share of:
+        - Robot model / vendor
+        - ROS2 distribution on the robot side
+        - `RMW_IMPLEMENTATION` on the robot side (OpenLUTRA uses `rmw_fastrtps_cpp`)
+        - Cameras: model and count (e.g. RealSense D435 x4 @ 30Hz)
+        - Whether you build custom ROS2 message packages into the image (see `examples/custom_ros2_messages/`)
+      placeholder: |
+        Robot: <vendor/model>
+        ROS2 (robot side): Humble
+        RMW: rmw_fastrtps_cpp
+        Cameras: RealSense D435 x4 @ 30Hz
+        Custom message packages: yes (my_robot_msgs)
+
+  - type: textarea
+    id: scale
+    attributes:
+      label: Machine specs and recording scale
+      description: |
+        Useful for long recordings, preview generation, and export problems. Whatever applies:
+        - CPU / RAM, and free space on `OUTPUT_DIR`
+        - Recording length, number of topics, number of cameras, resulting MCAP size
+      placeholder: |
+        CPU: Core i7-12700 / RAM: 32GB / free space on OUTPUT_DIR: 120GB
+        Recording: 5 min, 8 topics, 4 cameras, ~6GB MCAP
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: For UI or live-monitoring (SSE) problems.
+      placeholder: Chrome 141
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Backend / frontend logs (`make logs` or `make prod-logs`) and the browser console. Paste the relevant portion around the failure, with confidential values redacted."
+      render: shell
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Additional diagnostics
+      description: |
+        Attach whichever is relevant:
+        - `docker compose exec backend ros2 doctor --report` — for topic discovery / DDS problems
+        - `SIM_MODE` value — when reproducing with the simulator
+        - Upload destination type (`s3` / `local` / MinIO) — **never the credentials**
+        - Variables you changed from their defaults in `.env` (names and non-secret values only)
+        - `recording_meta.json` or the quality report of the affected recording
+
+  - type: input
+    id: regression
+    attributes:
+      label: Last version that worked
+      description: If this used to work, the tag or commit where it did.
+      placeholder: v0.1.0 / 60c01f5
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, screen recordings, a workaround you found, or anything else that helps.

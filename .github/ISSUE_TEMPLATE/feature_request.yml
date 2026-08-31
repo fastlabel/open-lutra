@@ -1,0 +1,83 @@
+name: Feature request
+description: Suggest a capability, an improvement, or a use case you want supported
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests and use-case reports are very welcome — they shape the project's direction. **Japanese or English is fine.**
+
+        Two notes before you file:
+
+        - Search the [existing issues](https://github.com/fastlabel/open-lutra/issues?q=is%3Aissue) so we can consolidate related requests.
+        - OpenLUTRA is pre-1.0 and **external pull requests are not accepted at this stage** ([CONTRIBUTING.md](https://github.com/fastlabel/open-lutra/blob/main/CONTRIBUTING.md)). Filing this issue is exactly the right way to contribute the idea.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the difficulty you hit today, before describing a solution. What do you have to do now, and why is that a problem?
+      placeholder: After each session I manually check which recordings are missing a camera topic, because a failed recording only becomes visible when I open it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case and workflow
+      description: Where this sits in your work — teaching, teleoperation, dataset preparation for training, review, handoff to another team, and so on.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+      description: The behavior you have in mind. A rough sketch is fine — no need for an implementation plan.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Related area
+      options:
+        - Recording (start / stop, ros2 bag record)
+        - Live topic monitoring (Hz, miss rate, SSE)
+        - Quality analysis / timeline
+        - Recordings browser (list, detail, delete)
+        - Preview (MP4 / joint data)
+        - Validation
+        - Upload (S3 / local destination)
+        - LeRobot export
+        - Setup / configuration (.env, config YAML, Docker)
+        - ROS2 / DDS (topic discovery, custom message types)
+        - UI (general layout, shortcuts, appearance)
+        - Documentation
+        - Other / new area
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and current workaround
+      description: Other approaches you considered, and how you cope today (an external script, a manual check, another tool).
+
+  - type: textarea
+    id: scale
+    attributes:
+      label: Operating context
+      description: |
+        Helps us size the request against real usage. Whatever you can share:
+        - Number of topics / Hz / number of cameras
+        - How much data you record per day, and for how long per session
+        - How many people or machines are involved
+        - What consumes the data downstream (LeRobot, a custom training pipeline, an annotation tool, …)
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to related tools or prior art that behave the way you want (rosbag2, Foxglove, LeRobot, MCAP tooling, …), or to related issues.

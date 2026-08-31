@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/fastlabel/open-lutra/blob/main/SECURITY.md
+    about: Report vulnerabilities privately by email. Please do not open a public issue.
+  - name: Setup and troubleshooting
+    url: https://github.com/fastlabel/open-lutra/blob/main/docs/SETUP.md#troubleshooting
+    about: Topics not showing up, Docker build failures, recordings not being saved — start here.
+  - name: Documentation
+    url: https://github.com/fastlabel/open-lutra/blob/main/docs/
+    about: Architecture, setup, and domain notes (ROS2 / DDS, MCAP, quality analysis, LeRobot export).
+  - name: Contributing and pull request policy
+    url: https://github.com/fastlabel/open-lutra/blob/main/CONTRIBUTING.md
+    about: Issues are welcome. External pull requests are not accepted at this stage.
