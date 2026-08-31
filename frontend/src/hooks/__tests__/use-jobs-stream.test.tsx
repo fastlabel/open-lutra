@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getGetStorageQueryKey } from "@/api/generated/config/config";
 import { getGetRecordingsQueryKey } from "@/api/generated/recordings/recordings";
 import type { JobSchema } from "@/api/generated/schemas";
 import { getGetValidationQueryKey } from "@/api/generated/validation/validation";
@@ -106,6 +107,36 @@ describe("useJobsStream", () => {
     expect(calls).toContainEqual(getGetRecordingsQueryKey());
     const cached = client.getQueryData<JobSchema[]>(["sse", "jobs"]);
     expect(cached?.[0]?.status).toBe("completed");
+  });
+
+  it("invalidates the free-space readout when a job completes", () => {
+    // The quality -> validation chain after a recording is what refreshes the
+    // recording bar's free space, so this is the feature's primary trigger.
+    const { client } = renderWithClient(() => {
+      useJobsStream();
+    });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+
+    act(() => {
+      lastSource?.emit("job_completed", makeJob({ type: "validation", status: "completed" }));
+    });
+
+    expect(invalidate.mock.calls.map((c) => c[0]?.queryKey)).toContainEqual(getGetStorageQueryKey());
+  });
+
+  it("invalidates the free-space readout for a job type the map does not cover", () => {
+    // lerobot_export has no entry in JOB_COMPLETION_INVALIDATIONS yet writes the
+    // largest artifacts in the app, so it must not be skipped along with the map.
+    const { client } = renderWithClient(() => {
+      useJobsStream();
+    });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+
+    act(() => {
+      lastSource?.emit("job_failed", makeJob({ job_id: "e1", type: "lerobot_export", status: "failed" }));
+    });
+
+    expect(invalidate.mock.calls.map((c) => c[0]?.queryKey)).toContainEqual(getGetStorageQueryKey());
   });
 });
 

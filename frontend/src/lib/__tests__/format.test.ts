@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { formatCapacity, formatDuration, formatElapsed, formatRecordingDate, formatSize } from "../format";
 
-const GB = 1024 * 1024 * 1024;
+const MB = 1024 * 1024;
+const GB = 1024 * MB;
 
 describe("formatSize", () => {
   it("renders 0 bytes", () => {
@@ -49,6 +50,19 @@ describe("formatCapacity", () => {
   it("falls back to MB below 1GB", () => {
     expect(formatCapacity(500 * 1024 * 1024)).toBe("500 MB");
     expect(formatCapacity(0)).toBe("0 MB");
+  });
+
+  it("promotes to the next unit when rounding would leave the band", () => {
+    // Rounding inside a band can reach the band's upper bound; rendering that
+    // as "1024 GB" / "1024 MB" would put the number outside its own unit.
+    expect(formatCapacity(1023.7 * GB)).toBe("1.0 TB");
+    expect(formatCapacity(1023.6 * MB)).toBe("1.0 GB");
+    expect(formatCapacity(9.96 * GB)).toBe("10 GB");
+  });
+
+  it("keeps the band when rounding stays inside it", () => {
+    expect(formatCapacity(1023.4 * GB)).toBe("1023 GB");
+    expect(formatCapacity(1023.4 * MB)).toBe("1023 MB");
   });
 });
 

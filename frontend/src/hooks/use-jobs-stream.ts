@@ -69,13 +69,12 @@ export function useJobsStream() {
 
     /** Invalidate related queries when a job completes or fails. */
     const invalidateRelated = (job: JobSchema) => {
-      // Every job type writes into the output volume (analysis JSON, MP4, zip,
+      // Storage applies to every job type, including the ones absent from the
+      // map: they all write into the output volume (analysis JSON, MP4, zip,
       // exported dataset), so a finished job is the point at which the recording
       // screen's free-space readout is worth re-reading. Invalidating while that
       // screen is closed costs nothing: the refetch happens when it next mounts.
-      queryClient.invalidateQueries({ queryKey: getGetStorageQueryKey() });
-      const keys = JOB_COMPLETION_INVALIDATIONS[job.type];
-      if (!keys) return;
+      const keys = [getGetStorageQueryKey(), ...(JOB_COMPLETION_INVALIDATIONS[job.type] ?? [])];
       for (const queryKey of keys) {
         queryClient.invalidateQueries({ queryKey });
       }

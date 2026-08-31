@@ -13,13 +13,18 @@ export function formatSize(bytes: number): string {
  * Deliberately less precise than formatSize: a volume's free space is read at a
  * few discrete moments rather than continuously, and digits that imply live
  * tracking would misrepresent how fresh the number is.
+ *
+ * Each band picks its unit from the value *as it will be rendered*, so a number
+ * that rounds up past its band is promoted instead of printed out of range
+ * (1023.7 GB is "1.0 TB", not "1024 GB").
  */
 export function formatCapacity(bytes: number): string {
-  const gb = bytes / (1024 * 1024 * 1024);
-  if (gb >= 1024) return `${(gb / 1024).toFixed(1)} TB`;
-  if (gb >= 10) return `${Math.round(gb)} GB`;
-  if (gb >= 1) return `${gb.toFixed(1)} GB`;
-  return `${Math.round(bytes / (1024 * 1024))} MB`;
+  const mb = bytes / (1024 * 1024);
+  const gb = mb / 1024;
+  if (Math.round(gb) >= 1024) return `${(gb / 1024).toFixed(1)} TB`;
+  if (Number(gb.toFixed(1)) >= 10) return `${Math.round(gb)} GB`;
+  if (Math.round(mb) >= 1024) return `${gb.toFixed(1)} GB`;
+  return `${Math.round(mb)} MB`;
 }
 
 /** Format a recording time (nanoseconds) as "MM/DD HH:mm~HH:mm". */
