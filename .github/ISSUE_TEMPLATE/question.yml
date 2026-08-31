@@ -1,0 +1,87 @@
+name: Question / help
+description: Ask about usage, configuration, or expected behavior
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions are welcome. **Japanese or English is fine.**
+
+        A couple of places worth checking first:
+
+        - [docs/SETUP.md](https://github.com/fastlabel/open-lutra/blob/main/docs/SETUP.md) — prerequisites, environment variables, recording config YAML, and a troubleshooting section
+        - [docs/domain/](https://github.com/fastlabel/open-lutra/blob/main/docs/domain/index.md) — ROS2 / DDS gaps, MCAP, quality analysis, metadata, upload, LeRobot export
+
+        **Do not paste your `.env` file** — it can contain credentials. Redact keys and internal hostnames from anything you attach.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: The task behind the question. Knowing the goal often leads to a better answer than the question alone.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you already read or tried?
+      description: Documentation pages you looked at, settings you changed, commands you ran, and what happened.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: OpenLUTRA version
+      description: "Release tag and commit (`git rev-parse --short HEAD`)."
+      placeholder: v0.2.0 (4efe813)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: run-mode
+    attributes:
+      label: How are you running it?
+      options:
+        - "Development: make up (bundled simulator, bridge network)"
+        - "Development: make dev-up (VITE_DEV_MODE=true)"
+        - "Production: make prod-up (network_mode: host)"
+        - Not running it yet / evaluating
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-source
+    attributes:
+      label: What is publishing the topics?
+      options:
+        - Bundled simulator
+        - Physical robot
+        - Neither — I am only browsing existing recordings
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant configuration
+      description: "The `config/*.yaml` selected by `RECORDING_CONFIG`, or the output of `curl -s localhost:8000/api/config`. Redact anything you cannot share."
+      render: yaml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error messages
+      description: "From `make logs` / `make prod-logs`, or the browser console."
+      render: shell

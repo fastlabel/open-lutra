@@ -25,12 +25,11 @@ We welcome any of the following kinds of Issue. Either Japanese or English is fi
 - Unclear or incorrect points in the documentation
 - Reports related to ROS2 / MCAP compatibility
 
-### Information that helps with bug reports
+Pick a template on the [New Issue](https://github.com/fastlabel/open-lutra/issues/new/choose) page and fill it in — each template asks for exactly the information we need in order to act on the report.
 
-- Steps to reproduce
-- Expected behavior and actual behavior
-- Environment (OS / Docker version / ROS2 distribution / robot model, and any other relevant details)
-- Logs and error messages (please redact any confidential information)
+Because OpenLUTRA runs on your own machine alongside your own robot, the environment section of the bug report template is what most investigations hinge on. Please fill it in even when the problem looks unrelated to your setup.
+
+> **Do not paste your `.env` file into an Issue** — it can contain credentials such as `AWS_ACCESS_KEY_ID`. The templates point at safe alternatives (for example the output of `GET /api/config`), and confidential values should be redacted from any log you attach.
 
 ## Plans for when Pull Requests are opened
 
