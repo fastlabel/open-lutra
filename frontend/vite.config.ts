@@ -19,11 +19,9 @@ export default defineConfig({
         target: process.env.API_URL || "http://localhost:8000",
         changeOrigin: true,
         configure: (proxy) => {
-          // Streaming endpoints (SSE / MJPEG) must surface a dead backend to the
-          // browser as a network error so EventSource's built-in auto-reconnect
-          // kicks in: the default behavior either answers 500 (which kills an
-          // EventSource permanently) or leaves the browser-side socket open
-          // (which hangs it forever on a half-open stream).
+          // All /api requests: surface a dead backend as a network error, not a
+          // 500/502 or a hanging half-open socket. EventSource reconnects only
+          // after a network error and dies permanently on a non-200 response.
           proxy.on("error", (_err, _req, res) => {
             res.destroy();
           });
