@@ -58,13 +58,12 @@ export function useTopicsStream(enabled = true) {
 
     es.addEventListener("topic_stats", (e) => {
       const changed: TopicInfo[] = JSON.parse(e.data);
-      const next = replaceNext
-        ? changed
-        : upsertTopicStats(queryClient.getQueryData<TopicInfo[]>(sseKeys.topicStats()) ?? [], changed);
+      const next = queryClient.setQueryData<TopicInfo[]>(sseKeys.topicStats(), (old) =>
+        replaceNext ? changed : upsertTopicStats(old ?? [], changed),
+      );
       replaceNext = false;
-      queryClient.setQueryData(sseKeys.topicStats(), next);
       // The quality history advances every tick, even when no row changed.
-      useQualityHistoryStore.getState().push(next);
+      useQualityHistoryStore.getState().push(next ?? []);
     });
 
     es.addEventListener("log", (e) => {
