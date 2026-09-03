@@ -26,7 +26,11 @@ export default defineConfig({
             res.destroy();
           });
           proxy.on("proxyRes", (proxyRes, _req, res) => {
-            proxyRes.on("close", () => res.destroy());
+            // Only tear down streams that are still open: destroying a response
+            // with a queued tail would truncate large bodies (export zips, MP4s).
+            proxyRes.on("close", () => {
+              if (!res.writableEnded) res.destroy();
+            });
           });
         },
       },
