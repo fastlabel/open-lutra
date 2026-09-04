@@ -1,8 +1,14 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Question / help
+    url: https://github.com/fastlabel/open-lutra/discussions/categories/q-a
+    about: Usage, configuration, or expected behavior — ask in Discussions Q&A rather than opening an issue.
+  - name: Show and tell
+    url: https://github.com/fastlabel/open-lutra/discussions/categories/show-and-tell
+    about: Share your setup, robot configuration, or what you built on top of OpenLUTRA.
   - name: Security vulnerability
     url: https://github.com/fastlabel/open-lutra/blob/main/SECURITY.md
-    about: Report vulnerabilities privately by email. Please do not open a public issue.
+    about: Report vulnerabilities privately by email. Please do not open a public issue or discussion.
   - name: Setup and troubleshooting
     url: https://github.com/fastlabel/open-lutra/blob/main/docs/SETUP.md#troubleshooting
     about: Topics not showing up, Docker build failures, recordings not being saved — start here.
@@ -11,4 +17,4 @@ contact_links:
     about: Architecture, setup, and domain notes (ROS2 / DDS, MCAP, quality analysis, LeRobot export).
   - name: Contributing and pull request policy
     url: https://github.com/fastlabel/open-lutra/blob/main/CONTRIBUTING.md
-    about: Issues are welcome. External pull requests are not accepted at this stage.
+    about: Issues and discussions are welcome. External pull requests are not accepted at this stage.
