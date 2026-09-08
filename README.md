@@ -7,7 +7,6 @@
 <p>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="#release-status"><img src="https://img.shields.io/badge/version-0.2.0-orange.svg" alt="Version"></a>
-  <a href="#release-status"><img src="https://img.shields.io/badge/status-beta-yellow.svg" alt="Status: Beta"></a>
   <a href="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml"><img src="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -21,7 +20,7 @@
 
 </div>
 
-> **Release status — pre-1.0 (v0.2.0, beta).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
+> **Release status — pre-1.0 (v0.2.0).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
 
 <!-- TBD: hero screenshot or short demo GIF (recording page in action) -->
 
