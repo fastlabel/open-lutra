@@ -16,11 +16,46 @@ This Section will be updated as the registration status changes.
 
 ## Logos
 
-The OpenLUTRA logo — the otter mark, the "OpenLUTRA" wordmark, and the lockup that combines the two — is published in this repository at [`docs/assets/logo.png`](./docs/assets/logo.png).
+The OpenLUTRA logo — the otter mark, the "OpenLUTRA" wordmark, and the lockup that combines the two — is a figurative trademark of FastLabel, published in this repository at [`docs/assets/logo.png`](./docs/assets/logo.png).
 
 All rights in the logo and in the logo files distributed with this project are reserved by FastLabel. The logo is **not** covered by the Apache License 2.0 that applies to this project's source code: Section 6 of that license grants no right to use FastLabel's trademarks, and the inclusion of a logo file in this repository does not place the logo itself under that license or grant any right to reproduce, modify, or redistribute it.
 
-Detailed terms governing use of the logo — canonical source, permitted uses, prohibited modifications, and display guidelines — are in preparation and will be added to this document. Until they are published, please see [Contact](#contact) before using the logo.
+The terms below govern the uses that are permitted despite that reservation.
+
+### Canonical Source
+
+* Canonical file: [`docs/assets/logo.png`](./docs/assets/logo.png)
+* Please use this file as distributed. Do not re-create, trace, or reconstruct the logo from other sources.
+
+### Permitted Uses
+
+The following uses are permitted without prior consultation, provided that the logo is reproduced without modification and that the use does not suggest any affiliation with, endorsement by, or sponsorship by FastLabel.
+
+* Illustrating articles, blog posts, slides, or talks that discuss OpenLUTRA
+* Indicating that your project or product uses OpenLUTRA, accompanying a "Powered by OpenLUTRA" or "Compatible with OpenLUTRA" statement (see [Use of "Powered by" / "Compatible with"](#use-of-powered-by--compatible-with))
+* Linking to this repository from documentation or a README
+
+### Prohibited Modifications and Uses
+
+Regardless of the above, please do not do any of the following without prior written permission from FastLabel.
+
+* **Modifying the logo**: changing its colors, distorting or stretching its proportions, rotating it, cropping it, applying effects such as shadows or outlines, or separating the otter mark from the wordmark and using either element on its own
+* **Incorporating the logo into your own branding**: using the logo, or any element of it, as part of your own logo, application icon, favicon, or social media account image
+* **Using the logo as the primary visual element** of a product, service, packaging, advertisement, event, or merchandise
+* **Registering the logo**, or any confusingly similar mark, as a trademark, domain name, or account name in any jurisdiction
+* **Displaying the logo in a way that impairs legibility or implies endorsement**, such as placing it on a background with insufficient contrast, or placing it next to your own logo so that the two read as a single combined mark
+
+### Display Guidelines
+
+* Keep clear space around the logo at least equal to the height of the "O" in the wordmark.
+* Do not display the logo at a width smaller than 88 px on screen (or 20 mm in print), below which the wordmark stops being legible.
+* Use the logo as distributed, including its background. Do not invert it or knock it out for use on dark backgrounds.
+
+### Forks
+
+If you distribute a fork under a different name, as described in [Guidelines for Forks](#guidelines-for-forks), please remove the OpenLUTRA logo from that distribution and from its materials, or replace it with your own. Describing the fork in text as "a fork of OpenLUTRA" remains permitted.
+
+For any use not covered above, please see [Contact](#contact).
 
 ## Uses Permitted Without Prior Consultation (Nominative Use)
 
