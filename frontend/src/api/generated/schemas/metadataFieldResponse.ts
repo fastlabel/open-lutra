@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.3
  */
 import type { MetadataFieldOptionResponse } from './metadataFieldOptionResponse.ts';
 import type { MetadataFieldResponseType } from './metadataFieldResponseType.ts';
