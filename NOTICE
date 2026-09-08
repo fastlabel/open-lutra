@@ -9,6 +9,8 @@ The licenses of all third-party dependencies are listed in the
 project metadata (pyproject.toml, package.json, Dockerfile) and
 inherited from their respective upstream sources.
 
-"OpenLUTRA" and "FastLabel" are trademarks of FastLabel Inc.
-Use of these names is governed by TRADEMARKS.md and is not granted
-by the Apache License (see Apache License, Version 2.0, Section 6).
+"OpenLUTRA" and "FastLabel", and the OpenLUTRA logo, are trademarks
+of FastLabel Inc. Use of these names and of the logo is governed by
+TRADEMARKS.md and is not granted by the Apache License (see Apache
+License, Version 2.0, Section 6). All rights in the logo files
+included in this product are reserved.

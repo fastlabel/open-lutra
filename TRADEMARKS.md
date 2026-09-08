@@ -16,7 +16,11 @@ This Section will be updated as the registration status changes.
 
 ## Logos
 
-At the time of writing, no official logo for OpenLUTRA has been released. Once a logo is published, additional terms governing its use (canonical source, prohibited modifications, etc.) will be added to this document. Until then, this policy applies only to the word marks "OpenLUTRA" and "FastLabel".
+The OpenLUTRA logo — the otter mark, the "OpenLUTRA" wordmark, and the lockup that combines the two — is published in this repository at [`docs/assets/logo.png`](./docs/assets/logo.png).
+
+All rights in the logo and in the logo files distributed with this project are reserved by FastLabel. The logo is **not** covered by the Apache License 2.0 that applies to this project's source code: Section 6 of that license grants no right to use FastLabel's trademarks, and the inclusion of a logo file in this repository does not place the logo itself under that license or grant any right to reproduce, modify, or redistribute it.
+
+Detailed terms governing use of the logo — canonical source, permitted uses, prohibited modifications, and display guidelines — are in preparation and will be added to this document. Until they are published, please see [Contact](#contact) before using the logo.
 
 ## Uses Permitted Without Prior Consultation (Nominative Use)
 

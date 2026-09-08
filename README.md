@@ -1,17 +1,26 @@
-<!-- TBD: project logo / hero banner image -->
+<div align="center">
 
-# OpenLUTRA
+<img src="docs/assets/logo.png" alt="OpenLUTRA" width="360">
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](#release-status)
-[![Status: Beta](https://img.shields.io/badge/status-beta-yellow.svg)](#release-status)
-[![CI](https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml/badge.svg)](https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml)
+<p><strong>A ROS2 data-recording system for robot teaching — record topics from ROS2-compatible robots and persist them as MCAP, all driven from a web UI.</strong></p>
 
-**A ROS2 data-recording system for robot teaching — record topics from ROS2-compatible robots and persist them as MCAP, all driven from a web UI.**
+<p>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
+  <a href="#release-status"><img src="https://img.shields.io/badge/version-0.2.0-orange.svg" alt="Version"></a>
+  <a href="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml"><img src="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-> **Release status — pre-1.0 (v0.2.0, beta).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
+<p>
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="https://github.com/fastlabel/open-lutra/issues">Issues</a> ·
+  <a href="https://github.com/fastlabel/open-lutra/discussions">Discussions</a> ·
+  <a href="./SECURITY.md">Security</a>
+</p>
 
-[Quickstart](#quickstart) · [Documentation](#documentation) · [Issues](https://github.com/fastlabel/open-lutra/issues) · [Discussions](https://github.com/fastlabel/open-lutra/discussions) · [Security](./SECURITY.md)
+</div>
+
+> **Release status — pre-1.0 (v0.2.0).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
 
 <!-- TBD: hero screenshot or short demo GIF (recording page in action) -->
 
