@@ -6,7 +6,6 @@
 
 <p>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
-  <a href="#release-status"><img src="https://img.shields.io/badge/version-0.2.0-orange.svg" alt="Version"></a>
   <a href="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml"><img src="https://github.com/fastlabel/open-lutra/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -20,7 +19,7 @@
 
 </div>
 
-> **Release status — pre-1.0 (v0.2.0).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
+> **Release status — pre-1.0 (v0.4.3).** APIs, data formats, and the CLI/UI may change without notice. Pin a specific version for any production use.
 
 <!-- TBD: hero screenshot or short demo GIF (recording page in action) -->
 
@@ -135,7 +134,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 
 ## Release status
 
-OpenLUTRA is currently **v0.2.0 (beta)** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
+OpenLUTRA is currently **v0.4.3** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
 
 Docker images are **not** published at this stage; the project is distributed as source.
 
@@ -181,3 +180,4 @@ OpenLUTRA builds on the work of many upstream projects, including [ROS2](https:/
 ---
 
 Maintained by [FastLabel, Inc.](https://fastlabel.ai)
+
