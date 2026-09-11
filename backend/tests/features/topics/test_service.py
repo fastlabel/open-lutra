@@ -116,6 +116,85 @@ class TestOnDiscoverTick:
         service = TopicMonitorService(subscribed_topics=[], log_manager=log_manager)
         service.on_discover_tick()  # No exception raised
 
+    def test_subscribe_runs_outside_the_lock(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        """The DDS call must not hold the lock, otherwise a stalled discovery blocks every API request."""
+        lock_held_during_subscribe: list[bool] = []
+
+        def subscribe(_name: str, _type: str, _cb: object) -> str:
+            lock_held_during_subscribe.append(monitor._lock.locked())
+            # An API request served while the DDS call is in flight must not deadlock;
+            # it sees the reserved topic as inactive.
+            assert [s.status for s in monitor.get_topic_stats()] == ["inactive"]
+            return "RELIABLE"
+
+        mock_subscriber.subscribe_topic.side_effect = subscribe
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+
+        assert lock_held_during_subscribe == [False]
+        assert [s.name for s in monitor.get_topic_stats()] == ["/joint_states"]
+
+    def test_deselected_while_subscribing_is_torn_down(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """A topic deselected while its DDS subscription is being created is unsubscribed again."""
+
+        def subscribe(_name: str, _type: str, _cb: object) -> str:
+            monitor.update_subscriptions([])  # Concurrent API request drops the reservation
+            return "RELIABLE"
+
+        mock_subscriber.subscribe_topic.side_effect = subscribe
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+
+        mock_subscriber.unsubscribe_topic.assert_called_with("/joint_states")
+        assert monitor.get_topic_stats() == []
+        assert monitor.update_subscriptions([]) == []
+
+    def test_subscribe_failure_after_deselect_leaves_no_stats(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """A failed subscription whose reservation was already dropped does not touch the new state."""
+
+        def subscribe(_name: str, _type: str, _cb: object) -> None:
+            monitor.update_subscriptions([])
+            return None
+
+        mock_subscriber.subscribe_topic.side_effect = subscribe
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+
+        # Only the deselect itself tears down; the failure path has nothing to undo.
+        assert mock_subscriber.unsubscribe_topic.call_count == 1
+        assert monitor.get_topic_stats() == []
+
+    def test_retries_failed_subscription_on_next_tick(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """A topic whose subscription failed is attempted again on the next discovery tick."""
+        mock_subscriber.subscribe_topic.return_value = None
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+        monitor.on_discover_tick()
+        assert mock_subscriber.subscribe_topic.call_count == 2
+
+    def test_does_not_subscribe_twice(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        """An already subscribed topic is not subscribed again on later ticks."""
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+        monitor.on_discover_tick()
+        mock_subscriber.subscribe_topic.assert_called_once()
+
 
 # ---------------------------------------------------------------------------
 # on_message
@@ -375,6 +454,36 @@ class TestUpdateSubscriptions:
         assert len(monitor.get_topic_stats()) == 0
         mock_subscriber.unsubscribe_topic.assert_called_with("/joint_states")
 
+    def test_unsubscribe_runs_outside_the_lock(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
+        """Tearing down a DDS subscription must not hold the lock either."""
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+
+        lock_held_during_unsubscribe: list[bool] = []
+        mock_subscriber.unsubscribe_topic.side_effect = lambda _name: lock_held_during_unsubscribe.append(
+            monitor._lock.locked()
+        )
+        monitor.update_subscriptions([])
+        assert lock_held_during_unsubscribe == [False]
+
+    def test_messages_after_deselect_are_ignored(
+        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
+    ) -> None:
+        """Stats are dropped before the DDS teardown, so late messages are ignored instead of resurrecting them."""
+        mock_subscriber.discover_topics.return_value = [
+            ("/joint_states", ["sensor_msgs/msg/JointState"]),
+        ]
+        monitor.on_discover_tick()
+
+        def unsubscribe(name: str) -> None:
+            monitor.on_message(name, _NoHeaderMsg())  # Message delivered while the teardown is in flight
+
+        mock_subscriber.unsubscribe_topic.side_effect = unsubscribe
+        monitor.update_subscriptions([])
+        assert monitor.get_topic_stats() == []
+
 
 # ---------------------------------------------------------------------------
 # get_latest_message
@@ -543,9 +652,7 @@ class TestLiveMode:
         self._subscribe_joint(monitor, mock_subscriber)
         assert monitor.start_live("/missing") is False
 
-    def test_start_live_stops_other_sessions(
-        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
-    ) -> None:
+    def test_start_live_stops_other_sessions(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         mock_subscriber.discover_topics.return_value = [
             ("/joint_states", ["sensor_msgs/msg/JointState"]),
             ("/arm_states", ["sensor_msgs/msg/JointState"]),
@@ -580,16 +687,12 @@ class TestLiveMode:
         assert monitor.get_live_positions("/missing") is None
         assert monitor.get_live_positions("/joint_states") is None  # not in live mode
 
-    def test_get_live_positions_none_when_empty(
-        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
-    ) -> None:
+    def test_get_live_positions_none_when_empty(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         self._subscribe_joint(monitor, mock_subscriber)
         monitor.start_live("/joint_states")
         assert monitor.get_live_positions("/joint_states") is None  # nothing captured yet
 
-    def test_get_live_positions_returns_data(
-        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
-    ) -> None:
+    def test_get_live_positions_returns_data(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         self._subscribe_joint(monitor, mock_subscriber)
         monitor.start_live("/joint_states")
         stats = monitor._topic_stats["/joint_states"]
@@ -634,9 +737,7 @@ class TestOnMessageLiveCapture:
         monitor.on_message("/joint_states", _Bad())  # exception is swallowed
         assert monitor.get_live_positions("/joint_states") is None
 
-    def test_image_topic_captures_raw_bytes(
-        self, monitor: TopicMonitorService, mock_subscriber: MagicMock
-    ) -> None:
+    def test_image_topic_captures_raw_bytes(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         mock_subscriber.discover_topics.return_value = [("/cam/image", ["sensor_msgs/msg/Image"])]
         monitor.on_discover_tick()
         monitor.update_subscriptions(["/cam/image"])
