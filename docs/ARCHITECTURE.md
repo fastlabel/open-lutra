@@ -298,8 +298,8 @@ Two state-management approaches are used:
 
 ```
 SSE (/api/topics/stream)
-  ├─ topic_stats event (every second)
-  │   └─ queryClient.setQueryData(sseKeys.topicStats(), data)
+  ├─ topic_stats event (every second: changed rows only; all rows on the first event)
+  │   └─ queryClient.setQueryData(sseKeys.topicStats(), upsertTopicStats(prev, changed))
   └─ log event (as they occur)
       └─ queryClient.setQueryData(sseKeys.logs(), ...)
 
