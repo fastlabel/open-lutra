@@ -4,6 +4,10 @@ OpenLUTRA is an open-source project published by FastLabel Inc. Thank you for yo
 
 > English speakers welcome. Issues and discussions may be written in either Japanese or English.
 
+## Code of Conduct
+
+Everyone taking part in OpenLUTRA's Issues, Discussions, and other community spaces is expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md), which also covers how to report unacceptable behavior.
+
 ## Current Stance
 
 | Category | Status |

@@ -159,7 +159,8 @@ Nothing on this list is committed — these are directions we are currently expl
 
 External pull requests are **not accepted at this stage**. Issues and discussions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-<!-- TBD: add CODE_OF_CONDUCT.md (e.g. Contributor Covenant) and link here before opening external contributions. -->
+Everyone taking part in these spaces is expected to follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
 <!-- TBD: add GOVERNANCE.md describing the maintainer / decision-making model before opening external contributions. -->
 
 ## License
