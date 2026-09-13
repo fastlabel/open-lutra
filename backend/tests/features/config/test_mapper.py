@@ -1,6 +1,8 @@
 """Tests for the config mapper (master metadata fields -> API responses)."""
 
-from app.features.config.mapper import to_metadata_field_responses
+from pathlib import Path
+
+from app.features.config.mapper import to_metadata_field_responses, to_storage_info
 from app.settings import MetadataField, MetadataFieldOption
 
 
@@ -56,3 +58,20 @@ class TestToMetadataFieldResponses:
         assert result[1].type == "number"
         assert result[1].pattern == "^[0-9]+$"
         assert result[1].placeholder == "e.g. 007"
+
+
+class TestToStorageInfo:
+    """Tests for to_storage_info."""
+
+    def test_maps_the_free_space(self) -> None:
+        result = to_storage_info(Path("/data/output"), 550)
+
+        assert result.path == "/data/output"
+        assert result.free_bytes == 550
+
+    def test_uninspectable_volume_keeps_the_path(self) -> None:
+        """A volume that cannot be read reports a null count, not a missing path."""
+        result = to_storage_info(Path("/data/output"), None)
+
+        assert result.path == "/data/output"
+        assert result.free_bytes is None

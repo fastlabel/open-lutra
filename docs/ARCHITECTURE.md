@@ -289,6 +289,7 @@ Two state-management approaches are used:
 - REST: Uses orval-generated `useGetRecordingStatus`, `useGetFiles`, etc., with select options
 - SSE: Manages topic stats, logs, and health checks via custom keys (`lib/query-keys.ts`)
 - Query keys: REST uses orval-generated `getXxxQueryKey()` factories; SSE uses custom `sseKeys`
+- Free space on the output volume (`useStorage`) is refreshed by events, never polled: on mount of the recording screen, on any job completion (`use-jobs-stream.ts`), on recording deletion, and on the operator pressing refresh — a recording in progress adds no background requests, at the cost of a reading that goes stale during a long take
 
 **MutationObserver (mutations from outside React)** — `features/recording/mutations.ts`:
 - An orchestration layer for executing TanStack Query mutations from Zustand stores

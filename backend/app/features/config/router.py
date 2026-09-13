@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter
 
-from app.features.config.mapper import to_metadata_field_responses
+from app.features.config.mapper import to_metadata_field_responses, to_storage_info
 from app.features.config.memory_reader import read_limit_bytes, read_usage_bytes
-from app.features.config.schemas import ConfigResponse, HealthResponse, MemoryInfo
+from app.features.config.schemas import ConfigResponse, HealthResponse, MemoryInfo, StorageInfo
 from app.features.upload.service import is_upload_enabled
 from app.settings import get_settings
+from app.shared.disk import read_free_bytes
 
 router = APIRouter(prefix="/api", tags=["config"])
 
@@ -35,3 +36,12 @@ async def get_config() -> ConfigResponse:
 async def get_memory() -> MemoryInfo:  # pragma: no cover
     """Get the memory usage of the backend process."""
     return MemoryInfo(used_bytes=read_usage_bytes(), limit_bytes=read_limit_bytes())
+
+
+# Declared sync so the statvfs call runs in the threadpool: an unresponsive
+# network mount would otherwise block the event loop.
+@router.get("/system/storage", response_model=StorageInfo, operation_id="getStorage")
+def get_storage() -> StorageInfo:
+    """Get the free space on the volume that holds the recordings."""
+    output_dir = get_settings().output_dir
+    return to_storage_info(output_dir, read_free_bytes(output_dir))

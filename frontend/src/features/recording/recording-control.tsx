@@ -7,6 +7,7 @@ import { useConfig, useIsRecording } from "@/hooks/use-api";
 import { useTopicStats } from "@/hooks/use-topics-stream";
 import { isDevMode } from "@/lib/dev-mode";
 import { RecordButton } from "./record-button";
+import { StorageIndicator } from "./storage-indicator";
 import { DELAY_OPTIONS, useRecordingStore } from "./store";
 import { Timer } from "./timer";
 
@@ -102,6 +103,12 @@ export function RecordingControl() {
           </div>
           <span className="text-[13px] text-muted-foreground">ID:{config?.ros_domain_id ?? "-"}</span>
         </div>
+
+        {/* Divider */}
+        <div className="h-12 w-px bg-border/80" />
+
+        {/* Free space left on the volume the recordings are written to */}
+        <StorageIndicator />
 
         {/* Command copy (dev mode only; hidden during recording or countdown) */}
         {isDevMode() && !buttonActive && (

@@ -15,7 +15,7 @@ from app.features.recording import (
     RecorderError,
     ROS2BagRecorder,
 )
-from app.features.recording.service import _disk_space_suffix, _format_gb, _free_disk_bytes
+from app.features.recording.service import _disk_space_suffix, _format_gb
 from app.infra.ros2 import ROS2CommandError
 
 
@@ -374,26 +374,20 @@ class TestMetaWrite:
 class TestDiskHelpers:
     """Tests for the free-disk-space helpers."""
 
-    def test_free_disk_bytes_returns_free_bytes_for_existing_path(self, tmp_path: Path) -> None:
-        free = _free_disk_bytes(tmp_path)
-        assert free is not None
-        assert free > 0
-
-    def test_free_disk_bytes_returns_none_for_missing_path(self, tmp_path: Path) -> None:
-        assert _free_disk_bytes(tmp_path / "does-not-exist") is None
-
-    def test_format_gb_formats_decimal_gb(self) -> None:
-        assert _format_gb(300_000_000) == "0.3 GB"
-        assert _format_gb(5_000_000_000) == "5.0 GB"
+    def test_format_gb_uses_binary_gb(self) -> None:
+        """A GB is 1024**3, so the number matches the frontend's readout of the same volume."""
+        assert _format_gb(1024**3) == "1.0 GB"
+        assert _format_gb(5 * 1024**3) == "5.0 GB"
+        assert _format_gb(300 * 1024**2) == "0.3 GB"
         assert _format_gb(0) == "0.0 GB"
 
     def test_disk_space_suffix_names_free_space_and_path(self) -> None:
-        with patch("app.features.recording.service._free_disk_bytes", return_value=300_000_000):
+        with patch("app.features.recording.service.read_free_bytes", return_value=300 * 1024**2):
             suffix = _disk_space_suffix(Path("/data/output"))
         assert suffix == " — free disk space: 0.3 GB at /data/output"
 
     def test_disk_space_suffix_empty_when_free_space_unavailable(self) -> None:
-        with patch("app.features.recording.service._free_disk_bytes", return_value=None):
+        with patch("app.features.recording.service.read_free_bytes", return_value=None):
             assert _disk_space_suffix(Path("/data/output")) == ""
 
 
@@ -405,7 +399,7 @@ class TestDiskFullErrors:
     ) -> None:
         """start() on a hard-full output volume fails before launching the recorder."""
         with (
-            patch("app.features.recording.service._free_disk_bytes", return_value=0),
+            patch("app.features.recording.service.read_free_bytes", return_value=0),
             pytest.raises(RecorderError, match="Disk full: no free disk space left"),
         ):
             recorder.start(topics=["/topic"])
@@ -413,7 +407,7 @@ class TestDiskFullErrors:
 
     def test_start_allowed_when_free_space_unknown(self, recorder: ROS2BagRecorder) -> None:
         """An uninspectable output volume does not block recording."""
-        with patch("app.features.recording.service._free_disk_bytes", return_value=None):
+        with patch("app.features.recording.service.read_free_bytes", return_value=None):
             recorder.start(topics=["/topic"])
         assert recorder.is_recording is True
 
@@ -447,7 +441,7 @@ class TestDiskFullErrors:
         """
         mock_ros2.bag_record.return_value.process.poll.return_value = 1
         with (
-            patch("app.features.recording.service._free_disk_bytes", return_value=100_000_000),
+            patch("app.features.recording.service.read_free_bytes", return_value=100_000_000),
             pytest.raises(RecorderError, match=r"free disk space: 0\.1 GB"),
         ):
             recorder.start(topics=["/topic"])
@@ -487,7 +481,7 @@ class TestDiskFullErrors:
         recorder.start(topics=["/topic"])
         mock_ros2.bag_record.return_value.process.poll.return_value = 1
         with (
-            patch("app.features.recording.service._free_disk_bytes", return_value=0),
+            patch("app.features.recording.service.read_free_bytes", return_value=0),
             patch.object(ROS2BagRecorder, "_notify_log") as notify,
         ):
             recorder.get_status()
