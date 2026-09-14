@@ -47,7 +47,7 @@ That is how development adds `--reload --reload-dir /app/app`, so edits under `b
 | You change | Development (`make up`) | Production (`make prod-up`) |
 |---|---|---|
 | `backend/app/**` | Applied immediately — uvicorn reloads on its own (`--reload`) | `make prod-restart` — production runs without the reloader |
-| `backend/tests/**` | Nothing to do — `make test-backend` runs pytest inside the running container against the mount | Not applicable |
+| `backend/tests/**` | Nothing to do — `make test-backend` runs pytest on the host; the mount only matters when running pytest inside the container | Not applicable |
 | `config/*.yaml` | Restart the container — the YAML is read once and cached (`app/settings.py`), and `ROS_DOMAIN_ID` is resolved at start-up | `make prod-restart` |
 | `.env` and other environment variables | Recreate the container (`make restart`); a plain `docker compose restart` reuses the environment the container was created with | `make prod-restart` |
 | Dependencies in `pyproject.toml` (with `uv.lock` relocked) | `make build`, then `make restart` — `.venv` lives in the image, and `--offline` cannot fetch new packages | `make build`, then `make prod-restart` |
