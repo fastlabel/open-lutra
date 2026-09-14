@@ -29,6 +29,12 @@ The start-up command is the one real difference:
 
 Development reinstalls on every start so dependency changes land without an image rebuild. Production skips the install because everything already ships inside the image — that is what lets `make prod-up` succeed on a site with no internet access.
 
+### Why the image pins the pnpm store
+
+pnpm records the store it installed from in `node_modules/.modules.yaml` and will not install into a modules directory that was built against a different one: it asks to recreate the directory from scratch, and aborts when there is no TTY to answer the prompt. The default store location is derived from `$HOME` and moves to a project-local directory whenever the project sits on another device — which it does at run time, with `/app` bind-mounted — so the path recorded during the image build would not be the path the container resolves. `frontend/Dockerfile` therefore pins `pnpm_config_store_dir=/pnpm-store`, which both the build and the container agree on.
+
+pnpm only reaches that check when the start-up install has something to reconcile; it skips the whole install while its cached workspace state still matches `package.json`, and a version bump alone invalidates that cache. Compose also sets `CI=true` so that a recreation pnpm does decide on — after a real dependency change, say — goes ahead instead of leaving the container in a restart loop.
+
 ## What lands where
 
 | You change | Development (`make up`) | Production (`make prod-up`) |
@@ -37,6 +43,7 @@ Development reinstalls on every start so dependency changes land without an imag
 | `vite.config.ts`, `tsconfig.json`, `orval.config.ts` | Restart the container (`make restart`) | `make prod-restart` |
 | `VITE_DEV_MODE`, `VITE_API_BASE` and other environment variables | Recreate the container (`make restart` / `make dev-up`); a plain `docker compose restart` reuses the environment the container was created with | `make prod-restart` |
 | Dependencies in `package.json` / `pnpm-lock.yaml` | Restart the container — the start-up install reconciles the volume with the lockfile (needs network) | `make build`, then drop the stale volume (below) |
+| `version` in `package.json` | Nothing to do — the start-up install revalidates the volume against the lockfile and finds it up to date | Nothing to do |
 | `packageManager` (pnpm version) in `package.json` | Restart the container — corepack fetches the new pnpm (needs network) | `make build`; otherwise corepack tries to fetch pnpm at start and fails without network |
 | `frontend/Dockerfile` | `make build`, then `make restart` | `make build`, then `make prod-restart` |
 

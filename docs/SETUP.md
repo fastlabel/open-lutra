@@ -453,3 +453,15 @@ make restart
 make build
 make restart
 ```
+
+### A Container Keeps Restarting After an Update
+
+The images carry the backend virtualenv and the frontend `node_modules`, so an image built before the update can disagree with the working tree it is started against. Rebuild, then start again:
+
+```bash
+make down
+make build
+make up
+```
+
+Which edits need a rebuild in the first place is listed per component in [backend/README.md](../backend/README.md#what-lands-where) and [frontend/README.md](../frontend/README.md#what-lands-where).
