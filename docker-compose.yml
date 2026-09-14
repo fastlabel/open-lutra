@@ -63,12 +63,18 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=${DEBUG:-true}
-    command: ["bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && export ROS_DOMAIN_ID=$(python3 -c \"import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG:-config/simulator.yaml}')).get('ros_domain_id', 0))\") && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app"]
+    # Same server the image runs by default, plus autoreload over the mounted
+    # source. The entrypoint sources ROS 2 and resolves ROS_DOMAIN_ID first.
+    command: ["uv", "run", "--locked", "--offline", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
     volumes:
       - ./backend/app:/app/app
       - ./backend/tests:/app/tests
       - ./config:/app/config:ro
+      # uv checks pyproject.toml against uv.lock, so the two have to be mounted
+      # as a pair; the working tree's pyproject.toml next to the image's older
+      # uv.lock reads as an outdated lockfile.
       - ./backend/pyproject.toml:/app/pyproject.toml:ro
+      - ./backend/uv.lock:/app/uv.lock:ro
       - ${OUTPUT_DIR:-./output}:/data/output
     ports:
       - "8000:8000"
@@ -87,6 +93,10 @@ services:
     command: bash -c "pnpm install --frozen-lockfile && pnpm run dev"
     environment:
       - API_URL=http://backend:8000
+      # pnpm prompts before it recreates node_modules, and aborts the install
+      # when there is no TTY to answer on. Compose runs detached, so let it go
+      # ahead instead of leaving the container in a restart loop.
+      - CI=true
       - VITE_DEV_MODE=${VITE_DEV_MODE:-false}
       # Route long-lived MJPEG streams directly to the backend origin in dev so they
       # do not consume the Vite proxy's 6-connection-per-origin budget. See the

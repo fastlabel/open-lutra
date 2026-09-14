@@ -8,6 +8,9 @@
 
 services:
   backend:
+    # Clear the base file's development command so the entrypoint runs its own:
+    # production has no source mount to autoreload from.
+    command: []
     network_mode: host
     environment:
       DEBUG: "false"
