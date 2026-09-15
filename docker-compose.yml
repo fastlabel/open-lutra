@@ -56,7 +56,6 @@ services:
       - path: .env
         required: false
     environment:
-      # Pin the DDS implementation instead of relying on the ROS 2 Humble default.
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - OUTPUT_DIR=/data/output
       - RECORDING_CONFIG=${RECORDING_CONFIG:-config/simulator.yaml}

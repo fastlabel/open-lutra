@@ -155,5 +155,4 @@ _upload_service_singleton = UploadService()
 
 
 def get_upload_service() -> UploadService:
-    """Return the global UploadService instance."""
     return _upload_service_singleton

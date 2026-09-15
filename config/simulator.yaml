@@ -83,14 +83,14 @@ expected_hz_patterns:
 # in the UI). `placeholder` is an optional input hint.
 metadata_fields:
   - key: operator_id          # stable key stored in recording_meta.json
-    label: "Operator ID"      # display label shown in the UI
+    label: "Operator ID"
     type: number              # digits only, kept as a string ("007" stays "007")
     pattern: '^[0-9]+$'       # optional: reject anything but digits
-    placeholder: "e.g. 007"   # optional: input hint
+    placeholder: "e.g. 007"
   - key: target_object
     label: "Target Object"
-    type: select              # pick from the options below
-    options:                  # allowed values (select-only)
+    type: select
+    options:
       - value: box
         label: "Box"          # optional; falls back to `value` when omitted
       - value: cup

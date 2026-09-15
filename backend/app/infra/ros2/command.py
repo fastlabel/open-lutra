@@ -21,8 +21,6 @@ class ROS2CommandError(Exception):
 
 
 class ROS2Command:
-    """Wrapper for the ros2 CLI."""
-
     def bag_record(  # pragma: no cover
         self,
         output_path: Path,

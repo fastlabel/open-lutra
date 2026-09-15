@@ -10,7 +10,6 @@
 	generate setup clean \
 	prod-up prod-down prod-restart prod-logs prod-pull
 
-# Default: show help
 help:
 	@echo "OpenLUTRA"
 	@echo ""
@@ -53,7 +52,6 @@ help:
 
 # ===== Docker (development) =====
 
-# Start the development environment (with simulator)
 up:
 	@echo "=== Starting development environment ==="
 	docker compose --profile sim up -d
@@ -62,7 +60,6 @@ up:
 	@echo "  Backend:   http://localhost:8000"
 	@echo "  Simulator: publishing robot dummy data"
 
-# Start in dev mode (VITE_DEV_MODE=true: shows developer UI like command copy and StatusBar)
 dev-up:
 	@echo "=== Starting development environment in dev mode (VITE_DEV_MODE=true) ==="
 	VITE_DEV_MODE=true docker compose --profile sim up -d
@@ -71,11 +68,9 @@ dev-up:
 	@echo "  Backend:   http://localhost:8000"
 	@echo "  Simulator: publishing robot dummy data"
 
-# Stop
 down:
 	docker compose --profile sim down
 
-# Restart
 restart:
 	docker compose --profile sim down
 	docker compose --profile sim up -d
@@ -83,31 +78,26 @@ restart:
 	@echo "  Frontend:  http://localhost:5173"
 	@echo "  Backend:   http://localhost:8000"
 
-# Restart only the simulator (e.g. when SIM_MODE changes)
+# e.g. when SIM_MODE changes
 restart-sim:
 	docker compose up -d --build simulator
 	@echo "=== Simulator restarted (SIM_MODE=$${SIM_MODE:-normal}) ==="
 
-# Show logs
 logs:
 	docker compose --profile sim logs -f
 
-# Show container status
 ps:
 	docker compose --profile sim ps
 
-# Build Docker images
 build:
 	@echo "=== Building Docker images ==="
 	docker compose build
 
-# Show the SSE stream (topic monitoring)
 stream:
 	@curl -s -N http://localhost:8000/api/topics/stream
 
 # ===== Local S3 (MinIO) =====
 
-# Start MinIO and auto-create the bucket
 minio-up:
 	@echo "=== Starting MinIO ==="
 	docker compose --profile s3 up -d minio minio-init
@@ -116,7 +106,6 @@ minio-up:
 	@echo "  Console: http://localhost:9001  (user: minioadmin / pass: minioadmin)"
 	@echo "  Bucket:  $${S3_BUCKET:-lutra-recordings}"
 
-# Stop MinIO
 minio-down:
 	docker compose --profile s3 down
 
@@ -124,17 +113,14 @@ minio-down:
 
 # ----- lint -----
 
-# Lint (all)
 lint: lint-backend lint-frontend
 
-# Lint (backend: ruff + mypy)
 lint-backend:
 	@echo "=== Lint (ruff) ==="
 	cd backend && uv run ruff check app/ tests/
 	@echo "=== Type check (mypy) ==="
 	cd backend && uv run mypy app/
 
-# Lint (frontend: tsc + biome)
 lint-frontend:
 	@echo "=== Type check (tsc) ==="
 	cd frontend && pnpm exec tsc --noEmit
@@ -143,51 +129,43 @@ lint-frontend:
 
 # ----- test -----
 
-# Test (all)
 test: test-backend test-frontend
 
-# Test (backend: runs on the host; rclpy is not required)
+# Runs on the host; rclpy is not required.
 test-backend:
 	@echo "=== Tests: Backend (pytest) ==="
 	cd backend && uv run pytest tests/ -v
 
-# Test (frontend)
 test-frontend:
 	@echo "=== Tests: Frontend (vitest) ==="
 	cd frontend && pnpm exec vitest run
 
 # ----- test-cov -----
 
-# Test + coverage (all)
 test-cov: test-cov-backend test-cov-frontend
 
-# Test + coverage (backend: runs on the host; rclpy is not required)
+# Runs on the host; rclpy is not required.
 test-cov-backend:
 	@echo "=== Tests + Coverage: Backend (pytest) ==="
 	cd backend && uv run pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=100
 
-# Test + coverage (frontend)
 test-cov-frontend:
 	@echo "=== Tests + Coverage: Frontend (vitest) ==="
 	cd frontend && pnpm exec vitest run --coverage
 
 # ----- format -----
 
-# Format (all)
 format: format-backend format-frontend
 
-# Format (backend: ruff)
 format-backend:
 	@echo "=== Format (Python) ==="
 	cd backend && uv run ruff format app/ tests/
 	cd backend && uv run ruff check --fix app/ tests/
 
-# Format (frontend: biome)
 format-frontend:
 	@echo "=== Format (Frontend) ==="
 	cd frontend && pnpm exec biome check --write src/
 
-# Regenerate API types: export the OpenAPI schema from the app, then run orval.
 # Runs on the host; neither Docker nor a running backend is required.
 generate:
 	@echo "=== Exporting OpenAPI schema ==="
@@ -197,7 +175,6 @@ generate:
 	cd frontend && pnpm exec orval
 	@echo "=== Regeneration complete ==="
 
-# Initial setup
 setup:
 	@echo "=== Installing dependencies ==="
 	cd backend && uv sync --extra dev
@@ -205,7 +182,6 @@ setup:
 	cp -n .env.example .env 2>/dev/null || true
 	@echo "=== Setup complete ==="
 
-# Clear caches
 clean:
 	@echo "=== Clearing caches ==="
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -217,14 +193,13 @@ clean:
 
 # ===== Production (Linux) =====
 
-# Start production (talks to real ROS2 via host network)
+# Talks to real ROS2 via the host network.
 prod-up:
 	@echo "=== Starting production environment (host network) ==="
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 	@echo "=== Started ==="
 	@echo "  Backend: http://localhost:8000"
 
-# Pull code + rebuild + restart
 prod-pull:
 	@echo "=== git pull + rebuild ==="
 	git pull
@@ -232,17 +207,14 @@ prod-pull:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 	@echo "=== Done ==="
 
-# Restart production
 prod-restart:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 	@echo "=== Restarted ==="
 	@echo "  Backend: http://localhost:8000"
 
-# Stop production
 prod-down:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
-# Show production logs
 prod-logs:
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f

@@ -47,13 +47,9 @@ class TopicSubscriber(Protocol):
         """Subscribe to a topic. Returns the QoS reliability string on success."""
         ...
 
-    def unsubscribe_topic(self, topic_name: str) -> None:
-        """Tear down the subscription for a topic."""
-        ...
+    def unsubscribe_topic(self, topic_name: str) -> None: ...
 
-    def convert_message(self, msg: Any) -> dict[str, Any]:
-        """Convert a ROS2 message into a dict."""
-        ...
+    def convert_message(self, msg: Any) -> dict[str, Any]: ...
 
 
 class TopicMonitorService:
@@ -272,7 +268,6 @@ class TopicMonitorService:
                 self._log_manager.add("info", f"Unsubscribed from {name}", name)
                 logger.info("Unsubscribed from %s", name)
 
-            # Update the desired subscription set.
             self._subscribed_topic_names = new_set
 
             # Subscribe to any newly desired topics already discovered.
@@ -337,7 +332,6 @@ class TopicMonitorService:
             if stats is None:
                 return
 
-            # Record the first-receive time (monotonic).
             if stats.first_received_at is None:
                 stats.first_received_at = now
 
@@ -363,7 +357,6 @@ class TopicMonitorService:
             stats.message_count += 1
             stats.tick_loss_window(now)
 
-            # Live mode.
             is_live = stats._live_mode
 
             # Live mode: capture sensor position data (O(1) under the lock).
@@ -429,14 +422,12 @@ class TopicMonitorService:
 
     @staticmethod
     def _is_image_topic(msg_type: str) -> bool:
-        """Return whether a topic carries image data."""
         return "Image" in msg_type
 
     @staticmethod
     def _capture_live_positions(stats: TopicStats, msg: Any) -> None:
         """Extract the position array from a sensor message (run under the lock; O(1))."""
         try:
-            # JointState: msg.position, msg.name
             if hasattr(msg, "position") and hasattr(msg, "name"):
                 stats._live_positions = list(msg.position)
                 if not stats._live_joint_names and msg.name:
@@ -452,7 +443,6 @@ class TopicMonitorService:
 
     @staticmethod
     def _reset_stats_timing(stats: TopicStats) -> None:
-        """Reset timing-related metrics."""
         stats.message_count = 0
         stats.first_received_at = None
         stats.total_gap_sec = 0.0

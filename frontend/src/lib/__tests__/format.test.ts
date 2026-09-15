@@ -34,7 +34,6 @@ describe("formatRecordingDate", () => {
   });
 
   it("returns MM/DD HH:mm with only a start time (no durationNs)", () => {
-    // 2025-01-15 09:30:00 UTC
     const startNs = new Date("2025-01-15T09:30:00Z").getTime() * 1_000_000;
     const result = formatRecordingDate(startNs);
     // Timezone-dependent, but verify the MM/DD HH:mm shape
@@ -42,7 +41,6 @@ describe("formatRecordingDate", () => {
   });
 
   it("returns MM/DD HH:mm~HH:mm when durationNs is provided", () => {
-    // 2025-01-15 09:30:00 UTC, 90 minutes
     const startNs = new Date("2025-01-15T09:30:00Z").getTime() * 1_000_000;
     const durationNs = 90 * 60 * 1_000_000_000;
     const result = formatRecordingDate(startNs, durationNs);

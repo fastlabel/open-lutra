@@ -89,7 +89,6 @@ export function RugPlot({ selectedFolder }: { selectedFolder: string }) {
 
   const viewDuration = viewRange.to - viewRange.from;
 
-  // Messages to display: filter to those inside viewRange only
   const visibleMessages = useMemo(() => {
     if (!displayData?.messages) return [];
     return displayData.messages.filter((m) => m.timestamp_sec >= viewRange.from && m.timestamp_sec <= viewRange.to);
@@ -124,7 +123,6 @@ export function RugPlot({ selectedFolder }: { selectedFolder: string }) {
     );
   }
 
-  // Generate time-axis ticks
   const ticks = generateTimeTicks(viewRange.from, viewRange.to);
 
   return (

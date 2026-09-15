@@ -3,10 +3,8 @@
 
 FROM ros:humble-ros-base-jammy
 
-# Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
@@ -17,7 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-rosidl-default-generators \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast dependency management
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
@@ -26,34 +23,27 @@ ENV PATH="/root/.local/bin:$PATH"
 # sources /ros2_ws/install/setup.bash when present. See
 # examples/custom_ros2_messages/ for a working pattern.
 
-# Set working directory
 WORKDIR /app
 
 # Copy dependency files first for better caching
 COPY backend/pyproject.toml backend/uv.lock* ./
 
-# Install dependencies (allow access to system ROS2 Python packages)
+# --system-site-packages exposes the system ROS 2 Python packages to the venv
 RUN uv venv --system-site-packages && \
     uv sync --no-dev --frozen 2>/dev/null || uv sync --no-dev
 
-# Copy application code and config
 COPY backend/app/ ./app/
 COPY config/ ./config/
 COPY .env.example .env
 
-# Create output directory
 RUN mkdir -p /data/output
 
-# Expose port
 EXPOSE 8000
 
-# Set environment variables
 ENV OUTPUT_DIR=/data/output
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
-# Entrypoint script: set the ROS 2 environment up, then run the server (or the
-# command compose supplied)
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e

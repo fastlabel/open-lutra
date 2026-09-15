@@ -53,7 +53,6 @@ async def start_recording(
             "A full disk is the most common cause; check the backend logs for details."
         )
 
-    # Notify the log panel that recording has started.
     topic_count = len(request.topics) if request.topics else 0
     _notify_log("info", f"Recording started ({topic_count} topics) -> {output_path.name}")
 
@@ -114,10 +113,7 @@ async def get_recording_status(recorder: RecorderDep) -> RecordingStatus:
 
 
 def _notify_log(severity: LogSeverity, message: str) -> None:  # pragma: no cover
-    """Add a message to LogManager.
-
-    Silently skips when LogManager has not been initialized.
-    """
+    """Add a message to LogManager, silently skipping when it is not initialized."""
     try:
         from app.shared.log_manager import get_log_manager
 

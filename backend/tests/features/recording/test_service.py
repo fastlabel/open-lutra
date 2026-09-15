@@ -129,7 +129,6 @@ class TestStartWithQoSOverrides:
         mock_ros2.bag_record.side_effect = ROS2CommandError("command failed")
         with pytest.raises(RecorderError):
             recorder.start(topics=["/topic"], qos_overrides={"/topic": "reliable"})
-        # The QoS file is cleaned up
         assert recorder._qos_file is None
 
 
@@ -338,7 +337,6 @@ class TestMetaWrite:
 
         data = json.loads((output / "recording_meta.json").read_text(encoding="utf-8"))
         assert data["task_name"] is None
-        # Metadata defaults to an empty object when not provided.
         assert data["metadata"] == {}
 
     def test_meta_recording_config_name_uses_settings_stem(
@@ -506,7 +504,6 @@ class TestDetectCrash:
         recorder.start(topics=["/topic"])
         assert recorder.is_recording is True
 
-        # Process exits abnormally (exit code=1)
         mock_process.poll.return_value = 1
 
         status = recorder.get_status()
@@ -537,7 +534,7 @@ class TestDetectCrash:
         """poll()=None (still running) is not treated as an abnormal exit."""
         recorder.start(topics=["/topic"])
 
-        # poll() returns None = still running (conftest default)
+        # conftest default: poll() returns None
         status = recorder.get_status()
         assert status.is_recording is True
 

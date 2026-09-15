@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { FileEntry } from "@/api/generated/schemas";
 import { applySearchAndFilter, formatRecordingDate, formatSize } from "../utils";
 
-// --- formatSize ---
-
 describe("formatSize", () => {
   it("returns bytes", () => {
     expect(formatSize(500)).toBe("500B");
@@ -29,8 +27,6 @@ describe("formatSize", () => {
     expect(formatSize(1024)).toBe("1.0KB");
   });
 });
-
-// --- applySearchAndFilter ---
 
 describe("applySearchAndFilter", () => {
   const baseEntry = (overrides: Partial<FileEntry>): FileEntry => ({
@@ -102,15 +98,12 @@ describe("applySearchAndFilter", () => {
   });
 });
 
-// --- formatRecordingDate ---
-
 describe("formatRecordingDate", () => {
   it("returns '---' for null", () => {
     expect(formatRecordingDate(null)).toBe("---");
   });
 
   it("formats a nanosecond timestamp as 'MM/DD HH:mm'", () => {
-    // 2024-01-15 09:30:00 UTC
     const ns = new Date("2024-01-15T09:30:00Z").getTime() * 1_000_000;
     const result = formatRecordingDate(ns);
     // Depends on the local timezone, so only check the format

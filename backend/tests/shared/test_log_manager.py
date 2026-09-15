@@ -26,7 +26,7 @@ class TestLogManagerAdd:
         for i in range(5):
             lm.add("info", f"message{i}")
         logs, total = lm.get_logs()
-        assert total == 3  # Limited to 3 entries
+        assert total == 3
         assert logs[0].message == "message2"  # Older entries are dropped
 
 

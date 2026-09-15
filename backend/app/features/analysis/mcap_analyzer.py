@@ -96,7 +96,6 @@ def _read_mcap(  # pragma: no cover
         for msg in reader.iter_messages():
             topic = msg.topic
 
-            # Record the topic type
             if topic not in topic_types:
                 topic_types[topic] = msg.msg_type
 
@@ -105,7 +104,6 @@ def _read_mcap(  # pragma: no cover
                 stamp = extract_stamp_sec(msg.decoded)
                 topic_stamp_sources[topic] = "header_stamp" if stamp is not None and stamp > 0 else "log_time"
 
-            # Get the timestamp (prefer header.stamp, fall back to log_time based on the decision above)
             if topic_stamp_sources[topic] == "header_stamp":
                 ts_sec = resolve_timestamp_sec(msg.decoded, msg.timestamp_ns)
             else:

@@ -33,7 +33,6 @@ export function QualityTimeline({ selectedFolder }: { selectedFolder: string }) 
     }
   }, [data, setDurationSec]);
 
-  // Start analysis when timeline data has not been generated yet
   useEffect(() => {
     if (data?.status === "not_found" && !isStartingTimeline) {
       startTimeline({ params: { path: selectedFolder } });

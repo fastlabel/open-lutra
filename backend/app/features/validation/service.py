@@ -94,5 +94,4 @@ _validation_service_singleton = ValidationService()
 
 
 def get_validation_service() -> ValidationService:
-    """Return the global ValidationService instance."""
     return _validation_service_singleton

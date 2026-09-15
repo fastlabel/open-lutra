@@ -30,9 +30,6 @@ def _clear_scanner_cache() -> Iterator[None]:
     yield
     scanner._reset_cache()
 
-# ---------------------------------------------------------------------------
-# read_metadata_summary
-# ---------------------------------------------------------------------------
 
 METADATA_YAML = """\
 rosbag2_bagfile_information:
@@ -139,11 +136,6 @@ rosbag2_bagfile_information:
 
         # Uses the top-level 300, not the nested 200/100
         assert msg_count == 300
-
-
-# ---------------------------------------------------------------------------
-# scan_output_dir
-# ---------------------------------------------------------------------------
 
 
 class TestScanOutputDir:
@@ -491,11 +483,6 @@ class TestCollectRecentTaskNames:
         names = collect_recent_task_names(tmp_path)
 
         assert names == ["pick", "place"]
-
-
-# ---------------------------------------------------------------------------
-# Parse cache + scandir edge cases
-# ---------------------------------------------------------------------------
 
 
 class _FakeDirEntry:

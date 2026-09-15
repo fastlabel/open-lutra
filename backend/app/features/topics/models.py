@@ -27,8 +27,6 @@ _LOSS_RATE_WINDOW_SEC = 5.0
 
 @dataclass
 class GapRecord:
-    """A record of a detected gap."""
-
     timestamp: float  # monotonic time
     duration: float  # seconds
 
@@ -200,7 +198,6 @@ class TopicStats:
 
     @property
     def actual_hz(self) -> float:
-        """Return the cached actual_hz."""
         return self._cached_actual_hz
 
     def start_hz_window(self, now: float) -> None:
@@ -235,7 +232,6 @@ class TopicStats:
 
     @property
     def loss_rate(self) -> float:
-        """Return the cached loss rate."""
         return self._last_loss_rate
 
     def recent_gaps(self, window_sec: float = _QUALITY_WINDOW_SEC) -> list[GapRecord]:
@@ -256,7 +252,6 @@ class TopicStats:
 
     @property
     def status(self) -> str:
-        """Return the cached status."""
         return self._cached_status
 
     def to_api(self) -> TopicInfo:
@@ -335,7 +330,6 @@ class TopicStats:
             self._window_count = 0
 
     def _compute_status(self, now: float) -> str:
-        """Determine the topic's health status."""
         if self.message_count == 0:
             return "inactive"
         if self._last_msg_time == 0.0:

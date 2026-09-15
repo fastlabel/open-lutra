@@ -60,7 +60,7 @@ class TestReadRecordingMeta:
     def test_invalid_schema_returns_none(self, tmp_path: Path) -> None:
         """Returns None when schema validation fails (type mismatch)."""
         (tmp_path / "recording_meta.json").write_text(
-            json.dumps({"task_name": 123, "tags": "not-a-list"}),  # Type mismatch
+            json.dumps({"task_name": 123, "tags": "not-a-list"}),
             encoding="utf-8",
         )
         assert read_recording_meta(tmp_path) is None
@@ -114,7 +114,6 @@ class TestUpdateRecordingMeta:
         assert result.task_name == "new"
         assert result.recording_config_name is None
         assert result.tags == ["a"]
-        # It is also written out as a file
         assert (tmp_path / "recording_meta.json").exists()
 
     def test_partial_update_preserves_existing_fields(self, tmp_path: Path) -> None:
@@ -127,7 +126,6 @@ class TestUpdateRecordingMeta:
         result = update_recording_meta(tmp_path, task_name="updated")
 
         assert result.task_name == "updated"
-        # recording_config_name and tags are preserved
         assert result.recording_config_name == "simulator"
         assert result.tags == ["x"]
 

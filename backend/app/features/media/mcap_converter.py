@@ -39,14 +39,6 @@ from app.infra.mcap import (
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class _TimestampedMessage:
-    """Decoded message with a timestamp."""
-
-    timestamp_ns: int
-    decoded: Any
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -84,7 +76,6 @@ def convert_mcap(  # pragma: no cover
         if on_progress:
             on_progress(step, current, total)
 
-    # Automatically classify each MCAP topic as image / non-image (Joint-style)
     _progress("classify", 0, 1)
     image_topics, joint_topics = _classify_topics(mcap_path)
 
@@ -100,7 +91,6 @@ def convert_mcap(  # pragma: no cover
     generated_files: list[str] = []
 
     try:
-        # Generate MP4 (stream MCAP per camera)
         total_mp4 = len(image_topics)
         for mp4_idx, topic in enumerate(image_topics):
             _progress("mp4", mp4_idx, total_mp4)
@@ -158,7 +148,6 @@ def convert_mcap(  # pragma: no cover
 
 
 def _find_mcap_file(directory: Path) -> Path:  # pragma: no cover
-    """Return the first MCAP file in the directory."""
     mcap_files = find_mcap_files(directory)
     if not mcap_files:
         raise FileNotFoundError(f"MCAP file not found: {directory}")
@@ -290,7 +279,6 @@ def _stream_generate_mp4(
         with MCAPReader(mcap_path) as reader:
             msg_iter = reader.iter_messages(topics=[topic])
 
-            # Closure that reads the next message into the buffer
             pending_ts: int | None = None
             pending_data: bytes | None = None
 
@@ -340,7 +328,6 @@ def _stream_generate_mp4(
 
     stderr_bytes = b"".join(stderr_chunks)
     if proc.returncode != 0:
-        # Also remove incomplete file on ffmpeg error
         if output_path.exists():
             output_path.unlink()
         raise MediaError(f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}")

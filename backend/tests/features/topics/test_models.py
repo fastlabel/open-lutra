@@ -11,10 +11,6 @@ import pytest
 
 from app.features.topics.models import GapRecord, TopicStats
 
-# ---------------------------------------------------------------------------
-# actual_hz
-# ---------------------------------------------------------------------------
-
 
 class TestActualHz:
     """Tests for the counter-based actual_hz property."""
@@ -70,11 +66,6 @@ class TestActualHz:
         for now in (104.0, 105.0, 106.0):
             stats.refresh_cache(now)
         assert stats.actual_hz == 0.0
-
-
-# ---------------------------------------------------------------------------
-# maybe_learn_baseline
-# ---------------------------------------------------------------------------
 
 
 class TestMaybeLearnBaseline:
@@ -182,11 +173,6 @@ class TestMaybeLearnBaseline:
         assert learned > 0
 
 
-# ---------------------------------------------------------------------------
-# loss_rate
-# ---------------------------------------------------------------------------
-
-
 class TestLossRate:
     """Tests for the loss_rate property."""
 
@@ -250,11 +236,6 @@ class TestLossRate:
         assert stats.loss_rate == 0.0
 
 
-# ---------------------------------------------------------------------------
-# continuity_score
-# ---------------------------------------------------------------------------
-
-
 class TestContinuityScore:
     """Tests for the continuity_score property."""
 
@@ -294,11 +275,6 @@ class TestContinuityScore:
             first_received_at=100.0,
         )
         assert stats.continuity_score == 1.0
-
-
-# ---------------------------------------------------------------------------
-# status
-# ---------------------------------------------------------------------------
 
 
 class TestStatus:
@@ -359,11 +335,6 @@ class TestStatus:
         assert stats.status == "inactive"
 
 
-# ---------------------------------------------------------------------------
-# to_api
-# ---------------------------------------------------------------------------
-
-
 class TestToApi:
     """Tests for to_api()."""
 
@@ -387,11 +358,6 @@ class TestToApi:
         assert info.is_subscribed is True
         assert info.qos_reliability == "RELIABLE"
         assert info.message_count == 50
-
-
-# ---------------------------------------------------------------------------
-# stamp-based quality (stamp_quality=True)
-# ---------------------------------------------------------------------------
 
 
 class TestStampBasedQuality:

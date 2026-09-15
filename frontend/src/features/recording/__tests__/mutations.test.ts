@@ -121,8 +121,6 @@ function suppressUnhandledRejection() {
   };
 }
 
-// --- startRecordingMutation ---
-
 describe("startRecordingMutation", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -275,8 +273,6 @@ describe("startRecordingMutation", () => {
     cleanup();
   });
 });
-
-// --- stopRecordingMutation ---
 
 describe("stopRecordingMutation", () => {
   beforeEach(() => {

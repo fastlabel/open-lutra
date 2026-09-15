@@ -41,7 +41,6 @@ from std_msgs.msg import Float64, Header
 CAMERA_FRAME_ID = "camera_color_optical_frame"
 JOINT_FRAME_ID = "base_link"
 
-# One topic per camera directory.
 CAMERA_TOPICS_BY_DIR: dict[str, str] = {
     "chest": "/chest_depth_cam/color/image_raw/compressed",
     "head": "/head_depth_cam/color/image_raw/compressed",
@@ -91,10 +90,8 @@ class RobotSimulator(Node):
         self._camera_frame_idx = 0
         self._joint_tick = 0  # tick count of the 100Hz timer
 
-        # Fault injection
         self._fault = FaultInjector(SIM_MODE, log=self._log_fault)
 
-        # Camera frames (per topic)
         self._camera_frames = _load_camera_frames()
         if self._camera_frames:
             counts = ", ".join(f"{t.split('/')[1]}={len(v)}" for t, v in self._camera_frames.items())
@@ -102,7 +99,6 @@ class RobotSimulator(Node):
         else:
             self.get_logger().warn("No camera frames found, camera topics will not be published")
 
-        # Joint replay
         self._joint_replay = _load_joint_replay()
         if self._joint_replay is None:
             self.get_logger().warn(f"{JOINT_REPLAY_PATH.name} not found, joint topics will not be published")
@@ -121,7 +117,6 @@ class RobotSimulator(Node):
         # Publishers — camera topics
         self._camera_pubs = {topic: self.create_publisher(CompressedImage, topic, 10) for topic in self._camera_frames}
 
-        # Timers
         if self._joint_replay is not None:
             self.create_timer(1.0 / JOINT_HZ, self._publish_joints)
         if self._camera_frames:
@@ -202,7 +197,6 @@ class RobotSimulator(Node):
             msg_h.data = master["hand"][idx]
             self._master_hand_pub.publish(msg_h)
 
-        # During burst: send extra messages to slave joint topic all at once
         if burst_state == "burst" and self._fault.burst_remaining > 0:
             n = min(self._fault.burst_remaining, 10)
             for _ in range(n):

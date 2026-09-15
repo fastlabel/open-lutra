@@ -135,7 +135,6 @@ class RecordingConfig(BaseModel):
 
 
 def _load_recording_config(config_path: str) -> RecordingConfig:
-    """Load the recording configuration from a YAML file."""
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Recording configuration file not found: {path}")
@@ -223,7 +222,6 @@ class Settings(BaseSettings):
 
     @property
     def ros_domain_id(self) -> int:
-        """ROS2 domain ID."""
         return self.recording.ros_domain_id
 
     @property
@@ -233,12 +231,10 @@ class Settings(BaseSettings):
 
     @property
     def recording_start_delay_sec(self) -> float:
-        """Additional seconds to wait after DDS discovery completes before sending SPACE."""
         return self.recording.recording_start_delay_sec
 
     @property
     def monitor_qos_depth(self) -> int:
-        """QoS queue depth for topic-monitor subscriptions."""
         return self.recording.monitor_qos_depth
 
     @property
@@ -248,12 +244,10 @@ class Settings(BaseSettings):
 
     @property
     def default_topics(self) -> list[str]:
-        """Default list of topic names to record."""
         return self.recording.default_topics
 
     @property
     def stamp_quality(self) -> bool:
-        """Whether to compute live-quality loss_rate based on header.stamp."""
         return self.recording.stamp_quality
 
     @property

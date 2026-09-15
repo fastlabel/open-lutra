@@ -59,7 +59,6 @@ class MessageSizeStats(BaseModel):
 
     @classmethod
     def from_sizes(cls, sizes: list[int]) -> "MessageSizeStats":
-        """Compute statistics from a list of message sizes."""
         if not sizes:
             return cls.empty()
         zero_count = sizes.count(0)
@@ -175,7 +174,6 @@ class TopicQuality(BaseModel):
             else cls._estimate_expected_frequency(actual_hz)
         )
 
-        # Frequency standard deviation
         freq_values = [1.0 / iv if iv > 0 else 0.0 for iv in intervals]
         freq_std = statistics.stdev(freq_values) if len(freq_values) > 1 else 0.0
 
@@ -419,7 +417,6 @@ class QualityReport(BaseModel):
         duration_sec = (max(all_timestamps) - min(all_timestamps)) if all_timestamps else 0.0
         recording_start = min(all_timestamps) if all_timestamps else 0.0
 
-        # Per-topic quality analysis
         topic_qualities = [
             TopicQuality.from_timestamps(
                 name=topic_name,

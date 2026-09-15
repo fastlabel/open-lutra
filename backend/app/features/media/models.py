@@ -19,8 +19,6 @@ class MissingTopicError(MediaError):
 
 
 class TopicRole(Enum):
-    """Role of a JointState topic."""
-
     OBSERVATION = "observation"
     ACTION = "action"
 
@@ -109,8 +107,6 @@ def _derive_sort_key(topic_name: str) -> tuple[int, str]:
 
 @dataclass(frozen=True)
 class JointTopicEntry:
-    """Mapping info for a single joint topic."""
-
     topic: str
     joint_prefix: str  # "R_", "L_", "" (body, etc.)
 
@@ -127,12 +123,10 @@ class JointStateMapping:
 
     @property
     def observation_topics(self) -> list[str]:
-        """List of observation topic names (sorted)."""
         return [e.topic for e in self.observation_entries]
 
     @property
     def action_topics(self) -> list[str]:
-        """List of action topic names (sorted)."""
         return [e.topic for e in self.action_entries]
 
 
@@ -180,7 +174,6 @@ def build_joint_state_mapping(topic_roles: dict[str, str]) -> JointStateMapping 
     if not obs_entries:  # pragma: no cover - defensive; unreachable once topic_roles is non-empty
         return None
 
-    # Stable sort: right(0) -> left(1) -> body(2) -> other(3)
     obs_entries.sort(key=lambda e: _derive_sort_key(e.topic))
     act_entries.sort(key=lambda e: _derive_sort_key(e.topic))
 

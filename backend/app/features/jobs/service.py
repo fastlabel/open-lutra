@@ -299,7 +299,6 @@ class JobQueue:
         return self._jobs.get(job_id)
 
     def get_job(self, job_id: str) -> Job | None:
-        """Look up a job by its ID."""
         return self._jobs.get(job_id)
 
     def get_active_media_job(self, folder: Path) -> Job | None:
@@ -336,12 +335,10 @@ class JobQueue:
         self._subscribers.add(queue)
 
         try:
-            # Initial snapshot
             yield QueueSnapshotEvent(
                 event="queue_snapshot",
                 data=QueueSnapshotData(jobs=[JobSchema.from_job(j) for j in self.list_jobs()]),
             )
-            # Stream status change events
             while True:
                 event = await queue.get()
                 yield event
@@ -374,7 +371,6 @@ class JobQueue:
                 self._queue.task_done()
 
     async def _execute(self, job: Job) -> None:
-        """Execute a single job."""
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now(timezone.utc)
         await self._broadcast(EVENT_JOB_STARTED, job)
@@ -456,7 +452,6 @@ class JobQueue:
                 current=current,
                 total=max(total, 1),
             )
-            # Safely dispatch the progress event onto the main loop
             asyncio.run_coroutine_threadsafe(
                 self._broadcast(EVENT_JOB_PROGRESS, job),
                 loop,

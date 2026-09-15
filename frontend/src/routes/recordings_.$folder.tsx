@@ -61,7 +61,6 @@ function McapDetailPage() {
   const durationSec = useQualityTimelineStore((s) => s.durationSec);
   const setHoveredLossEvent = useQualityTimelineStore((s) => s.setHoveredLossEvent);
 
-  // Topic click → toggle selection.
   const handleTopicClick = useCallback(
     (topicName: string) => {
       setSelectedTopic(selectedTopic === topicName ? null : topicName);

@@ -1,5 +1,3 @@
-/** Logo mark (shared component). */
-
 export function LogoMark({ size = 22 }: { size?: number }) {
   const height = Math.round(size * (24 / 22));
   return (

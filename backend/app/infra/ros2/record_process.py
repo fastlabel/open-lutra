@@ -39,10 +39,6 @@ class RecordProcess:  # pragma: no cover
     drain thread continuously consumes pty output. This prevents the pty
     buffer from filling up and blocking ros2 bag record's writes (especially
     during the cleanup phase after SIGINT).
-
-    The pty master must stay open for the entire recording.
-    Closing the master mid-recording causes EIO (errno=5) on the slave side
-    and crashes ros2 bag record's keyboard monitor thread.
     """
 
     def __init__(self, process: subprocess.Popen[bytes], pty_fd: int) -> None:

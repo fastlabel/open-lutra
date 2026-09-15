@@ -23,8 +23,6 @@ class NotRecordingError(RecorderError):
 
 @dataclass(frozen=True)
 class StopResult:
-    """Result of stopping a recording."""
-
     start_time: datetime
     end_time: datetime
     output_path: Path
@@ -32,8 +30,6 @@ class StopResult:
 
 @dataclass(frozen=True)
 class RecorderStatus:
-    """Current status of the recorder."""
-
     is_recording: bool
     output_path: Path | None = None
     start_time: datetime | None = None

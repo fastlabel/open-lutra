@@ -57,7 +57,6 @@ export function VideoPlayer({ src, label }: { src: string; label: string }) {
     }
   }, [playheadSec, loaded]);
 
-  // isPlaying → video.play() / video.pause()
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !loaded) return;

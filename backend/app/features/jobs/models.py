@@ -11,8 +11,6 @@ from pathlib import Path
 
 
 class JobStatus(str, Enum):
-    """Job execution status."""
-
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -39,8 +37,6 @@ class JobType(str, Enum):
 
 @dataclass
 class JobProgress:
-    """Job progress information."""
-
     step: str = ""
     step_label: str = ""
     current: int = 0

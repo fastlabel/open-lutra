@@ -59,7 +59,7 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 
 ## Coding Style
 
-- **Comments describe the code's responsibility and current constraints, not its history** (notes like "this used to be ...", "this was duplicated so we abstracted it", etc. belong in the commit message / PR description). See [docs/CODING_STYLE.md](docs/CODING_STYLE.md) for details.
+- **Comments describe the code's responsibility and current constraints, not its history, and must not merely restate the adjacent code** (notes like "this used to be ..." belong in the commit message / PR description; a comment that adds nothing beyond the code should not exist). See [docs/CODING_STYLE.md](docs/CODING_STYLE.md) for details.
 - Python: Method order is `__init__` → public → private (newspaper style).
 - Python: The order of public methods matches the order of the corresponding API endpoints.
 - Python: `schemas.py` contains only API request/response schemas. Domain models with business logic belong in `models.py`.
