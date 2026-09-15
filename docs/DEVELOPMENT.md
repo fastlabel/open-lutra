@@ -144,30 +144,16 @@ If you changed `pyproject.toml`, running `uv sync` inside the container is enoug
 
 ---
 
-## Tech Stack
-
-→ See [TECH_STACK.md](TECH_STACK.md).
-
----
-
-## Project Structure
-
-→ See [STRUCTURE.md](STRUCTURE.md).
-
----
-
 ## Testing
 
 ### Running Tests
 
 ```bash
-make test              # Everything (backend + frontend)
-make test-backend      # Backend only (pytest)
-make test-frontend     # Frontend only (vitest)
-make test-cov          # Everything + coverage
-make test-cov-backend  # Backend + coverage
-make test-cov-frontend # Frontend + coverage
+make test      # Everything (backend + frontend)
+make test-cov  # Everything + coverage
 ```
+
+Per-side variants (`make test-backend`, `make test-cov-frontend`, ...) are listed by `make help`.
 
 Backend tests run on the host with `uv` alone — neither Docker nor rclpy is required. `app.main` imports the rclpy-dependent modules inside the lifespan, so `create_app()` (and therefore every router) is importable without ROS 2. `tests/conftest.py` defaults the `RECORDING_CONFIG` / `OUTPUT_DIR` variables that `Settings` requires, so plain `uv run pytest` and IDE test runners work without a `.env`. The same suite also runs inside the Dev Container.
 
@@ -220,10 +206,7 @@ Most store actions are pass-through `set({ x })` calls, so writing unit tests fo
 ### Running Frontend Tests
 
 ```bash
-make test-frontend     # Via the Makefile
-make test-cov-frontend # Via the Makefile (with coverage)
-
-# Running the package scripts directly
+# Running the package scripts directly (instead of make test-frontend)
 cd frontend
 pnpm test              # Run tests
 pnpm run test:watch    # Watch mode
@@ -264,51 +247,15 @@ open frontend/coverage/index.html
 ### Commands
 
 ```bash
-make lint              # Everything (backend + frontend)
-make lint-backend      # Backend only (ruff + mypy)
-make lint-frontend     # Frontend only (tsc + biome)
+make lint    # ruff + mypy (backend) / tsc + biome (frontend)
+make format  # ruff (backend) / biome (frontend)
 ```
 
-**Backend (`make lint-backend`):**
+Per-side variants (`make lint-backend`, `make format-frontend`, ...) are listed by `make help`; the exact commands each target runs are in the [Makefile](../Makefile).
 
-1. `cd backend && uv run ruff check app/ tests/` - Python lint
-2. `cd backend && uv run mypy app/` - Python type checking
+### Tool Configuration
 
-**Frontend (`make lint-frontend`):**
-
-1. `cd frontend && pnpm exec tsc --noEmit` - TypeScript type checking
-2. `cd frontend && pnpm exec biome check src/` - TypeScript lint + format check
-
-### Formatting
-
-```bash
-make format            # Everything (backend + frontend)
-make format-backend    # Backend only (ruff)
-make format-frontend   # Frontend only (biome)
-```
-
-**Backend (`make format-backend`):**
-
-1. `cd backend && uv run ruff format app/ tests/` - Python formatting
-2. `cd backend && uv run ruff check --fix app/ tests/` - Python auto-fix
-
-**Frontend (`make format-frontend`):**
-
-1. `cd frontend && pnpm exec biome check --write src/` - TypeScript lint auto-fix + formatting
-
-### ruff Configuration (pyproject.toml)
-
-Enabled rules: `E`, `W`, `F`, `I`, `B`, `C4`, `UP`, `ARG`, `SIM`, `TCH`, `PTH`, `RUF`
-
-### mypy Configuration
-
-Strict mode. The rclpy and rosidl modules lack type stubs and are therefore ignored:
-
-```toml
-[[tool.mypy.overrides]]
-module = ["rclpy.*", "rosidl_runtime_py.*"]
-ignore_missing_imports = true
-```
+ruff and mypy (strict mode) are configured in `backend/pyproject.toml` — the rclpy / rosidl modules lack type stubs and are excluded there. Biome and tsc are configured in `frontend/biome.json` / `frontend/tsconfig.json`.
 
 ---
 
@@ -351,10 +298,7 @@ ignore_missing_imports = true
 ### Supporting a New Topic Type
 
 1. Check the subscription logic in `backend/app/features/topics/service.py`
-2. Image/joint-state detection is structure-based (`backend/app/infra/mcap/messages.py`):
-   - Image: has `format` field + `data` (bytes) (`is_image_message`)
-   - Joint state: has `decoded.position` or `decoded.joint_state.position` (`extract_joint_positions`)
-   - No hardcoded type names. Nested structures (custom message types that wrap a `JointState`, including composite types with extra joint groups) are already supported. To register a custom message package itself, see [`examples/custom_ros2_messages/`](../examples/custom_ros2_messages/)
+2. Image/joint-state detection is structure-based (`backend/app/infra/mcap/messages.py`) — no hardcoded type names, so nested/composite custom message types are already supported. See [`examples/custom_ros2_messages/`](../examples/custom_ros2_messages/) for the detection rules and how to register a custom message package
 3. Add dummy data publishing in the simulator (`simulator/robot_simulator.py`)
 
 ### Adding a UI Component
@@ -371,11 +315,9 @@ ignore_missing_imports = true
 
 **Shared rules:**
 
-- Import icons from `lucide-react`
-- font-size must be 13px or larger
-- Use Tailwind utility classes
-- If server data is needed, use the orval-generated hooks; if custom options are needed, add a wrapper in `use-api.ts`
+- Follow [CODING_STYLE.md](CODING_STYLE.md) (lucide-react icons, 13px minimum font size, Tailwind utilities)
 - Do not reference other features' internal files directly (only via the barrel)
+- If server data is needed, use the orval-generated hooks; if custom options are needed, add a wrapper in `use-api.ts`
 
 ### Updating Docker Image Dependencies
 

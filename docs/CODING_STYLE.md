@@ -28,6 +28,19 @@
   - Values derived from server responses (e.g., aggregated results) should be camelCase (e.g., `const lossRate = total > 0 ? loss_count / total : 0`)
   - Biome's `useNamingConvention` does not inspect property names by default, which is consistent with this policy
 
+## Hook / Variable Ordering in Routes and Components
+
+Inside a route/component, hooks and variables are ordered by the following sections. Skip sections that don't apply. Section dividers are a single-line `// --- XX ---` comment (no separator lines).
+
+1. **Routing** — `useNavigate`, `useParams`
+2. **Server state** — TanStack Query (`useFiles`, `useConfig`, etc.) and values derived from them (`useMemo`)
+3. **Streaming / subscription** — SSE (`useTopicsStream`, `useJobsStream`, etc.)
+4. **Side effects** — `useEffect` (any required `useRef` setup goes in this section)
+5. **Event handlers** — Define here only handlers that are used in multiple places, are memoized with `useCallback`, or have a long body. Inline single-use, non-memoized, short handlers into the JSX.
+6. **Render-only state** — store selects used only in JSX (`leftOpen` / `isRecording`, etc.)
+
+Within a section, group items "just before their use site". When the ordering rules need updating or a new section needs to be added, edit this section.
+
 ## Inlining Policy (TypeScript / React)
 
 When a short, descriptive variable or event handler is used in only one place, inline it at the point of use. This removes the burden of tracking "which variable corresponds to which logic" separately from the JSX, and the actual behavior can be read directly at the usage site.
