@@ -292,9 +292,8 @@ class TestScanOutputDir:
     def test_sorted_by_recording_start_ns_not_mtime(self, tmp_path: Path) -> None:
         """Recording folders are sorted by recording_start_ns descending, not by mtime.
 
-        Regression: sorting purely by st_mtime caused older recordings to be treated as "latest"
-        once files were added later (e.g., quality analysis), breaking the UI order.
-        Prioritizing recording_start_ns (immutable) fixes this.
+        mtime changes whenever artifacts are added later (e.g., quality analysis),
+        so ordering must rely on the immutable recording_start_ns.
         """
         old = _make_recording(
             tmp_path / "old_recording",

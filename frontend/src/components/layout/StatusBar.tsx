@@ -1,7 +1,7 @@
 /** StatusBar (footer): displays connection status, memory, and REC indicator.
  *
- * Shown in development only (gated by `import.meta.env.DEV` in `__root.tsx`).
- * Not mounted in production builds since it is unnecessary for normal usage.
+ * Shown in dev mode only (gated by `isDevMode()` / `VITE_DEV_MODE` in `__root.tsx`)
+ * since it is unnecessary for normal usage.
  */
 
 import { MemoryStick } from "lucide-react";

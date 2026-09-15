@@ -2,7 +2,7 @@
 
 Drop a `.py` file in this directory to add a project-specific validation
 rule that runs against every recording. The app picks it up on startup
-(see [docs/domain/custom_validators.md](../../../../docs/domain/custom_validators.md) for the full reference: lifecycle, constraints,
+(see [docs/domain/custom_validators.md](../../../../../docs/domain/custom_validators.md) for the full reference: lifecycle, constraints,
 testing, output surfaces).
 
 ## Minimal template
@@ -34,4 +34,4 @@ class MyCheck(RecordingValidator):
 After adding a new file, restart the app (`make down && make up`). For
 the full how-to — including how to read raw MCAP frames via
 `ctx.mcap_path`, the Docker rebuild rules, and the test layout — read
-[docs/domain/custom_validators.md](../../../../docs/domain/custom_validators.md).
+[docs/domain/custom_validators.md](../../../../../docs/domain/custom_validators.md).

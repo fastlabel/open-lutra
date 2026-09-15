@@ -12,7 +12,7 @@ import type { JobProgressSchema } from './jobProgressSchema.ts';
  */
 export interface JobSchema {
   job_id: string;
-  /** Job type (quality / timeline) */
+  /** Job type (media / quality / timeline / validation / lerobot_export / upload) */
   type: string;
   folder: string;
   /** Job status (queued / running / completed / failed) */

@@ -140,7 +140,7 @@ def build_joint_state_mapping(topic_roles: dict[str, str]) -> JointStateMapping 
     """Build a mapping from a set of JointState topics.
 
     Classifies multiple observation/action topics and sorts them in a stable
-    order (body -> right -> left -> other). The order is preserved across
+    order (right -> left -> body -> other). The order is preserved across
     topic additions, removals, and re-additions.
 
     Args:

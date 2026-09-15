@@ -373,8 +373,7 @@ class TestBuildTimeline:
     def test_gaps_sorted_by_start_sec(self) -> None:
         """gaps are sorted by start_sec ascending (preserved even when edge loss coexists with intermediate gaps).
 
-        Regression: edge_events used to be prepended, so end_early would appear before
-        intermediate gaps, breaking the UI display order.
+        Guards the UI display order: end_early must not appear before intermediate gaps.
         """
         # 30 Hz, 10 s recording. 1 s start_delay + 1 intermediate gap (~7 s mark) + ~1.5 s end_early
         interval = 1 / 30.0

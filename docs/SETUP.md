@@ -116,7 +116,7 @@ Runs the following in order:
 make test
 ```
 
-Runs pytest inside the Docker container (rclpy is required).
+Runs backend pytest on the host (no Docker or rclpy required) and frontend vitest. See the [Testing section of DEVELOPMENT.md](DEVELOPMENT.md#testing) for details.
 
 ### Formatting
 
@@ -194,7 +194,7 @@ expected_hz_patterns:
 
 | Preset | File | Use Case |
 |---|---|---|
-| Simulator (default) | `config/simulator.yaml` | 4 cameras (30Hz) + 2 joint-data channels (100Hz); also serves as a template for physical-robot recording configs |
+| Simulator (default) | `config/simulator.yaml` | 3 cameras (30Hz) + 5 joint/scalar topics (100Hz); also serves as a template for physical-robot recording configs |
 
 #### YAML Configuration Items
 
@@ -364,57 +364,9 @@ Match `LOCAL_UPLOAD_DIR` in `.env` to the container-side path of the bind-mount.
 
 ## Simulator
 
-In the development environment, the simulator publishes dummy data in place of a real robot.
+In the development environment, the simulator publishes dummy data (replayed joint trajectories and camera frames) in place of a real robot. It is started automatically by `make up` (via the `sim` profile in `docker-compose.yml`) and can be restarted with `make restart-sim` — with a fault-simulation mode when needed (e.g. `SIM_MODE=unstable make restart-sim`).
 
-### Published Topics
-
-| Topic | Type | Frequency |
-|---|---|---|
-| `/robot_slave/states` | JointState | 100 Hz |
-| `/robot_master/cmd` | JointState | 100 Hz |
-| `/right_arm_depth_cam/.../compressed` | CompressedImage | 30 Hz |
-| `/right_arm_depth_cam_2/.../compressed` | CompressedImage | 30 Hz |
-| `/left_arm_depth_cam/.../compressed` | CompressedImage | 30 Hz |
-| `/left_arm_depth_cam_2/.../compressed` | CompressedImage | 30 Hz |
-
-### How It Works
-
-- `simulator/robot_simulator.py` runs as an rclpy node
-- Publishes dummy data with the same topic names, message types, and frequencies as the real robot
-- JointState: joint angle values from a sine-wave motion
-- CompressedImage: replays sample JPEG frames extracted from real recordings in a loop
-
-### Fault Simulation Modes
-
-The `SIM_MODE` environment variable reproduces abnormal topic-publication patterns. Use it to verify the real-time monitoring UI and to debug.
-
-| Mode | Behavior |
-|---|---|
-| `normal` | Stable publishing (default) |
-| `unstable` | Random drops on some topics |
-| `topic_stop` | Stops publishing after N seconds |
-| `camera_empty` | Mixes empty frames (0 bytes) into the camera topics |
-| `burst` | Periodic gaps + DDS-burst-like continuous publishing |
-| `mixed` | A combination of the above (closest to the real robot) |
-
-```bash
-# Restart the simulator with a specific mode
-SIM_MODE=unstable make restart-sim
-
-# Parameters can also be specified
-SIM_MODE=topic_stop SIM_STOP_AFTER_SEC=10 make restart-sim
-```
-
-For the full list of environment variables, see [simulator/README.md](simulator/README.md).
-
-### Starting/Stopping the Simulator
-
-The simulator is started automatically by `make up` (via the `sim` profile in `docker-compose.yml`).
-
-```bash
-make restart-sim              # Restart only the simulator
-docker compose up -d          # Start without the simulator (omit --profile sim)
-```
+The published topics, fault-simulation modes, and all environment variables are documented in [simulator/README.md](../simulator/README.md).
 
 ---
 

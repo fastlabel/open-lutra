@@ -6,7 +6,7 @@ The decimation parameter allows down-sampling. Results are cached as JSON.
 
 Performance:
     - The MCAP scan runs **only once**, performing image classification and
-      data extraction together (the previous implementation scanned twice)
+      data extraction together
     - Cache file names include the decimation (joint_data_d{decimation}.json)
     - For preview use, decimation around 20 is sufficient (200Hz x 50s = 10,000 -> 500 points)
 """
@@ -113,8 +113,7 @@ def _read_from_mcap(  # pragma: no cover
     """Decode and read Joint-style topic time-series data from MCAP.
 
     A single MCAP scan performs both image classification and Joint data
-    extraction. The previous implementation scanned twice (one pass for
-    image classification, one pass for Joint data).
+    extraction.
     """
     mcap_files = find_mcap_files(directory)
     if not mcap_files:

@@ -3,7 +3,7 @@
 The mapping is declared under the `lerobot_export:` key of the recording YAML
 config (`config/<recording>.yaml`, selected via `RECORDING_CONFIG`) — not in a
 separate file — so a recording's config and its export layout stay together.
-See `config/lerobot/README.md` for the schema.
+See the documented `lerobot_export` section in `config/simulator.yaml` for the schema.
 """
 
 from __future__ import annotations

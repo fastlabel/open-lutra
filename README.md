@@ -31,8 +31,8 @@ OpenLUTRA records ROS2 topics from ROS2-compatible robots and persists them as M
 
 ```
 Robot  ──ROS2 Topics──▶  FastAPI
-  /robot_slave/states (100Hz)     ├── subprocess: ros2 bag record → MCAP
-  /robot_master/cmd (100Hz)       ├── rclpy: frequency monitor + gap detection
+  /sim/slave_arm_left (100Hz)     ├── subprocess: ros2 bag record → MCAP
+  /sim/master_arm_left (100Hz)    ├── rclpy: frequency monitor + gap detection
   /*_depth_cam/.../compressed     └── SSE: real-time stream → Web UI
 ```
 
@@ -41,7 +41,7 @@ A hybrid architecture is used:
 | Function | Technology | Reason |
 |---|---|---|
 | Recording | `subprocess` (`ros2 bag record`) | Memory isolation; safe for long sessions |
-| Monitoring | `rclpy` (lightweight) | Real-time alerts; keeps only the latest N messages |
+| Monitoring | `rclpy` (lightweight) | Real-time alerts; keeps only the latest message per topic |
 | Quality analysis | `mcap` Python library | Accurate post-hoc metrics |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
@@ -126,10 +126,10 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 | [docs/STRUCTURE.md](docs/STRUCTURE.md) | Directory layout (backend / frontend / tests) |
 | [docs/SETUP.md](docs/SETUP.md) | Setup guide (prerequisites, dev, prod, env vars) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture (system, data flow, Docker) |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide (style, branching, tests) |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide (dev environments, testing, lint) |
 | [backend/README.md](backend/README.md) | Backend container layout (what a restart picks up, what needs a rebuild) |
 | [frontend/README.md](frontend/README.md) | Frontend container layout (what a restart picks up, what needs a rebuild) |
-| [docs/domain/](docs/domain/index.md) | Domain notes (ROS2, MCAP, LeRobot, quality analysis) |
+| [docs/domain/](docs/domain/index.md) | Domain notes (DDS gaps, quality analysis, validators, metadata, upload, SSE) |
 | [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types) |
 
 ## Release status

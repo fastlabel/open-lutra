@@ -264,8 +264,7 @@ class TestLossEvents:
     def test_loss_events_sorted_by_timestamp_with_edge_loss(self) -> None:
         """When edge losses (start_delay/end_early) coexist with intermediate gaps, events are ordered by timestamp ascending.
 
-        Regression: before the fix, edge_events were prepended, so end_early appeared before intermediate gaps
-        (i.e., at the head of the array). This caused the order to drift away from the UI timeline.
+        Guards the UI timeline order: end_early must not appear before intermediate gaps.
         """
         # 30 Hz (33 ms interval), 10 s recording
         # 1 s start delay (start_delay) + 1 intermediate gap (~7 s mark) + ~1.5 s early end (end_early)

@@ -1,6 +1,6 @@
 """Output directory scanning and lightweight metadata.yaml parsing.
 
-Pure filesystem logic, split out of router.py.
+Pure filesystem logic.
 """
 
 import logging
