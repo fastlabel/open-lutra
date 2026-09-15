@@ -2,7 +2,8 @@
 
 Converts selected MCAP recordings into a LeRobot v3.0 dataset under
 `<output_dir>/_lerobot_exports/<name>/`. Mapping from topics to
-`observation.*` / `action` / image features is declared in `config/lerobot/*.json`.
+`observation.*` / `action` / image features is declared in the `lerobot_export:`
+section of the active recording config (`config/<recording>.yaml`).
 """
 
 from app.features.lerobot_export.config_loader import has_active_config, load_active_config

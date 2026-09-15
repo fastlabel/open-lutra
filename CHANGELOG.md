@@ -39,7 +39,7 @@ validation and configuration improvements.
 
 ### Changed
 
-- `ROBOT_CONFIG` and `OUTPUT_DIR` are now required in `.env`; the backend fails
+- `RECORDING_CONFIG` and `OUTPUT_DIR` are now required in `.env`; the backend fails
   fast when they are unset. See [docs/SETUP.md](docs/SETUP.md).
 - Task-name validation errors are surfaced inline in the recording header editor.
 - Polished the recording page layout (relocated the Stop toggle, made the

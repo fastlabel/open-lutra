@@ -86,7 +86,7 @@ Clicking a topic opens a detail dashboard.
 | Topic kind | Live display | Mechanism |
 |---|---|---|
 | Image (`*Image*`) | MJPEG stream (red border) | `/api/topics/image/stream` (2fps normally / 30fps in Live) |
-| Sensor | Position bar gauges (red border) | Polls `/api/topics/live/positions` (30fps) |
+| Sensor | Position bar gauges (red border) | SSE via `/api/topics/live/stream` (30fps) |
 
 ### Loss Rate time-series graph (Loss Rate tab)
 

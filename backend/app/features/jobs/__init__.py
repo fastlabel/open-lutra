@@ -1,7 +1,7 @@
 """Job queue feature.
 
 Public API:
-    JobQueue: Async job queue (MP4/telemetry generation, quality analysis, timeline generation)
+    JobQueue: Async job queue for heavy processing (see JobType for the job kinds)
     Job / GenerateMediaJob / QualityJob / TimelineJob: Job models
     JobStatus / JobType: Status and type enums
     get_job_queue / set_job_queue: DI helpers

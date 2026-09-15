@@ -1,7 +1,7 @@
 # Development Guide
 
 > Summarizes information needed for development, such as testing policies and tool configurations.
-> [Coding Style](CODING_STYLE.md) / [Branching Rules](CONTRIBUTING.md)
+> [Coding Style](CODING_STYLE.md) / [Contributing](../CONTRIBUTING.md)
 
 ## Table of Contents
 

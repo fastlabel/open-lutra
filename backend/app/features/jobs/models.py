@@ -53,7 +53,7 @@ class Job:
 
     Attributes:
         job_id: Unique job ID (URL-safe string).
-        type: Job type (media / quality / timeline).
+        type: Job type.
         folder: Target recording folder name.
         status: Execution status.
         progress: Progress information.

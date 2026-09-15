@@ -30,7 +30,7 @@ class JobSchema(BaseModel):
     """API schema for a job."""
 
     job_id: str
-    type: str = Field(..., description="Job type (quality / timeline)")
+    type: str = Field(..., description="Job type (media / quality / timeline / validation / lerobot_export / upload)")
     folder: str
     status: str = Field(..., description="Job status (queued / running / completed / failed)")
     progress: JobProgressSchema

@@ -1,8 +1,8 @@
 """Domain models for LeRobot dataset export.
 
-These mirror the JSON mapping-config shape (see `config/lerobot/*.json`) that
-declares how MCAP topics map to LeRobot `observation.*` / `action` / image
-features. Kept separate from API schemas (schemas.py).
+These mirror the `lerobot_export:` mapping-config shape that declares how MCAP
+topics map to LeRobot `observation.*` / `action` / image features. Kept
+separate from API schemas (schemas.py).
 """
 
 from __future__ import annotations

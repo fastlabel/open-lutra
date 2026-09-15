@@ -35,16 +35,8 @@ What is **not** in scope (out by design, per [issue #6](https://github.com/fastl
 - Download / restore from the destination.
 
 Out of scope for the initial drop but on the near-term roadmap (no
-design baked in yet — both decisions sit with whoever picks them up):
+design baked in yet — the decision sits with whoever picks it up):
 
-- **Bulk upload from the recordings list page.** Mounted next to
-  `<BulkDeleteButton />` in `recordings-table.tsx`; reads the selected
-  set from `useRecordingsStore.checkedFolders`. The JobQueue is
-  single-worker with per-folder dedup, so either implementation shape
-  (N `POST /api/upload/start` calls from the frontend, or one new
-  endpoint that enqueues `N` jobs server-side) ends up serialized the
-  same way — pick whichever fits the rest of the UI's mutation
-  patterns better.
 - **Further destinations** (GCS, …). See "The destination abstraction"
   below for the extension recipe.
 

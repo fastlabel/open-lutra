@@ -65,7 +65,7 @@ class TestClassifyJointStateTopic:
         # "feedbacks" does not exactly match feedback
         assert classify_joint_state_topic("/robot/feedbacks") is None
 
-    # --- New keywords: slave / master / body ---
+    # --- Keywords: slave / master / body ---
 
     @pytest.mark.parametrize(
         ("topic", "expected"),

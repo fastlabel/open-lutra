@@ -10,9 +10,6 @@ OpenLUTRA is a tool for recording **teaching data** (demonstration motions) from
 [Physical robot] ──ROS2──▶ [OpenLUTRA (this repo)] ──┬──▶ [MCAP file]
                                                      │
                                                      └──▶ [Upload destination]
-                                                          (S3-compatible today;
-                                                           GCS / local-network
-                                                           on the roadmap)
                                                           │
                                                           ▼
                                             External conversion/annotation

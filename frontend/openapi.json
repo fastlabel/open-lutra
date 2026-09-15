@@ -2014,7 +2014,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Job type (quality / timeline)"
+            "description": "Job type (media / quality / timeline / validation / lerobot_export / upload)"
           },
           "folder": {
             "type": "string",
