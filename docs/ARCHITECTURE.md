@@ -16,12 +16,6 @@
 
 ---
 
-## Tech Stack
-
-→ See [TECH_STACK.md](TECH_STACK.md).
-
----
-
 ## Overview
 
 ```
@@ -174,7 +168,7 @@ Located in `backend/app/features/analysis/`. Provides data for the horizontal-ba
 
 Located in `backend/app/features/media/`. Generates data for the Preview panel (video + Joint Position Graph) of the recording detail page.
 
-- **mcap_converter**: `convert_mcap()` generates per-camera MP4s from MCAP (streams writes to an ffmpeg subprocess, piping one frame at a time so memory use stays constant regardless of recording length, fixed 30fps). This is the actual `GenerateMediaJob`
+- **mcap_converter**: `convert_mcap()` generates per-camera MP4s from MCAP (streams writes to an ffmpeg subprocess, piping one frame at a time so memory use stays constant regardless of recording length). This is the actual `GenerateMediaJob`
 - **video_generator**: Enumerates already-generated MP4 files (GET /api/media/video) and defines the fixed FPS constant
 - **joint_reader**: Reads + caches Joint time-series (for the Joint Position Graph). Auto-detects whether `decoded.position` exists or is nested (`decoded.joint_state.position`), supporting custom message types (including composite types that also expose `neck_joint_state`)
 - **Decimation support**: `decimation=20` or so is sufficient for previews (200Hz × 50s = 10,000 → 500 points)
@@ -204,7 +198,7 @@ JobQueue (asyncio.Queue + single worker)
 
 - **Single worker**: At most one job runs concurrently. Running multiple CPU-bound MCAP conversions/analyses at once would actually slow things down
 - **Duplicate prevention**: The same folder + same type is deduplicated
-- **Progress over SSE**: `/api/jobs/stream` broadcasts `queue_snapshot` / `job_added` / `job_started` / `job_progress` / `job_completed` / `job_failed` events
+- **Progress over SSE**: `/api/jobs/stream` broadcasts job lifecycle events (see [SSE streams](domain/sse.md))
 - **Log-only on failure**: Does not retry; moves on to the next job. Failed jobs are shown in the Jobs panel
 - **Auto-chain**: When a recording stops, both a quality job and a validation job are enqueued. The single-worker FIFO guarantees validation runs *after* the quality report it depends on exists
 
@@ -222,11 +216,8 @@ ValidationRunner.run(report, recording_dir, mcap_path, recording_meta)
   └─► ValidationReport (overall_status + per-validator items)
 ```
 
-- **Context-driven**: Validators receive a `ValidationContext` carrying the `QualityReport`, the recording folder, the MCAP file path, and the parsed `recording_meta.json`. Light validators read only `ctx.report`; validators that need raw frames open `ctx.mcap_path` with `MCAPReader` from `app.infra.mcap`
-- **Builtin vs. custom**: Builtin validators ship in `builtins/` and accept constructor params via `active_set.py`. Custom validators live in `custom/`, are decorated with `@register_validator`, and are auto-discovered at startup via `pkgutil.iter_modules`
 - **Exception isolation**: When a validator raises, the runner converts the failure into `status="error"` for that one validator — other validators still run, the app does not crash
-- **Output**: `validation_result.json` next to `quality_report.json`. `FileEntry.validation_overall_status` exposes the aggregated pass/warn/fail/error for the recordings list badge
-- **How to add a custom validator**: see [docs/domain/custom_validators.md](domain/custom_validators.md)
+- See [Custom validators](domain/custom_validators.md) for the `ValidationContext` contract, the builtin/custom split, and how to add a validator
 
 ### Application Lifecycle
 
@@ -297,20 +288,7 @@ Two state-management approaches are used:
 
 ### Real-time updates via SSE (Server-Sent Events)
 
-```
-SSE (/api/topics/stream)
-  ├─ topic_stats event (every second)
-  │   └─ queryClient.setQueryData(sseKeys.topicStats(), data)
-  └─ log event (as they occur)
-      └─ queryClient.setQueryData(sseKeys.logs(), ...)
-
-SSE (/api/jobs/stream)
-  ├─ queue_snapshot (on connect)
-  ├─ job_added / job_started / job_progress / job_completed / job_failed
-  └─ Reflects timeline / quality generation status on the MCAP detail page into the cache
-```
-
-When an SSE event arrives, the TanStack Query cache is updated directly. This lets the UI reflect updates in real time without polling. `/api/jobs/stream` broadcasts progress for background jobs (MCAP → MP4 conversion / quality analysis / timeline generation).
+`/api/topics/stream` (topic stats + logs) and `/api/jobs/stream` (background-job progress) push events whose payloads are written directly into the TanStack Query cache (`queryClient.setQueryData(sseKeys...)`), so the UI reflects updates in real time without polling. See [SSE streams](domain/sse.md) for the endpoint and event catalog.
 
 ### Pages and Panel Layout
 

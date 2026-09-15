@@ -9,42 +9,18 @@ A ROS2-based robot data recording system. Records ROS2 topics from ROS2-compatib
 ## Development Commands
 
 ```bash
-make setup             # Initial setup
-make up                # Start the dev environment (with simulator; Frontend: :5173, Backend: :8000)
-make dev-up            # Start in dev mode (VITE_DEV_MODE=true: shows developer UI such as command copy and StatusBar)
-make down              # Stop
-make logs              # Show logs
-make ps                # Show container status
-make lint              # Lint (everything: backend + frontend)
-make lint-backend      # Lint (ruff + mypy)
-make lint-frontend     # Lint (tsc + biome)
-make test              # Test (everything: backend + frontend)
-make test-backend      # Test (pytest)
-make test-frontend     # Test (vitest)
-make test-cov          # Test + coverage (everything)
-make test-cov-backend  # Test + coverage (pytest)
-make test-cov-frontend # Test + coverage (vitest)
-make format            # Format (everything: backend + frontend)
-make format-backend    # Format (ruff)
-make format-frontend   # Format (biome)
-make generate          # Regenerate API types (exports OpenAPI + runs orval; no running backend needed)
-make build             # Build Docker images
-make minio-up          # Start the local MinIO sandbox + auto-create the bucket (for upload-feature testing)
-make minio-down        # Stop the local MinIO sandbox
-make prod-up           # Production start (host network)
+make up        # Start the dev environment (with simulator; Frontend: :5173, Backend: :8000)
+make lint      # Lint (backend: ruff + mypy / frontend: tsc + biome)
+make test-cov  # Test + coverage (backend: pytest / frontend: vitest)
+make format    # Format (backend: ruff / frontend: biome)
+make generate  # Regenerate API types (exports OpenAPI + runs orval; no running backend needed)
 ```
+
+Run `make help` for the full target list (per-side variants such as `lint-backend`, the MinIO sandbox, production targets, ...).
 
 ## Architecture
 
-→ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-A **hybrid architecture** is used:
-
-| Function | Technology | Reason |
-|------|------|------|
-| Recording | `subprocess` (`ros2 bag record`) | Memory isolation; safe even for long recordings |
-| Monitoring | `rclpy` (lightweight) | For real-time alerts; keeps only the latest message per topic |
-| Quality analysis | `mcap` Python library | Accurate metrics computed via post-hoc analysis |
+A **hybrid architecture** is used: recording via `subprocess` (`ros2 bag record`, memory-isolated), monitoring via a lightweight `rclpy` node (keeps only the latest message per topic), and quality analysis via the `mcap` Python library (accurate post-hoc metrics). → Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Key Technical Decisions
 
@@ -54,14 +30,14 @@ A **hybrid architecture** is used:
 - **Docker required**: Both development and production run via Docker Compose.
 - **Timestamps prefer header.stamp**: MCAP quality analysis, MP4 generation, and live quality (when `stamp_quality: true`) prefer `header.stamp`. This eliminates DDS delivery jitter for accurate quality evaluation. For message types without `header`, falls back to `log_time` (`backend/app/shared/stamp.py`).
 - **Loss detection is IQR-based**: Instead of a fixed multiplier, uses a statistical threshold (`Q3 + 1.5×IQR`) to detect per-frame losses. Recorded as `LossEvent` (severity=minor/major) and used for per-topic status determination.
-- **Image/Joint detection is automatic**: Determined by structure (presence of `format` + `data` fields), not by hard-coded message type names. Also supports vendor-specific or user-defined message types that nest a `JointState` inside a `joint_state` field. See [examples/custom_ros2_messages/](examples/custom_ros2_messages/) for how to plug in custom message packages.
-- **Video preview is MCAP → MP4 conversion**: When the Preview on the recording detail page is opened, per-camera MP4s are generated from the MCAP and persisted in the recording directory. FPS is fixed at 30 (`backend/app/features/media/video_generator.py:VIDEO_FPS`). Frames are piped to ffmpeg one at a time to keep memory usage constant.
+- **Image/Joint detection is automatic**: Determined by message structure, not by hard-coded message type names, so vendor-specific or user-defined message types work. See [examples/custom_ros2_messages/](examples/custom_ros2_messages/) for the detection rules and how to plug in custom message packages.
+- **Video preview is MCAP → MP4 conversion**: When the Preview on the recording detail page is opened, per-camera MP4s are generated from the MCAP and persisted in the recording directory. Frames are piped to ffmpeg one at a time to keep memory usage constant.
 - **Feature boundaries follow the "recording lifecycle"**: `recordings` (directory operations) / `analysis` (quality and timeline; persistent findings) / `media` (MP4 / Joint data generation for preview) / `validation` (per-recording rule checks) / `upload` (zip + ship to an `UploadDestination`) / `lerobot_export` (MCAP → LeRobot dataset) are managed as independent features.
-- **LeRobot export is a self-implemented v3.0 writer**: The `lerobot_export` feature converts selected recordings into a [LeRobot v3.0](https://huggingface.co/docs/lerobot/en/lerobot-dataset-v3) dataset (parquet via `pyarrow`/`pandas` + per-camera H.264 MP4 via ffmpeg) **without** depending on the heavyweight `lerobot`/torch package. One recording = one episode; selecting N recordings yields an N-episode dataset. Topic→`observation.*`/`action`/image mapping is declared in the active recording config's `lerobot_export:` section (`config/<recording>.yaml`, selected via `RECORDING_CONFIG`) — not a separate file. Each source declares its value explicitly via a dot-separated `field` path plus a `type` (`list` → numeric sequence, `indices` required; `number` → scalar wrapped as a 1-element array; `struct` → named-field object like `geometry_msgs/Point`, `keys` required) — no implicit auto-detection of message structure, so the YAML fully records the conversion that was applied and stays reproducible (`backend/app/features/lerobot_export/extract.py:extract_field_data`). Before export, each recording's `metadata.yaml` is validated against the mapping (missing topics → rejected). The export runs as a `JobType.LEROBOT_EXPORT` job and writes to `<output_dir>/_lerobot_exports/<name>/` (the `recordings` scanner skips the reserved `_lerobot_exports` directory so exports never appear as recordings). A completed export can be pulled to the browser as a single zip via `GET /api/lerobot/exports/<name>/download` (the dataset tree is zipped on demand with `ZIP_STORED` since its contents — H.264 MP4 + parquet — are already compressed; surfaced as a Download button in the export dialog's completion view). See the documented `lerobot_export` section in [config/simulator.yaml](config/simulator.yaml).
+- **LeRobot export is a self-implemented v3.0 writer**: Converts selected recordings (one recording = one episode) into a LeRobot v3.0 dataset without depending on the `lerobot`/torch package. The topic mapping is declared in the active recording config's `lerobot_export:` section, and output goes to the reserved `<output_dir>/_lerobot_exports/` directory. See [docs/domain/lerobot_export.md](docs/domain/lerobot_export.md).
 - **MCAP I/O is consolidated in `backend/app/infra/mcap/`**: Centralizes `make_reader` + `DecoderFactory` initialization, header.stamp-preferred timestamp normalization, and image/Joint structure detection. All consumers in analysis / media read MCAP through this layer.
-- **Validation takes a ValidationContext as input**: After a recording stops, quality → validation runs automatically as a chain in JobQueue, and results are saved to `validation_result.json`. `ValidationContext` is a frozen dataclass bundling `QualityReport` / `recording_dir` / `mcap_path` / `recording_meta`; it also exposes the MCAP path so validators can read raw frames with `MCAPReader` when needed (if you only need aggregated values, `ctx.report` is enough). Builtins live in `backend/app/features/validation/builtins/` with their params controlled by `active_set.py`; user-defined validators go in `backend/app/features/validation/custom/` registered via `@register_validator` and applied on restart. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md) for how to add a custom validator.
-- **Upload destinations are pluggable behind a Protocol**: The upload feature is generic over the storage backend. `UploadDestination` (in `backend/app/features/upload/destinations/base.py`) defines `configuration_error()` + `prepare_target(recording_name, recording_start_ns) -> (label, key)` + `upload(local_path, key, progress) -> UploadResult`; implementations today are `S3Destination` (boto3; also covers MinIO / R2 / LocalStack via `AWS_ENDPOINT_URL`) and `LocalDestination` (`shutil.copyfile` to a bind-mounted directory for NFS / SMB shares). `UPLOAD_DESTINATION` selects the active backend; when unset, the registry returns a `DisabledDestination` whose `configuration_error()` keeps the upload feature off (`/api/upload/start` refuses to enqueue and the UI hides its affordances). The registry returns a single active destination per machine. Adding a new backend (GCS, …) means one new module under `destinations/` + a registry update — `UploadService` / `JobQueue` / `UploadState` are destination-agnostic. See [docs/domain/upload.md](docs/domain/upload.md) for the lifecycle, key-template syntax, and failure modes.
-- **Pre-registered recording metadata is master-defined**: Operators set values for named fields (e.g. operator ID, target object) from the "Metadata" panel in the recording bar before recording. The selection is sticky across recordings (localStorage, like the task name) and is written into each recording's `recording_meta.json` under `metadata` (a `key -> value` map, separate from the free-form `tags`). The master declares the fields in the active recording config's `metadata_fields:` section (`config/<recording>.yaml`, selected via `RECORDING_CONFIG`), surfaced to the UI through `GET /api/config`. Each field has a `type`: `select` (pick from `options`), `number` (digits only), or `text` (free), plus an optional `pattern` (regex) and `placeholder`. **Metadata values are always stored as strings** — a `number` field keeps leading zeros (e.g. `"007"`), never parsed to an int. Values are stored as submitted (no server-side validation, so recordings are never blocked); the `type`/`pattern` constraints are enforced in the UI. See [docs/domain/metadata.md](docs/domain/metadata.md) and the documented `metadata_fields` section in [config/simulator.yaml](config/simulator.yaml).
+- **Validation takes a ValidationContext as input**: After a recording stops, quality → validation runs automatically as a chain in JobQueue, and results are saved to `validation_result.json`. Builtins live in `backend/app/features/validation/builtins/`; user-defined validators go in `custom/` and are applied on restart. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md).
+- **Upload destinations are pluggable behind a Protocol**: `UploadDestination` (`backend/app/features/upload/destinations/`) abstracts the storage backend; `UPLOAD_DESTINATION` selects the active one (S3-compatible / local filesystem today), and when unset the upload feature is disabled. See [docs/domain/upload.md](docs/domain/upload.md).
+- **Pre-registered recording metadata is master-defined**: Fields are declared in the active recording config's `metadata_fields:` section, filled by operators in the recording bar, and written into each recording's `recording_meta.json` under `metadata` — **always stored as strings**, validated only in the UI. See [docs/domain/metadata.md](docs/domain/metadata.md).
 
 ## Frontend Architecture
 
@@ -73,19 +49,13 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 - **No internal references**: Biome's `noRestrictedImports` makes direct references to `@/features/*/*` an error.
 - **Placement rule**: Modules used by only one feature live inside that feature; modules shared across multiple features live in `hooks/`, `lib/`, or `stores/`.
 - **Keep individual files small**: Small UI components inside a feature go in `features/xxx/ui/`. Once shared across multiple features, promote them to `components/ui/`.
-- **API type generation**: orval auto-generates TanStack Query hooks + types from OpenAPI (`make generate`). The schema is exported from the app by `python -m app.openapi` into `frontend/openapi.json` (committed), so no running backend is needed; CI fails if the committed schema drifts from the code.
-- **Import rule**: Types are imported directly from `@/api/generated/schemas`. Do not re-export types from `use-api.ts`. Use generated type names as-is (alias only on name collision).
-- **Use orval-generated types**: API response/request types must use the orval-generated schemas (`@/api/generated/schemas`). Do not define types manually. After backend schema changes, regenerate with `make generate`.
+- **API types are orval-generated**: Never define API request/response types manually — import them directly from `@/api/generated/schemas` (no re-export from `use-api.ts`; use generated names as-is, alias only on name collision). After backend schema changes, run `make generate` (CI fails if the committed `frontend/openapi.json` drifts from the code). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the generation pipeline.
 
 ## Testing
 
-→ Details: the "Testing" section of [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+→ Details (test structure, `pragma: no cover` policy, environment constraints): the "Testing" section of [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing)
 
-- **Maintain 100% coverage** — verify with `make test-cov`.
-- The test structure mirrors the `backend/app/` directory structure (`backend/tests/features/recording/test_service.py` → `backend/app/features/recording/service.py`).
-- Backend tests run on the host without Docker or rclpy (`app.main` imports rclpy lazily inside the lifespan). Untestable code (rclpy runtime, Docker-only, MCAP I/O) is excluded via `pragma: no cover` and not tested.
-- Endpoint functions in `router.py` are HTTP glue code and are excluded with `pragma: no cover`. Pure logic is extracted out of the router and tested (e.g., `scanner.py`).
-- Tests must not depend on filesystem permissions (chmod); use `unittest.mock.patch` instead (chmod fails as root in CI / Dev Container).
+- **Maintain 100% coverage** — verify with `make test-cov`. Tests run on the host (no Docker or rclpy needed).
 
 ## Coding Style
 
@@ -93,17 +63,9 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 - Python: Method order is `__init__` → public → private (newspaper style).
 - Python: The order of public methods matches the order of the corresponding API endpoints.
 - Python: `schemas.py` contains only API request/response schemas. Domain models with business logic belong in `models.py`.
-- Python: pydantic response models **must not have default values** (use `field: int`, not `field: int = 0`). A default value removes the field from `required` in OpenAPI, causing orval to generate `field?: number` → the frontend ends up with a lot of `?? 0` fallbacks. Fields that can be null should be `field: int | None` (no default; required and nullable). See [docs/CODING_STYLE.md](docs/CODING_STYLE.md) for details.
-- Frontend: Inside a route/component, hooks and variables are ordered by the following sections. Skip sections that don't apply. Section dividers are a single-line `// --- XX ---` comment (no separator lines).
-  1. **Routing** — `useNavigate`, `useParams`
-  2. **Server state** — TanStack Query (`useFiles`, `useConfig`, etc.) and values derived from them (`useMemo`)
-  3. **Streaming / subscription** — SSE (`useTopicsStream`, `useJobsStream`, etc.)
-  4. **Side effects** — `useEffect` (any required `useRef` setup goes in this section)
-  5. **Event handlers** — Define here only handlers that are used in multiple places, are memoized with `useCallback`, or have a long body. Inline single-use, non-memoized, short handlers into the JSX.
-  6. **Render-only state** — store selects used only in JSX (`leftOpen` / `isRecording`, etc.)
-- Within a section, group items "just before their use site".
-- If the ordering rules in CLAUDE.md need updating or a new section needs to be added, edit this section.
-- **Frontend: Inline single-use short descriptive variables and event handlers into the JSX** (reduces the burden of following them via a name and puts the logic next to its trigger). When the same setter is called with different arguments based on a condition, use a ternary to "branch inside the argument". See [docs/CODING_STYLE.md](docs/CODING_STYLE.md#inlining-policy-typescript--react) for details and exceptions.
+- Python: pydantic response models **must not have default values**; nullable fields are `field: int | None` (no default; required and nullable). See [docs/CODING_STYLE.md](docs/CODING_STYLE.md#python) for the OpenAPI/orval rationale.
+- Frontend: Inside a route/component, order hooks and variables by the standard sections (Routing → Server state → Streaming / subscription → Side effects → Event handlers → Render-only state) with single-line `// --- XX ---` dividers. See [docs/CODING_STYLE.md](docs/CODING_STYLE.md#hook--variable-ordering-in-routes-and-components) for the section definitions — update them there.
+- **Frontend: Inline single-use short descriptive variables and event handlers into the JSX**, and use a ternary to "branch inside the argument" when only the argument differs. See [docs/CODING_STYLE.md](docs/CODING_STYLE.md#inlining-policy-typescript--react) for details and exceptions.
 - **Frontend icons use `lucide-react`** (use `lucide-react` components instead of inline SVG or emoji; brand logos and other special SVGs are excluded).
 - **Frontend font sizes are 13px or larger** (applies to CSS, inline styles, and Canvas drawing).
 - **Do not use `any` in the frontend** — for complex library generic types, extract the concrete type via a custom hook + `ReturnType<typeof hook>`. Do not allow `any` via `biome-ignore`.

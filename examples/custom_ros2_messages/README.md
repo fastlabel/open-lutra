@@ -97,5 +97,4 @@ Once the image is built, OpenLUTRA inside it can subscribe to topics that publis
 
 ## Compatibility notes
 
-- This example is part of `/examples` and is provided under **0BSD**, separately from the project root (Apache-2.0). You may copy any file in this directory into your own projects without attribution.
 - The sample `Dockerfile` is a snapshot of the project root `Dockerfile` plus the COPY + `colcon build` block. If the root Dockerfile diverges over time, treat this file as a reference and apply the build block to whatever the current Dockerfile looks like.
