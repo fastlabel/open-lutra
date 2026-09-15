@@ -148,7 +148,7 @@ Runs as a ROS2 node in a background thread.
 - **Frequency monitoring**: Measured Hz from message intervals + auto-learns the reference Hz after 50 entries
 - **Gap detection**: Records gaps that exceed 3× the expected interval
 - **Quality metrics**: Computes `loss_rate` and `continuity_score` in real time
-- **Thread safety**: All public methods are protected by a `threading.Lock`
+- **Thread safety**: All public methods are protected by a `threading.Lock`. rclpy / DDS calls (`create_subscription`, `destroy_subscription`) always run outside the lock so a stalled DDS discovery can never block API requests
 
 #### 3. MCAPAnalyzer (quality analysis)
 

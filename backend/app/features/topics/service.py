@@ -73,6 +73,10 @@ class TopicMonitorService:
         resolve_expected_hz: Callable[[str], float | None] | None = None,
         stamp_quality: bool = False,
     ) -> None:
+        # Guards _topic_stats / _subscribed_set / _discovered_topics, which the
+        # rclpy thread (on_message, timers) and the API thread share. Never call
+        # into the subscriber (rclpy / DDS) while holding it: those calls block
+        # on DDS discovery, and every API request would stall behind them.
         self._lock = threading.Lock()
         self._subscriber: TopicSubscriber | None = None
         self._topic_stats: dict[str, TopicStats] = {}
@@ -262,25 +266,24 @@ class TopicMonitorService:
         new_set = set(topics)
 
         with self._lock:
-            # Unsubscribe from topics that were deselected.
-            to_remove = self._subscribed_set - new_set
+            # Drop the stats of deselected topics first so that messages
+            # arriving before the DDS teardown below are ignored.
+            to_remove = sorted(name for name in self._topic_stats if name not in new_set)
             for name in to_remove:
-                if self._subscriber is not None:
-                    self._subscriber.unsubscribe_topic(name)
                 self._subscribed_set.discard(name)
-                self._topic_stats.pop(name, None)
-                self._log_manager.add("info", f"Unsubscribed from {name}", name)
-                logger.info("Unsubscribed from %s", name)
-
-            # Update the desired subscription set.
+                self._topic_stats.pop(name)
             self._subscribed_topic_names = new_set
+            reserved = self._reserve_subscriptions()
 
-            # Subscribe to any newly desired topics already discovered.
-            for name in new_set:
-                if name not in self._subscribed_set and name in self._discovered_topics:
-                    msg_type = self._discovered_topics[name]
-                    self._subscribe_to_topic(name, msg_type)
+        for name in to_remove:
+            if self._subscriber is not None:
+                self._subscriber.unsubscribe_topic(name)
+            self._log_manager.add("info", f"Unsubscribed from {name}", name)
+            logger.info("Unsubscribed from %s", name)
 
+        self._subscribe_reserved(reserved)
+
+        with self._lock:
             return sorted(self._subscribed_set)
 
     def on_discover_tick(self) -> None:
@@ -293,11 +296,10 @@ class TopicMonitorService:
             for name, types in topic_names_and_types:
                 if name in _SYSTEM_TOPICS or any(name.startswith(p) for p in _SYSTEM_TOPIC_PREFIXES):
                     continue
-                msg_type = types[0] if types else "unknown"
-                self._discovered_topics[name] = msg_type
+                self._discovered_topics[name] = types[0] if types else "unknown"
+            reserved = self._reserve_subscriptions()
 
-                if name in self._subscribed_topic_names and name not in self._subscribed_set:
-                    self._subscribe_to_topic(name, msg_type)
+        self._subscribe_reserved(reserved)
 
     def on_gap_check_tick(self) -> None:
         """Periodically check for topics that have stalled."""
@@ -388,44 +390,75 @@ class TopicMonitorService:
                 if stats is not None:
                     stats.latest_message = converted
 
-    def _subscribe_to_topic(self, topic_name: str, msg_type_str: str) -> None:
-        """Create the subscription for a topic. Caller must hold the lock."""
+    def _reserve_subscriptions(self) -> list[TopicStats]:
+        """Register stats for desired topics that are discovered but not yet subscribed.
+
+        Caller must hold the lock. Inserting the TopicStats before the DDS
+        subscription exists reserves the topic, so a concurrent
+        on_discover_tick / update_subscriptions never subscribes twice. The
+        returned entries must be handed to _subscribe_reserved() once the
+        lock is released.
+        """
         if self._subscriber is None:
-            return
+            return []
 
-        stats = TopicStats(
-            name=topic_name,
-            msg_type=msg_type_str,
-            is_subscribed=True,
-            _gap_threshold_sec=self._gap_threshold_sec,
-            stamp_quality=self._stamp_quality,
-        )
+        reserved: list[TopicStats] = []
+        for name in sorted(self._subscribed_topic_names):
+            if name in self._topic_stats or name not in self._discovered_topics:
+                continue
+            stats = TopicStats(
+                name=name,
+                msg_type=self._discovered_topics[name],
+                is_subscribed=True,
+                _gap_threshold_sec=self._gap_threshold_sec,
+                stamp_quality=self._stamp_quality,
+            )
+            # Resolve the expected Hz from the YAML config (fixed baseline).
+            if self._resolve_expected_hz is not None:
+                expected_hz = self._resolve_expected_hz(name)
+                if expected_hz is not None:
+                    stats.baseline_hz = expected_hz
+                    stats.baseline_fixed = True
+                logger.debug("Resolved expected Hz for %s: %s", name, expected_hz)
+            self._topic_stats[name] = stats
+            reserved.append(stats)
+        return reserved
 
-        # Resolve the expected Hz from the YAML config (fixed baseline).
-        if self._resolve_expected_hz is not None:
-            expected_hz = self._resolve_expected_hz(topic_name)
-            if expected_hz is not None:
-                stats.baseline_hz = expected_hz
-                stats.baseline_fixed = True
-            logger.debug("Resolved expected Hz for %s: %s", topic_name, expected_hz)
+    def _subscribe_reserved(self, reserved: list[TopicStats]) -> None:
+        """Create the DDS subscriptions for topics reserved by _reserve_subscriptions().
 
-        self._topic_stats[topic_name] = stats
+        Must be called WITHOUT holding the lock: subscribe_topic() blocks on
+        DDS discovery, and holding the lock across it would stall every API
+        request behind it. Only the bookkeeping of the result runs under the lock.
+        """
+        for stats in reserved:
+            assert self._subscriber is not None  # _reserve_subscriptions() returns [] without a subscriber
+            rel_str = self._subscriber.subscribe_topic(stats.name, stats.msg_type, self.on_message)
 
-        rel_str = self._subscriber.subscribe_topic(topic_name, msg_type_str, self.on_message)
-        if rel_str is None:
-            self._log_manager.add("warning", f"Cannot subscribe: unknown type {msg_type_str}", topic_name)
-            self._topic_stats.pop(topic_name, None)
-            return
+            with self._lock:
+                # The reservation may have been dropped by update_subscriptions()
+                # while the DDS call was in flight.
+                still_wanted = self._topic_stats.get(stats.name) is stats
+                if rel_str is None and still_wanted:
+                    self._topic_stats.pop(stats.name)
+                elif rel_str is not None and still_wanted:
+                    self._subscribed_set.add(stats.name)
+                    stats.qos_reliability = rel_str
 
-        self._subscribed_set.add(topic_name)
-        stats.qos_reliability = rel_str
-        hz_info = f", baseline Hz: {stats.baseline_hz:.0f}Hz (fixed)" if stats.baseline_fixed else ""
-        self._log_manager.add(
-            "info",
-            f"Subscribed to {topic_name} ({msg_type_str}, QoS: {rel_str}{hz_info})",
-            topic_name,
-        )
-        logger.info("Subscribed to %s (%s, QoS: %s)", topic_name, msg_type_str, rel_str)
+            if rel_str is None:
+                self._log_manager.add("warning", f"Cannot subscribe: unknown type {stats.msg_type}", stats.name)
+                continue
+            if not still_wanted:
+                self._subscriber.unsubscribe_topic(stats.name)
+                continue
+
+            hz_info = f", baseline Hz: {stats.baseline_hz:.0f}Hz (fixed)" if stats.baseline_fixed else ""
+            self._log_manager.add(
+                "info",
+                f"Subscribed to {stats.name} ({stats.msg_type}, QoS: {rel_str}{hz_info})",
+                stats.name,
+            )
+            logger.info("Subscribed to %s (%s, QoS: %s)", stats.name, stats.msg_type, rel_str)
 
     @staticmethod
     def _is_image_topic(msg_type: str) -> bool:
