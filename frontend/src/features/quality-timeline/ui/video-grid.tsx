@@ -34,7 +34,6 @@ function cameraLabel(filename: string): string {
   return filename.replace(/^observation\.images\./, "").replace(/\.mp4$/, "");
 }
 
-/** grid-cols depending on the number of cameras (small display, up to 4 columns). */
 function gridCols(count: number): string {
   if (count <= 1) return "grid-cols-1";
   if (count === 2) return "grid-cols-2";
@@ -58,7 +57,6 @@ export function VideoGrid({ selectedFolder, enabled = true }: { selectedFolder: 
     },
   );
 
-  // Prefer the job progress received via SSE
   const job = useJob(data?.job_id ?? null);
   const progress: JobProgressSchema | null | undefined =
     job?.progress ?? (data?.progress as JobProgressSchema | null | undefined);

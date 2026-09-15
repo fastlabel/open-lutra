@@ -38,7 +38,6 @@ class TopicMonitorNode(Node):  # type: ignore[misc]
         self._qos_depth = qos_depth
 
     def discover_topics(self) -> list[tuple[str, list[str]]]:
-        """Return the list of topic names and types on the DDS domain."""
         result: list[tuple[str, list[str]]] = self.get_topic_names_and_types()
         return result
 
@@ -94,11 +93,9 @@ class TopicMonitorNode(Node):  # type: ignore[misc]
         return rel_str
 
     def unsubscribe_topic(self, topic_name: str) -> None:
-        """Destroy the subscription for a topic."""
         sub = self._sub_map.pop(topic_name, None)
         if sub is not None:
             self.destroy_subscription(sub)
 
     def convert_message(self, msg: Any) -> dict[str, Any]:
-        """Convert a ROS2 message into a JSON-safe dict."""
         return msg_to_dict(msg)

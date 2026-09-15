@@ -26,7 +26,6 @@ def resolve_safe_path(
 
 
 def require_dir(target: Path = Depends(resolve_safe_path)) -> Path:
-    """Dependency that verifies the path is a directory."""
     if not target.is_dir():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
     return target

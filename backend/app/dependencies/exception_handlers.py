@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Register application-wide exception handlers."""
-
     @app.exception_handler(AlreadyRecordingError)
     async def _already_recording(_request: Request, exc: AlreadyRecordingError) -> JSONResponse:
         return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})

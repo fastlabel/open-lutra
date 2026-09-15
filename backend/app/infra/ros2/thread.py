@@ -48,7 +48,6 @@ class TopicMonitorThread:
         except RuntimeError:
             logger.debug("rclpy is already initialized")
 
-        # Create the domain service
         self._service = TopicMonitorService(
             subscribed_topics=self._settings.default_topics,
             log_manager=self._log_manager,
@@ -57,11 +56,10 @@ class TopicMonitorThread:
             stamp_quality=self._settings.stamp_quality,
         )
 
-        # Create the infrastructure node and connect it to the service
         self._node = TopicMonitorNode(qos_depth=self._settings.monitor_qos_depth)
         self._service.set_subscriber(self._node)
 
-        # Create timers on the node (callbacks are service methods)
+        # callbacks are service methods
         self._node.create_timer(5.0, self._service.on_discover_tick)
         self._node.create_timer(1.0, self._service.on_gap_check_tick)
 
@@ -102,7 +100,6 @@ class TopicMonitorThread:
 
     @property
     def service(self) -> TopicMonitorService | None:
-        """Return the TopicMonitorService instance."""
         return self._service
 
     def _spin_loop(self) -> None:

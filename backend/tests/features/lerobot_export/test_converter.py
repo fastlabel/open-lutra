@@ -107,7 +107,7 @@ def test_align_nearest_within_tolerance() -> None:
 
 
 def test_align_forward_fills_last_match() -> None:
-    messages = [image_message(0)]  # only one message
+    messages = [image_message(0)]
     aligned = converter.align_nearest_forward_fill([0, 50 * MS, 1000 * MS], messages, tolerance_ns=10 * MS)
     assert aligned == [messages[0], messages[0], messages[0]]  # held forward past tolerance
 

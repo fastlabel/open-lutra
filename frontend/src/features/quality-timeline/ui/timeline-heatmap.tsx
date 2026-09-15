@@ -143,7 +143,6 @@ export function TimelineHeatmap({ data }: { data: TimelineData }) {
     [selectedTopic, setSelectedTopic],
   );
 
-  // Unified ordering (images on top, joints on the bottom, alphabetical within each category)
   const sortedTopics = useMemo(
     () =>
       sortTopicsByCategory(

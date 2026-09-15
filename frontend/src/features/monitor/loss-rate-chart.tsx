@@ -184,7 +184,6 @@ export function LossRateChart() {
 
   const scrollOffsetRef = useRef<number | null>(null);
 
-  // Create/recreate the uPlot instance
   useEffect(() => {
     if (!containerRef.current || topicNames.length === 0) return;
 
@@ -251,7 +250,6 @@ export function LossRateChart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicNames, snapshots]);
 
-  // Data updates + 30-second window control
   useEffect(() => {
     if (!uplotRef.current || topicNames.length === 0 || snapshots.length === 0) return;
 
@@ -259,7 +257,6 @@ export function LossRateChart() {
     uplotRef.current.setScale("x", resolveXRange(snapshots[snapshots.length - 1].elapsed, scrollOffsetRef.current));
   }, [snapshots, topicNames]);
 
-  // Wheel to scroll left/right
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -290,7 +287,6 @@ export function LossRateChart() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // Resize handling
   useEffect(() => {
     if (!containerRef.current) return;
 

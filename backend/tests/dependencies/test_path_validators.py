@@ -20,7 +20,6 @@ class TestResolveSafePath:
 
     def test_valid_relative_path(self, output_dir: Path) -> None:
         """A valid relative path is resolved."""
-        # Create a subdirectory
         (output_dir / "recording_001").mkdir()
 
         with patch("app.dependencies.path_validators.get_settings") as mock_settings:

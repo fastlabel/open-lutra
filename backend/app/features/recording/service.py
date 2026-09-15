@@ -66,13 +66,10 @@ def _disk_space_suffix(path: Path) -> str:
 
 
 class ROS2BagRecorder:
-    """Subprocess-based ROS2 bag recording.
+    """Records topics to MCAP using `ros2 bag record --start-paused -s mcap`.
 
-    Records topics to MCAP using `ros2 bag record --start-paused -s mcap`.
     `--start-paused` ensures recording begins only after DDS discovery
     completes, preventing message loss at the start of the recording.
-    Recording runs in a separate process so its memory usage is
-    isolated from the main application.
     """
 
     def __init__(self, settings: Settings, ros2: ROS2Command) -> None:
@@ -93,7 +90,6 @@ class ROS2BagRecorder:
 
     @property
     def is_recording(self) -> bool:
-        """Return whether a recording is currently in progress."""
         return self._record is not None
 
     def start(
@@ -357,7 +353,6 @@ class ROS2BagRecorder:
         record.resume()
 
     def _reset_state(self) -> None:
-        """Reset internal state after a recording has stopped."""
         self._record = None
         self._current_topics = None
         self._output_path = None

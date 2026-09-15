@@ -69,7 +69,6 @@ def rename_recording(req: RenameRequest) -> RenameResponse:  # pragma: no cover
             text = text.replace(req.old_name, req.new_name)
             meta.write_text(text, encoding="utf-8")
 
-        # Rename the folder itself.
         old_dir.rename(new_dir)
     except OSError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Rename failed: {e}") from e

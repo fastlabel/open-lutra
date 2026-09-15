@@ -72,7 +72,6 @@ def read_joint_data(  # pragma: no cover
 
     result = _read_from_mcap(directory, topic, decimation)
 
-    # Save cache (only when topic is not specified)
     if topic is None:
         _save_cache(directory, result, decimation)
 
@@ -80,7 +79,6 @@ def read_joint_data(  # pragma: no cover
 
 
 def _load_cache(directory: Path, decimation: int) -> JointTopicsResponse | None:
-    """Load a cached joint_data*.json file."""
     cache_path = directory / _cache_filename(decimation)
     if not cache_path.exists():
         return None
@@ -93,7 +91,6 @@ def _load_cache(directory: Path, decimation: int) -> JointTopicsResponse | None:
 
 
 def _save_cache(directory: Path, result: JointTopicsResponse, decimation: int) -> None:
-    """Persist the cache as joint_data*.json."""
     cache_path = directory / _cache_filename(decimation)
     try:
         cache_path.write_text(
@@ -121,7 +118,6 @@ def _read_from_mcap(  # pragma: no cover
 
     mcap_path = mcap_files[0]
 
-    # In a single scan, classify image/Joint topics and extract data.
     # Classify each topic by its first message; if it is Joint, also collect
     # subsequent messages.
     image_topics: set[str] = set()
@@ -156,7 +152,6 @@ def _read_from_mcap(  # pragma: no cover
     if not topic_messages:
         return JointTopicsResponse(topics=[])
 
-    # Recording start time
     all_ts = [ts for msgs in topic_messages.values() for ts, _, _ in msgs]
     recording_start = min(all_ts)
 

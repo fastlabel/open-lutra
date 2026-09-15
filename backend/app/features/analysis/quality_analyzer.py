@@ -45,22 +45,18 @@ class QualityAnalyzer:
 
     async def start(self, target: Path) -> QualityResponse:
         """Start quality analysis (idempotent: returns the existing job status if already running)."""
-        # Return immediately if a cached report exists
         report = load_report(target)
         if report:
             return QualityResponse(status="ready", report=report, error=None)
 
-        # Already running -> analyzing
         queue = get_job_queue()
         active = queue.get_active_quality_job(target)
         if active is not None and active.status in (JobStatus.QUEUED, JobStatus.RUNNING):
             return QualityResponse(status="analyzing", report=None, error=None)
 
-        # Verify that an MCAP file exists
         if not list(target.glob("*.mcap")):
             return QualityResponse(status="not_found", report=None, error="MCAP file not found")
 
-        # Enqueue the job
         await queue.enqueue_quality(target)
         return QualityResponse(status="analyzing", report=None, error=None)
 
@@ -86,5 +82,4 @@ _quality_analyzer_singleton = QualityAnalyzer()
 
 
 def get_quality_analyzer() -> QualityAnalyzer:
-    """Return the global QualityAnalyzer instance."""
     return _quality_analyzer_singleton

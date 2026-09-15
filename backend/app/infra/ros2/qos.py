@@ -11,7 +11,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Output directory for temporary files
 _TMP_DIR = Path(__file__).resolve().parent.parent.parent / "tmp"
 
 
@@ -50,6 +49,5 @@ class QoSOverrideFile:
         return ["--qos-profile-overrides-path", self._file.name]
 
     def cleanup(self) -> None:
-        """Remove the temporary file."""
         with contextlib.suppress(Exception):
             self._file.close()

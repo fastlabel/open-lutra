@@ -91,7 +91,6 @@ _log_manager: LogManager | None = None
 
 
 def get_log_manager() -> LogManager:  # pragma: no cover
-    """Return the global LogManager instance."""
     if _log_manager is None:
         raise RuntimeError("LogManager is not initialized")
     return _log_manager

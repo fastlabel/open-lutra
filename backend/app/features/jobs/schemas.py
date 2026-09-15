@@ -17,7 +17,6 @@ class JobProgressSchema(BaseModel):
 
     @classmethod
     def from_progress(cls, progress: JobProgress) -> "JobProgressSchema":
-        """Convert the domain model `JobProgress` into the API schema."""
         return cls(
             step=progress.step,
             step_label=progress.step_label,
@@ -41,7 +40,6 @@ class JobSchema(BaseModel):
 
     @classmethod
     def from_job(cls, job: Job) -> "JobSchema":
-        """Convert the domain model `Job` into the API schema."""
         return cls(
             job_id=job.job_id,
             type=job.type.value,

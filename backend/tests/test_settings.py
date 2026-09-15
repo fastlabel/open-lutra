@@ -17,10 +17,6 @@ from app.settings import (
     get_settings,
 )
 
-# ---------------------------------------------------------------------------
-# RecordingConfig
-# ---------------------------------------------------------------------------
-
 
 class TestRecordingConfig:
     """Tests for RecordingConfig defaults and validation."""
@@ -121,11 +117,6 @@ class TestResolveExpectedHz:
         assert cfg.resolve_expected_hz("/bar") is None
 
 
-# ---------------------------------------------------------------------------
-# _load_recording_config
-# ---------------------------------------------------------------------------
-
-
 class TestLoadRecordingConfig:
     """Tests for _load_recording_config()."""
 
@@ -159,11 +150,6 @@ expected_hz_patterns:
         """Raises FileNotFoundError when the file does not exist."""
         with pytest.raises(FileNotFoundError):
             _load_recording_config(str(tmp_path / "nonexistent.yaml"))
-
-
-# ---------------------------------------------------------------------------
-# ValidatorEntry
-# ---------------------------------------------------------------------------
 
 
 class TestValidatorEntry:
@@ -206,11 +192,6 @@ class TestRecordingConfigValidators:
         assert cfg.validators[1].params == {"min_sec": 5, "max_sec": 30}
 
 
-# ---------------------------------------------------------------------------
-# Settings
-# ---------------------------------------------------------------------------
-
-
 class TestSettings:
     """Tests for the Settings class."""
 
@@ -239,7 +220,7 @@ class TestSettings:
         s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
         first = s.recording
         second = s.recording
-        assert first is second  # Same instance
+        assert first is second
 
     def test_property_passthroughs(self, tmp_path: Path) -> None:
         """Each property returns the corresponding RecordingConfig value."""

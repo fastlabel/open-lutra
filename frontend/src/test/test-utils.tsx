@@ -13,7 +13,6 @@ export function createTestQueryClient() {
   });
 }
 
-/** Renders a component wrapped with QueryClientProvider. */
 export function renderWithClient(ui: ReactElement, options?: RenderOptions) {
   const queryClient = createTestQueryClient();
   function Wrapper({ children }: { children: ReactNode }) {

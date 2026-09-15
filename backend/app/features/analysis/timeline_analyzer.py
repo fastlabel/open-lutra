@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 _MIN_BINS = 600
 _MAX_BINS = 1800
 
-# Cache file name
 _CACHE_FILENAME = "timeline_data.json"
 
 
@@ -283,7 +282,6 @@ def _build_timeline(
             # Sort by ascending timestamp (= start_delay -> middle gaps -> end_early)
             loss_events = sorted(edge_events + loss_events, key=lambda le: le[0])
 
-        # Build TimelineGap from loss_events (with severity)
         gaps: list[TimelineGap] = []
         for le_ts, le_dur, le_sev in loss_events:
             lost = max(0, round(le_dur / expected_interval) - 1) if expected_interval > 0 else 0

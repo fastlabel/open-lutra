@@ -6,6 +6,9 @@
  * - Hooks / query-key factories are imported directly from `@/api/generated/{tag}/{tag}`.
  * - A wrapper is only provided when custom logic (refetchInterval, select, enabled, etc.) is needed.
  * - Every hook uses `select` to unwrap the response envelope (`{ data, status, headers }`) and return the data portion.
+ * - Idempotent start-mutations (quality / timeline / validation / upload / video): the POST returns
+ *   the same envelope as its GET, so onSuccess writes the response back into the GET cache via
+ *   setQueryData (not invalidate) to avoid a refetch race re-triggering caller-side useEffects.
  *
  * Lifecycle order: initialization → continuous polling → mutations → on-demand queries.
  */
@@ -62,9 +65,7 @@ import {
   useStartValidation as useStartValidationGenerated,
 } from "@/api/generated/validation/validation";
 
-// ============================================================
-// Initialization queries (fetched once on app start)
-// ============================================================
+// --- Initialization queries (fetched once on app start) ---
 
 /** Fetch application configuration once on first load (cached thereafter). */
 export function useConfig() {
@@ -83,9 +84,7 @@ export function useLeRobotConfig() {
   });
 }
 
-// ============================================================
-// Continuous polling queries
-// ============================================================
+// --- Continuous polling queries ---
 
 /** Poll the recording status every second. */
 export function useRecordingStatus() {
@@ -129,9 +128,7 @@ export function useMemory() {
   });
 }
 
-// ============================================================
-// Mutations
-// ============================================================
+// --- Mutations ---
 
 /** Mutation that resets the baseline Hz and quality metrics for all topics. */
 export function useResetBaseline() {
@@ -181,9 +178,7 @@ export function useUpdateRecordingMeta() {
   });
 }
 
-// ============================================================
-// On-demand queries (used by specific screens / actions)
-// ============================================================
+// --- On-demand queries (used by specific screens / actions) ---
 
 /** Fetch the list of recording folders directly under the output directory. */
 export function useFiles() {
@@ -229,12 +224,7 @@ export function useQualityReport(folderPath: string | null) {
   );
 }
 
-/** Mutation that starts quality analysis (idempotent).
- *
- * The POST response has the same shape as GET /api/analysis/quality, so write it back to the
- * GET cache in onSuccess (using setQueryData rather than invalidate). This avoids a refetch
- * race that would re-trigger the caller's useEffect.
- */
+/** Mutation that starts quality analysis (idempotent). */
 export function useStartQualityAnalysis() {
   const queryClient = useQueryClient();
   return useStartQualityAnalysisGenerated({
@@ -246,11 +236,7 @@ export function useStartQualityAnalysis() {
   });
 }
 
-/** Mutation that starts timeline analysis (idempotent).
- *
- * The POST response has the same shape as GET /api/analysis/timeline, so write it back to the
- * GET cache in onSuccess to avoid a refetch race that would re-trigger the caller's useEffect.
- */
+/** Mutation that starts timeline analysis (idempotent). */
 export function useStartTimelineAnalysis() {
   const queryClient = useQueryClient();
   return useStartTimelineAnalysisGenerated({
@@ -284,12 +270,7 @@ export function useValidation(folderPath: string | null) {
   );
 }
 
-/** Start a validation run (idempotent).
- *
- * POST returns the same envelope as GET /api/validation, so write the response
- * back into the GET cache to avoid a refetch race that would re-trigger
- * caller-side useEffect chains.
- */
+/** Start a validation run (idempotent). */
 export function useStartValidation() {
   const queryClient = useQueryClient();
   return useStartValidationGenerated({
@@ -324,11 +305,7 @@ export function useUpload(folderPath: string | null) {
   );
 }
 
-/** Start an upload (idempotent; always overwrites per issue #6).
- *
- * POST returns the same envelope as GET /api/upload, so write the response back
- * into the GET cache to avoid a refetch race.
- */
+/** Start an upload (idempotent; always overwrites per issue #6). */
 export function useStartUpload() {
   const queryClient = useQueryClient();
   return useStartUploadGenerated({
@@ -352,10 +329,8 @@ export function useStartBulkUpload() {
 
 /** Mutation that starts MP4 video generation (idempotent).
  *
- * The POST response has the same envelope shape as GET /api/media/video
- * (`{ data: VideoResponse }`), so write it back to the GET cache in onSuccess. `videoData.status`
- * flips immediately to `generating`/`ready`, preventing the preview-panel useEffect from looping
- * on the `not_generated` state.
+ * On the cache write-back, `videoData.status` flips immediately to `generating`/`ready`,
+ * preventing the preview-panel useEffect from looping on the `not_generated` state.
  */
 export function useStartVideoGeneration() {
   const queryClient = useQueryClient();

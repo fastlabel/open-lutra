@@ -160,7 +160,6 @@ function JointChart({ topic }: { topic: JointTopicsResponse["topics"][number] })
   const playheadRef = useRef(playheadSec);
   playheadRef.current = playheadSec;
 
-  // Create uPlot
   useEffect(() => {
     if (!containerRef.current || !topic.timestamps.length) return;
 
@@ -220,7 +219,6 @@ function JointChart({ topic }: { topic: JointTopicsResponse["topics"][number] })
     }
   }, [viewRange, playheadSec]);
 
-  // Resize
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -278,7 +276,6 @@ export function JointGraph({ selectedFolder, enabled = true }: { selectedFolder:
     );
   }
 
-  // Arrange in up to 2 columns (full width if only one)
   const gridCols = data.topics.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2";
 
   return (

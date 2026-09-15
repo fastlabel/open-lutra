@@ -21,7 +21,6 @@ export function TopicList() {
   const [filter, setFilter] = useState("");
   const { data: config } = useConfig();
 
-  // Topic stats from SSE
   const topicStats = useTopicStats();
 
   // YAML default_topics that have not yet appeared in the SSE stream are surfaced

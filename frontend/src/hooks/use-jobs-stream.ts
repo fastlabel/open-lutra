@@ -91,8 +91,7 @@ export function useJobsStream() {
       es.addEventListener(evt, (e) => {
         const job = JSON.parse(e.data) as JobSchema;
         upsert(job);
-        // Invalidate related REST queries when a job completes or fails.
-        // (e.g. quality completes → the quality summary on the MCAP detail page auto-refetches.)
+        // e.g. quality completes → the quality summary on the MCAP detail page auto-refetches.
         invalidateRelated(job);
       });
     }

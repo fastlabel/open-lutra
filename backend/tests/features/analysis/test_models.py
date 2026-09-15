@@ -174,11 +174,6 @@ class TestFromMcapData:
         assert tq.loss_rate == 0.0
 
 
-# ---------------------------------------------------------------------------
-# LossEvent (IQR-based loss detection)
-# ---------------------------------------------------------------------------
-
-
 class TestLossEvents:
     """Tests for TopicQuality._detect_loss_events()."""
 
@@ -286,14 +281,11 @@ class TestLossEvents:
             timestamp_source="header_stamp",
         )
 
-        # Should have at least 3 events (start_delay / intermediate gap / end_early)
         assert len(tq.loss_events) >= 3
 
-        # Ensure timestamp_sec values are in ascending order (monotonically increasing)
         timestamps_in_order = [le.timestamp_sec for le in tq.loss_events]
         assert timestamps_in_order == sorted(timestamps_in_order)
 
-        # Head is start_delay (timestamp_sec = 0)
         assert tq.loss_events[0].timestamp_sec == 0.0
 
         # Tail is end_early (max timestamp_sec ~ 8.2, just before the 10 s recording end)

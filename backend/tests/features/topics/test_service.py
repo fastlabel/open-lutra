@@ -37,11 +37,6 @@ def _learn_baseline(monitor: TopicMonitorService, topic: str, start: float) -> N
         monitor.get_topic_stats()  # lock-in tick
 
 
-# ---------------------------------------------------------------------------
-# Initialization
-# ---------------------------------------------------------------------------
-
-
 class TestInit:
     """Initialization tests for TopicMonitorService."""
 
@@ -58,11 +53,6 @@ class TestInit:
         assert any("Topic monitoring started" in log.message for log in logs)
 
 
-# ---------------------------------------------------------------------------
-# on_discover_tick
-# ---------------------------------------------------------------------------
-
-
 class TestOnDiscoverTick:
     """Tests for on_discover_tick()."""
 
@@ -73,7 +63,6 @@ class TestOnDiscoverTick:
         ]
         monitor.on_discover_tick()
 
-        # subscribe was called
         mock_subscriber.subscribe_topic.assert_called_once()
         assert len(monitor.get_topic_stats()) == 1
 
@@ -117,11 +106,6 @@ class TestOnDiscoverTick:
         service.on_discover_tick()  # No exception raised
 
 
-# ---------------------------------------------------------------------------
-# on_message
-# ---------------------------------------------------------------------------
-
-
 class TestOnMessage:
     """Tests for on_message()."""
 
@@ -150,17 +134,15 @@ class TestOnMessage:
         """A gap exceeding the threshold is detected and logged (gap below the danger threshold)."""
         self._setup_subscribed(monitor, mock_subscriber)
 
-        # Establish the ok state with multiple messages
         for _ in range(5):
             monitor.on_message("/joint_states", _mock_msg())
 
         stats_dict = monitor._topic_stats
         topic_stats = stats_dict["/joint_states"]
         # Slightly over gap_threshold_sec (3.5 s); raise the threshold so it does not flip to danger
-        topic_stats._gap_threshold_sec = 100.0  # Prevents status from going to danger
+        topic_stats._gap_threshold_sec = 100.0
         monitor._gap_threshold_sec = 3.0  # Service-side gap detection threshold stays at 3 s
 
-        # Shift the last message time back by 3.5 s
         topic_stats._last_msg_time = time.monotonic() - 3.5
 
         # Next message -> gap detection (not danger, so not reset)
@@ -174,12 +156,11 @@ class TestOnMessage:
         self._setup_subscribed(monitor, mock_subscriber)
         stats = monitor._topic_stats["/joint_states"]
 
-        # Receive messages to bump the count
         for _ in range(10):
             monitor.on_message("/joint_states", _mock_msg())
         assert stats.message_count == 10
 
-        # Create the danger state (set _last_msg_time to an old value)
+        # Create the danger state
         stats._last_msg_time = time.monotonic() - 5.0
         stats.refresh_cache(time.monotonic())
         assert stats.status == "danger"
@@ -198,9 +179,8 @@ class TestOnMessage:
         for _ in range(25):
             # Simulate a large gap between each message
             monitor.on_message("/joint_states", _mock_msg())
-            stats._last_msg_time = time.monotonic() - 5.0  # Set to 5 s ago
+            stats._last_msg_time = time.monotonic() - 5.0
 
-        # Final gap detected on the last message
         monitor.on_message("/joint_states", _mock_msg())
 
         assert len(stats.gaps) <= 20
@@ -253,17 +233,11 @@ class TestOnMessage:
     def test_latest_message_updated(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         """latest_message is updated on message receipt (1 in every 10)."""
         self._setup_subscribed(monitor, mock_subscriber)
-        # Enable _capture_next then send once
         stats = monitor._topic_stats["/joint_states"]
         stats._capture_next = True
         monitor.on_message("/joint_states", _mock_msg())
         msg = monitor.get_latest_message("/joint_states")
         assert msg is not None
-
-
-# ---------------------------------------------------------------------------
-# on_gap_check_tick
-# ---------------------------------------------------------------------------
 
 
 class TestOnGapCheckTick:
@@ -277,7 +251,6 @@ class TestOnGapCheckTick:
             ("/joint_states", ["sensor_msgs/msg/JointState"]),
         ]
         monitor.on_discover_tick()
-        # Run gap_check without any messages -> skipped
         monitor.on_gap_check_tick()
         logs, _ = log_manager.get_logs()
         assert not any("no data" in log.message for log in logs)
@@ -290,7 +263,7 @@ class TestOnGapCheckTick:
             ("/joint_states", ["sensor_msgs/msg/JointState"]),
         ]
         monitor.on_discover_tick()
-        # Manually set message_count; _last_msg_time stays at 0 (defensive coding)
+        # (defensive coding: _last_msg_time stays at 0)
         stats = monitor._topic_stats["/joint_states"]
         stats.message_count = 5
 
@@ -335,16 +308,10 @@ class TestOnGapCheckTick:
         stats._last_msg_time = time.monotonic() - 4.0
         stats.refresh_cache(time.monotonic())
 
-        # status=danger, so no log is recorded
         monitor.on_gap_check_tick()
         logs, _ = log_manager.get_logs()
         gap_check_logs = [log for log in logs if "no data" in log.message]
         assert gap_check_logs == []
-
-
-# ---------------------------------------------------------------------------
-# update_subscriptions
-# ---------------------------------------------------------------------------
 
 
 class TestUpdateSubscriptions:
@@ -352,12 +319,10 @@ class TestUpdateSubscriptions:
 
     def test_add_new_topic(self, monitor: TopicMonitorService, mock_subscriber: MagicMock) -> None:
         """A new topic is added."""
-        # Discover first
         mock_subscriber.discover_topics.return_value = [
             ("/camera/image", ["sensor_msgs/msg/Image"]),
         ]
         monitor.on_discover_tick()
-        # Update the subscribe list
         result = monitor.update_subscriptions(["/joint_states", "/camera/image"])
         assert "/camera/image" in result
 
@@ -369,16 +334,10 @@ class TestUpdateSubscriptions:
         monitor.on_discover_tick()
         assert len(monitor.get_topic_stats()) == 1
 
-        # Drop /joint_states
         result = monitor.update_subscriptions([])
         assert "/joint_states" not in result
         assert len(monitor.get_topic_stats()) == 0
         mock_subscriber.unsubscribe_topic.assert_called_with("/joint_states")
-
-
-# ---------------------------------------------------------------------------
-# get_latest_message
-# ---------------------------------------------------------------------------
 
 
 class TestSubscribeWithoutSubscriber:
@@ -390,7 +349,6 @@ class TestSubscribeWithoutSubscriber:
         # Manually register a topic into _discovered_topics (discovery is impossible without a subscriber)
         service._discovered_topics["/camera/image"] = "sensor_msgs/msg/Image"
         result = service.update_subscriptions(["/camera/image"])
-        # Without a subscriber, no subscription is created
         assert "/camera/image" not in result
         assert len(service.get_topic_stats()) == 0
 
@@ -499,9 +457,9 @@ class TestPauseResume:
         monitor.resume()
 
         stats = monitor.get_topic_stats()[0]
-        assert stats.baseline_hz == baseline  # Preserved
-        assert stats.message_count == 0  # reset
-        assert stats.loss_rate == 0.0  # reset
+        assert stats.baseline_hz == baseline
+        assert stats.message_count == 0
+        assert stats.loss_rate == 0.0
 
     def test_pause_logs(self, monitor: TopicMonitorService, log_manager: LogManager) -> None:
         """A log entry is written on pause."""
@@ -515,11 +473,6 @@ class TestPauseResume:
         monitor.resume()
         logs, _ = log_manager.get_logs()
         assert any("resumed" in log.message.lower() for log in logs)
-
-
-# ---------------------------------------------------------------------------
-# Live mode
-# ---------------------------------------------------------------------------
 
 
 class TestLiveMode:

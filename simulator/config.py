@@ -25,7 +25,6 @@ UNSTABLE_TOPICS = [] if UNSTABLE_TOPICS_ALL else _UNSTABLE_TOPICS_RAW.split(",")
 # --- topic_stop ---
 # Seconds before publishing stops
 STOP_AFTER_SEC = float(os.environ.get("SIM_STOP_AFTER_SEC", "15"))
-# Topics to stop
 STOP_TOPICS = os.environ.get("SIM_STOP_TOPICS", "/sim/slave_arm_left,/sim/master_arm_left").split(",")
 
 # --- camera_empty ---
@@ -45,5 +44,4 @@ MIXED_RESTOP_SEC = float(os.environ.get("SIM_MIXED_RESTOP_SEC", "8"))
 BURST_INTERVAL_SEC = float(os.environ.get("SIM_BURST_INTERVAL_SEC", "10"))
 # Gap length (seconds)
 BURST_GAP_SEC = float(os.environ.get("SIM_BURST_GAP_SEC", "2.0"))
-# Number of messages sent in a single burst
 BURST_COUNT = int(os.environ.get("SIM_BURST_COUNT", "50"))

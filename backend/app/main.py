@@ -47,7 +47,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Manage the application lifecycle (startup/shutdown)."""
     recorder, monitor_thread = _initialize_services()
 
     # JobQueue requires an asyncio loop, so start it inside lifespan
@@ -62,11 +61,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
-
-    Returns:
-        The configured FastAPI application.
-    """
+    """Create and configure the FastAPI application."""
     app = FastAPI(
         title="OpenLUTRA",
         description="ROS2 topic recorder for teleoperation robots (ROS2-standard topics)",
@@ -74,7 +69,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS middleware for the frontend
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -83,10 +77,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Register exception handlers
     register_exception_handlers(app)
 
-    # Register routers
     app.include_router(recording_router)
     app.include_router(recordings_router)
     app.include_router(topics_router)
@@ -143,7 +135,6 @@ def _initialize_services() -> tuple[ROS2BagRecorder, TopicMonitorThread]:
 
 
 def _shutdown_services(recorder: ROS2BagRecorder, monitor_thread: TopicMonitorThread) -> None:
-    """Clean up all services."""
     if recorder.is_recording:
         logger.warning("Recording is in progress during shutdown, stopping...")
         recorder.stop()

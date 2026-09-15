@@ -84,7 +84,6 @@ class FaultInjector:
                 self._log("warn", f"[topic_stop] stopped publishing {topic_name}")
             return True
 
-        # mixed: stop → recovery → re-stop cycle
         cycle_start = elapsed - STOP_AFTER_SEC
         cycle_len = MIXED_RECOVERY_SEC + MIXED_RESTOP_SEC
         phase = cycle_start % cycle_len
@@ -144,7 +143,6 @@ class FaultInjector:
         return "burst"
 
     def consume_burst(self, count: int) -> None:
-        """Decrement the remaining burst count."""
         self._burst_remaining -= count
 
     @property
@@ -152,7 +150,6 @@ class FaultInjector:
         return self._burst_remaining
 
     def log_config(self) -> None:
-        """Log the active configuration."""
         mode = self._mode
         if mode == "normal":
             self._log("info", "Mode: normal (stable publishing)")

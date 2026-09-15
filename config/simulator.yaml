@@ -83,14 +83,14 @@ expected_hz_patterns:
 # in the UI). `placeholder` is an optional input hint.
 metadata_fields:
   - key: operator_id          # stable key stored in recording_meta.json
-    label: "Operator ID"      # display label shown in the UI
+    label: "Operator ID"
     type: number              # digits only, kept as a string ("007" stays "007")
     pattern: '^[0-9]+$'       # optional: reject anything but digits
-    placeholder: "e.g. 007"   # optional: input hint
+    placeholder: "e.g. 007"
   - key: target_object
     label: "Target Object"
-    type: select              # pick from the options below
-    options:                  # allowed values (select-only)
+    type: select
+    options:
       - value: box
         label: "Box"          # optional; falls back to `value` when omitted
       - value: cup
@@ -138,7 +138,6 @@ lerobot_export:
   #   number → scalar float/int; becomes a 1-element array automatically.
   #   struct → named-field object; keys lists sub-field names to extract (required).
   observation:
-    # --- type: list ---
     # sensor_msgs/JointState: {"name": ["joint1", ...], "position": [-0.858, -1.287, 1.582, ...]}
     state:
       - topic: /sim/slave_arm_left
@@ -146,14 +145,12 @@ lerobot_export:
         field: position
         indices: [0, 1, 2, 3, 4, 5, 6]
 
-    # --- type: number ---
     # std_msgs/Float64: {"data": 0.033}
     gripper:
       - topic: /sim/slave_arm_left/gripper
         type: number
         field: data
 
-    # --- type: struct ---
     # geometry_msgs/Point: {"x": -0.183, "y": 0.481, "z": 0.274}
     ee_pos:
       - topic: /sim/slave_arm_left/pose

@@ -15,10 +15,7 @@ _MAX_LIST_PREVIEW = 20
 
 
 def sanitize_value(value: Any) -> Any:
-    """Convert a message field value to a JSON-safe form.
-
-    Binary data and very large lists are replaced with summary representations.
-    """
+    """Convert a message field value to a JSON-safe form."""
     if isinstance(value, bytes):
         if len(value) <= _MAX_BYTES_PREVIEW:
             return value.hex()

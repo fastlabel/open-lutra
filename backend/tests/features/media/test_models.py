@@ -47,22 +47,17 @@ class TestClassifyJointStateTopic:
 
     def test_action_takes_priority_over_observation(self) -> None:
         """Tokens are scanned in order; the first match wins."""
-        # "/cmd/states" -> cmd matches first
         result = classify_joint_state_topic("/cmd/states")
         assert result == TopicRole.ACTION
 
     def test_master_token_before_state(self) -> None:
         """When split on '_', "master" appears before "state" -> ACTION."""
-        # "/robot_master/state" -> ["robot","master","state"]
-        # "master" matches first -> ACTION
         result = classify_joint_state_topic("/robot_master/state")
         assert result == TopicRole.ACTION
 
     def test_exact_segment_match(self) -> None:
         """Keywords match tokens exactly (no substring matching)."""
-        # "commanding" partially matches cmd but is not an exact match
         assert classify_joint_state_topic("/robot/commanding") is None
-        # "feedbacks" does not exactly match feedback
         assert classify_joint_state_topic("/robot/feedbacks") is None
 
     # --- Keywords: slave / master / body ---
@@ -70,10 +65,8 @@ class TestClassifyJointStateTopic:
     @pytest.mark.parametrize(
         ("topic", "expected"),
         [
-            # slave -> OBSERVATION
             ("/mcap/slave_arm_right", TopicRole.OBSERVATION),
             ("/mcap/slave_arm_left", TopicRole.OBSERVATION),
-            # body -> OBSERVATION
             ("/mcap/body", TopicRole.OBSERVATION),
         ],
     )
@@ -93,7 +86,6 @@ class TestClassifyJointStateTopic:
     def test_underscore_splitting(self) -> None:
         """Topic names are tokenized on both '/' and '_'."""
         # "slave_arm_right" -> ["slave", "arm", "right"]
-        # The "slave" token matches the OBSERVATION keyword
         assert classify_joint_state_topic("/mcap/slave_arm_right") == TopicRole.OBSERVATION
 
 
@@ -212,13 +204,11 @@ class TestBuildJointStateMapping:
         }
         mapping = build_joint_state_mapping(topics)
         assert mapping is not None
-        # observation: stable order right(0) -> left(1) -> body(2)
         assert mapping.observation_topics == [
             "/mcap/slave_arm_right",
             "/mcap/slave_arm_left",
             "/mcap/body",
         ]
-        # action: right(0) -> left(1)
         assert mapping.action_topics == [
             "/mcap/master_arm_right",
             "/mcap/master_arm_left",
@@ -245,13 +235,11 @@ class TestBuildJointStateMapping:
         }
         mapping_full = build_joint_state_mapping(all_topics)
 
-        # Remove right
         without_right = {k: v for k, v in all_topics.items() if "right" not in k}
         mapping_partial = build_joint_state_mapping(without_right)
         assert mapping_partial is not None
         assert mapping_partial.observation_topics == ["/mcap/slave_arm_left", "/mcap/body"]
 
-        # Re-add right -> same order as before
         mapping_readd = build_joint_state_mapping(all_topics)
         assert mapping_readd is not None
         assert mapping_readd.observation_topics == mapping_full.observation_topics
@@ -266,7 +254,6 @@ class TestBuildJointStateMapping:
         }
         mapping = build_joint_state_mapping(topics)
         assert mapping is not None
-        # Order: right(0) -> left(1)
         assert mapping.observation_topics == [
             "/mcap/slave_arm_right",
             "/mcap/slave_arm_left",

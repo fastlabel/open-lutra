@@ -9,8 +9,6 @@ from app.features.lerobot_export.extract import decode_ros_image, extract_field_
 
 from ._fakes import FakeFloatArray, FakeJointState, FakeRawImage, make_image_message, make_png_bytes
 
-# --- extract_field_data: type=number ---
-
 
 def test_extract_number_scalar_float() -> None:
     msg = SimpleNamespace(gripper_pos=0.75)
@@ -20,9 +18,6 @@ def test_extract_number_scalar_float() -> None:
 def test_extract_number_via_dot_path() -> None:
     msg = SimpleNamespace(arm=SimpleNamespace(speed=1.5))
     assert extract_field_data(msg, "arm.speed", "number").tolist() == [1.5]
-
-
-# --- extract_field_data: type=list ---
 
 
 def test_extract_list_with_indices() -> None:
@@ -44,9 +39,6 @@ def test_extract_list_missing_indices_raises() -> None:
     msg = FakeJointState(position=[0.0, 1.0])
     with pytest.raises(ValueError, match="indices"):
         extract_field_data(msg, "position", "list")
-
-
-# --- extract_field_data: type=struct ---
 
 
 def test_extract_struct_with_keys() -> None:
@@ -79,9 +71,6 @@ def test_extract_struct_key_not_found_raises() -> None:
         extract_field_data(msg, "pos", "struct", keys=["x", "w"])
 
 
-# --- error cases ---
-
-
 def test_extract_missing_field_raises() -> None:
     with pytest.raises(ValueError, match="has no field"):
         extract_field_data(FakeJointState(position=[0.0]), "effort", "list", indices=[0])
@@ -96,9 +85,6 @@ def test_extract_unknown_type_raises() -> None:
     msg = FakeJointState(position=[0.0])
     with pytest.raises(ValueError, match="Unknown field type"):
         extract_field_data(msg, "position", "vector", indices=[0])
-
-
-# --- decode_ros_image ---
 
 
 def test_decode_compressed_image() -> None:

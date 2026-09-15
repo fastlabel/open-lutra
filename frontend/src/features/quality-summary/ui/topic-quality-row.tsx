@@ -33,7 +33,6 @@ export function TopicQualityRow({
   // What the chevron reflects: loss-list collapse during forceExpanded, otherwise row expansion
   const chevronExpanded = forceExpanded ? lossExpanded : expanded;
 
-  // Scroll the row into view when selected
   useEffect(() => {
     if (isSelected && rowRef.current) {
       rowRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });

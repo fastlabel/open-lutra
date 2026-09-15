@@ -66,7 +66,6 @@ describe("useRecordingStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    // Reset the store to its initial state
     useRecordingStore.setState({
       delaySec: 0,
       stopLiveMonitorDuringRecording: false,
@@ -84,8 +83,6 @@ describe("useRecordingStore", () => {
     vi.useRealTimers();
   });
 
-  // --- Initial state ---
-
   describe("initial state", () => {
     it("has the correct default values", () => {
       const state = useRecordingStore.getState();
@@ -98,8 +95,6 @@ describe("useRecordingStore", () => {
       expect(state.soundEnabled).toBe(true);
     });
   });
-
-  // --- setSoundEnabled ---
 
   describe("setSoundEnabled", () => {
     it("turns notification sounds off", () => {
@@ -114,8 +109,6 @@ describe("useRecordingStore", () => {
     });
   });
 
-  // --- setDelay ---
-
   describe("setDelay", () => {
     it("sets the delay in seconds", () => {
       useRecordingStore.getState().setDelay(5);
@@ -129,8 +122,6 @@ describe("useRecordingStore", () => {
     });
   });
 
-  // --- setStopLiveMonitor ---
-
   describe("setStopLiveMonitor", () => {
     it("turns stop-while-recording on", () => {
       useRecordingStore.getState().setStopLiveMonitor(true);
@@ -143,8 +134,6 @@ describe("useRecordingStore", () => {
       expect(useRecordingStore.getState().stopLiveMonitorDuringRecording).toBe(false);
     });
   });
-
-  // --- startRecording ---
 
   describe("startRecording", () => {
     it("calls the mutation immediately when delay=0", () => {
@@ -257,8 +246,6 @@ describe("useRecordingStore", () => {
     });
   });
 
-  // --- stopRecording ---
-
   describe("stopRecording", () => {
     it("cancels during countdown", () => {
       useRecordingStore.getState().setDelay(5);
@@ -291,8 +278,6 @@ describe("useRecordingStore", () => {
       expect(mockUnlock).not.toHaveBeenCalled();
     });
   });
-
-  // --- toggle ---
 
   describe("toggle", () => {
     it("does nothing while isStarting", () => {
@@ -369,8 +354,6 @@ describe("useRecordingStore", () => {
       expect(mockToast.error).toHaveBeenCalledWith("Select at least one topic to record");
     });
   });
-
-  // --- dismissFinishedRecording ---
 
   describe("dismissFinishedRecording", () => {
     it("resets finishedRecording to null", () => {

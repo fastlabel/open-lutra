@@ -1,8 +1,3 @@
-/**
- * SSE stream connection and writes into the TanStack Query cache.
- * Should be invoked once near the app root.
- */
-
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type { TopicInfo } from "@/api/generated/schemas";

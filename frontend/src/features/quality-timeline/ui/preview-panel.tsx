@@ -34,14 +34,9 @@ function HeaderProgress({ progress }: { progress?: JobProgressSchema | null }) {
 }
 
 export function PreviewPanel({ selectedFolder }: { selectedFolder: string }) {
-  // Always start closed on each page visit (not persisted)
   const [open, setOpen] = useState(false);
-  // Destructure mutate / isPending. Putting the whole useMutation return value into deps would
-  // re-fire useEffect on reference changes, triggering a flood of POSTs. mutate is returned by
-  // react-query as a stable reference and is safe to put in deps.
   const { mutate: startVideoGen, isPending: isStartingVideoGen } = useStartVideoGeneration();
 
-  // Only fetch video status while the panel is open
   const { data: videoData } = useGetVideoStatus<VideoResponse>(
     { path: selectedFolder },
     {
@@ -56,7 +51,6 @@ export function PreviewPanel({ selectedFolder }: { selectedFolder: string }) {
     },
   );
 
-  // When the panel is opened, enqueue a generation job if the video has not been generated
   useEffect(() => {
     if (open && selectedFolder && videoData?.status === "not_generated" && !isStartingVideoGen) {
       startVideoGen({ params: { path: selectedFolder } });

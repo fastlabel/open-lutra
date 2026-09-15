@@ -31,7 +31,6 @@ function RootLayoutInner() {
         <div className="flex-1 overflow-hidden">
           <Outlet />
         </div>
-        {/* StatusBar is shown only in dev mode (VITE_DEV_MODE=true). */}
         {isDevMode() && <StatusBar />}
       </div>
       <Toaster />

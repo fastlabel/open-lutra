@@ -5,19 +5,16 @@ FROM ros:humble-ros-base-jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python ROS2 dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /simulator
 
-# Copy simulator scripts and sample data (camera frames + joint replay)
 COPY *.py .
 COPY frames/ ./frames/
 COPY joint_replay.json .
 
-# Entrypoint: read ROS_DOMAIN_ID from RECORDING_CONFIG and start ROS2
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e

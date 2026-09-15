@@ -44,8 +44,6 @@ class CorruptedMCAPError(Exception):
 
 @dataclass(frozen=True)
 class MCAPChannel:
-    """MCAP channel info (topic, msg_type)."""
-
     topic: str
     msg_type: str
 

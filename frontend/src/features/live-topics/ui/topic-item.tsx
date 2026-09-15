@@ -6,7 +6,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useIsRecording, useUpdateSubscriptions } from "@/hooks/use-api";
 import { useLiveTopicsStore } from "../store";
 
-/** Dot colors for each status */
 const statusDotColors: Record<string, string> = {
   ok: "bg-emerald-500",
   warning: "bg-amber-500",
@@ -14,7 +13,6 @@ const statusDotColors: Record<string, string> = {
   inactive: "bg-muted-foreground/30",
 };
 
-/** Build the Hz display */
 function HzLabel({ topic }: { topic: TopicInfo }) {
   const { actual_hz, status, baseline_hz } = topic;
 
@@ -26,7 +24,6 @@ function HzLabel({ topic }: { topic: TopicInfo }) {
     return <span className="text-red-400">stalled</span>;
   }
 
-  // Baseline not yet established (still learning)
   if (baseline_hz == null && actual_hz === 0) {
     return <span>learning</span>;
   }

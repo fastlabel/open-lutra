@@ -107,7 +107,6 @@ export function LossRateChart({ data }: { data: TimelineData }) {
   const filtered = selectedTopic ? data.topics.filter((t) => t.name === selectedTopic) : data.topics;
   const topicKey = filtered.map((t) => t.name).join(",");
 
-  // Create/recreate the uPlot instance (only when topicKey changes)
   useEffect(() => {
     const topicNames = topicKey.split(",").filter(Boolean);
     if (!containerRef.current || topicNames.length === 0) return;
@@ -180,7 +179,6 @@ export function LossRateChart({ data }: { data: TimelineData }) {
     };
   }, [data, topicKey, selectedTopic]);
 
-  // selectedTopic change → re-set data
   useEffect(() => {
     if (!uplotRef.current) return;
     uplotRef.current.setData(buildLossRateData(data.topics, selectedTopic, data.duration_sec, data.bin_width_sec));
@@ -199,7 +197,6 @@ export function LossRateChart({ data }: { data: TimelineData }) {
     }
   }, [viewRange, playheadSec]);
 
-  // Resize handling
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {

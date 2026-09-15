@@ -39,7 +39,6 @@ export function RecordingsTable({
   // --- Derived lists ---
   // List with only the search applied. Used as the population for TaskFilter options/counts.
   const searchedEntries = useMemo(() => applySearchAndFilter(entries, searchText), [entries, searchText]);
-  // Final list with all filters applied.
   const filteredEntries = useMemo(
     () => applySearchAndFilter(entries, searchText, taskFilter),
     [entries, searchText, taskFilter],

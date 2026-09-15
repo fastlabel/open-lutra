@@ -93,7 +93,6 @@ export function Minimap({ data }: { data: TimelineData | null }) {
   const dragStartRef = useRef({ x: 0, from: 0, to: 0 });
   const wasDraggingRef = useRef(false);
 
-  // Convert pixel coordinates to seconds
   const pxToSec = useCallback(
     (px: number) => {
       const el = containerRef.current;
@@ -103,12 +102,10 @@ export function Minimap({ data }: { data: TimelineData | null }) {
     [durationSec],
   );
 
-  // Pixel position of the current view range
   const leftPct = durationSec > 0 ? (viewRange.from / durationSec) * 100 : 0;
   const widthPct = durationSec > 0 ? ((viewRange.to - viewRange.from) / durationSec) * 100 : 100;
   const playheadPct = durationSec > 0 ? (playheadSec / durationSec) * 100 : 0;
 
-  // Start drag
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, mode: DragMode) => {
       e.preventDefault();
@@ -121,7 +118,6 @@ export function Minimap({ data }: { data: TimelineData | null }) {
     [viewRange, setIsDragging],
   );
 
-  // During drag + on drag end
   useEffect(() => {
     if (!dragMode) return;
 
@@ -130,7 +126,6 @@ export function Minimap({ data }: { data: TimelineData | null }) {
       if (dragMode === "resize-left") return { from: Math.max(0, Math.min(st - MIN_RANGE_SEC, sf + deltaSec)), to: st };
       if (dragMode === "resize-right")
         return { from: sf, to: Math.min(durationSec, Math.max(sf + MIN_RANGE_SEC, st + deltaSec)) };
-      // move
       const span = st - sf;
       const clamped = Math.max(0, Math.min(durationSec - span, sf + deltaSec));
       return { from: clamped, to: clamped + span };

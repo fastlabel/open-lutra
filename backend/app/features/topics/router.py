@@ -70,7 +70,6 @@ async def stream_topic_image(
                     b"Content-Type: image/jpeg\r\n"
                     b"Content-Length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw + b"\r\n"
                 )
-            # Live mode: 30fps, otherwise 2fps
             is_live = monitor.is_live(topic)
             await asyncio.sleep(1 / 30 if is_live else 0.5)
 
@@ -127,7 +126,7 @@ async def stream_live_positions(
             result = monitor.get_live_positions(topic)
             if result is not None:
                 yield f"data: {json.dumps(result)}\n\n"
-            await asyncio.sleep(1 / 30)  # 30fps
+            await asyncio.sleep(1 / 30)
 
     return StreamingResponse(
         generate(),
@@ -181,7 +180,6 @@ async def topic_stream(request: Request, monitor: MonitorDep) -> StreamingRespon
             if await request.is_disconnected():
                 break
 
-            # Send subscribed + discovered topics together (once per second).
             stats = monitor.get_topic_stats()
             discovered = monitor.get_discovered_topics()
             # Merge unsubscribed topics as inactive entries.
@@ -198,7 +196,6 @@ async def topic_stream(request: Request, monitor: MonitorDep) -> StreamingRespon
             ]
             yield f"event: topic_stats\ndata: {json.dumps(all_topics)}\n\n"
 
-            # Send any new logs that arrived since the last check.
             new_logs = log_manager.get_logs_since(last_log_id)
             for log_entry in new_logs:
                 yield f"event: log\ndata: {log_entry.model_dump_json()}\n\n"
