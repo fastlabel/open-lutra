@@ -66,7 +66,10 @@ export function useJobsStream() {
       });
     };
 
-    /** Invalidate related queries when a job completes or fails. */
+    /**
+     * Invalidate related queries when a job completes or fails
+     * (e.g. quality completes → the quality summary on the MCAP detail page auto-refetches).
+     */
     const invalidateRelated = (job: JobSchema) => {
       const keys = JOB_COMPLETION_INVALIDATIONS[job.type];
       if (!keys) return;
@@ -91,7 +94,6 @@ export function useJobsStream() {
       es.addEventListener(evt, (e) => {
         const job = JSON.parse(e.data) as JobSchema;
         upsert(job);
-        // e.g. quality completes → the quality summary on the MCAP detail page auto-refetches.
         invalidateRelated(job);
       });
     }

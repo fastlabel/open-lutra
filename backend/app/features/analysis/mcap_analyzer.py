@@ -24,6 +24,9 @@ def _analyze_mcap(directory: Path) -> QualityReport:  # pragma: no cover
     Args:
         directory: Recording folder containing metadata.yaml and the mcap file.
 
+    Returns:
+        Quality report.
+
     Raises:
         FileNotFoundError: When no MCAP file is found.
     """

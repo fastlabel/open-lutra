@@ -51,6 +51,8 @@ class Job:
         job_id: Unique job ID (URL-safe string).
         type: Job type.
         folder: Target recording folder name.
+        status: Execution status.
+        progress: Progress information.
         error: Error message on failure.
         created_at: Time the job was added to the queue.
         started_at: Time the job started execution.

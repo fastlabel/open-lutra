@@ -113,7 +113,7 @@ async def get_recording_status(recorder: RecorderDep) -> RecordingStatus:
 
 
 def _notify_log(severity: LogSeverity, message: str) -> None:  # pragma: no cover
-    """Silently skips when LogManager has not been initialized."""
+    """Add a message to LogManager, silently skipping when it is not initialized."""
     try:
         from app.shared.log_manager import get_log_manager
 

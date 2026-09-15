@@ -59,7 +59,6 @@ class TopicMonitorThread:
         self._node = TopicMonitorNode(qos_depth=self._settings.monitor_qos_depth)
         self._service.set_subscriber(self._node)
 
-        # callbacks are service methods
         self._node.create_timer(5.0, self._service.on_discover_tick)
         self._node.create_timer(1.0, self._service.on_gap_check_tick)
 

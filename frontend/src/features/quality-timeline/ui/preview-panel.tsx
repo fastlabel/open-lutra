@@ -35,6 +35,9 @@ function HeaderProgress({ progress }: { progress?: JobProgressSchema | null }) {
 
 export function PreviewPanel({ selectedFolder }: { selectedFolder: string }) {
   const [open, setOpen] = useState(false);
+  // Destructure mutate / isPending. Putting the whole useMutation return value into deps would
+  // re-fire useEffect on reference changes, triggering a flood of POSTs. mutate is returned by
+  // react-query as a stable reference and is safe to put in deps.
   const { mutate: startVideoGen, isPending: isStartingVideoGen } = useStartVideoGeneration();
 
   const { data: videoData } = useGetVideoStatus<VideoResponse>(

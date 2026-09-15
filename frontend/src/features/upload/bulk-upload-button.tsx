@@ -71,6 +71,8 @@ export function BulkUploadButton() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
+        {/* The disabled button has pointer-events:none, so wrap it in a span
+            that receives the hover the tooltip needs to open. */}
         {uploadEnabled ? button : <span className="cursor-not-allowed">{button}</span>}
       </TooltipTrigger>
       <TooltipContent side="bottom">

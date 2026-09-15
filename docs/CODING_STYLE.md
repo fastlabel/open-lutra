@@ -5,7 +5,11 @@
 - **Write comments and docstrings in English** (variable, function, and class names are also in English)
 - **Comments should describe "what the code does, its current responsibility, and design constraints"**. Do not describe the implementation history (e.g., "this used to be X", "abstracted because of duplication", "split during refactor"). History belongs in commit messages or PR descriptions; only the information a reader needs should remain in comments.
   - ❌ `// abstracted this because the same pattern existed in two routes`
-  - ✅ `// returns the list of recording folders as FileRow[]. The reference is stable via useMemo`
+  - ✅ `// the reference is stable via useMemo, so it is safe to use in useEffect deps`
+- **Do not write comments that merely restate the adjacent code**. A comment must add information the code cannot express on its own — a constraint, a unit, a non-obvious reason, or an external quirk. If deleting the comment loses nothing, do not write it. The same applies to docstrings that only repeat the function or class name.
+  - ❌ `# Enqueue the job` above `await queue.enqueue_quality(target)`
+  - ❌ `"""Return the global LogManager instance."""` on `get_log_manager()`
+  - ✅ `# Closing the pty master mid-recording causes EIO on the slave side`
 
 ## Python
 

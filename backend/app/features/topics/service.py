@@ -332,7 +332,6 @@ class TopicMonitorService:
             if stats is None:
                 return
 
-            # monotonic
             if stats.first_received_at is None:
                 stats.first_received_at = now
 

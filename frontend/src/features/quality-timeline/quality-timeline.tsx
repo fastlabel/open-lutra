@@ -23,6 +23,8 @@ import { useTimeline } from "./use-timeline";
 export function QualityTimeline({ selectedFolder }: { selectedFolder: string }) {
   const { data, isLoading } = useTimeline(selectedFolder);
   const setDurationSec = useQualityTimelineStore((s) => s.setDurationSec);
+  // Destructure mutate / isPending. Putting the whole useMutation return value into deps
+  // would re-fire useEffect on reference changes; mutate is returned with a stable reference by react-query.
   const { mutate: startTimeline, isPending: isStartingTimeline } = useStartTimelineAnalysis();
 
   useEffect(() => {
