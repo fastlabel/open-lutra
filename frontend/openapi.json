@@ -616,7 +616,7 @@
           "topics"
         ],
         "summary": "Topic Stream",
-        "description": "SSE stream for real-time topic monitoring.\n\nEvent types:\n  - topic_stats: topic statistics (1Hz)\n  - log: new log entries (as they occur)",
+        "description": "SSE stream for real-time topic monitoring.\n\nEvent types:\n  - topic_stats: rows that changed since the previous tick (1Hz; the\n    first event on a connection carries every row)\n  - log: new log entries (as they occur)",
         "operationId": "topicStream",
         "responses": {
           "200": {

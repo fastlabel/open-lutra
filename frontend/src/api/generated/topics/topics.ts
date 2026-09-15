@@ -1098,7 +1098,8 @@ export const getTopicStreamUrl = () => {
  * SSE stream for real-time topic monitoring.
  *
  * Event types:
- *   - topic_stats: topic statistics (1Hz)
+ *   - topic_stats: rows that changed since the previous tick (1Hz; the
+ *     first event on a connection carries every row)
  *   - log: new log entries (as they occur)
  * @summary Topic Stream
  */
