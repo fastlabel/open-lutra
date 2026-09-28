@@ -67,6 +67,7 @@ export * from './streamLivePositionsParams.ts';
 export * from './streamTopicImageParams.ts';
 export * from './subscriptionRequest.ts';
 export * from './subscriptionResponse.ts';
+export * from './systemUpdateStatus.ts';
 export * from './taskNamesResponse.ts';
 export * from './timelineBin.ts';
 export * from './timelineData.ts';

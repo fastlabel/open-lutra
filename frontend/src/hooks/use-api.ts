@@ -43,11 +43,13 @@ import type {
   MemoryInfo,
   QualityResponse,
   RecordingStatus,
+  SystemUpdateStatus,
   TaskNamesResponse,
   TopicsResponse,
   UploadResponse,
   ValidationResponse,
 } from "@/api/generated/schemas";
+import { useGetSystemUpdate } from "@/api/generated/system/system";
 import {
   useGetTopicMessage,
   useGetTopics,
@@ -106,6 +108,16 @@ export function useIsRecording(): boolean {
       },
     }).data ?? false
   );
+}
+
+/** Poll whether a software update is waiting to be applied (every 30 seconds). */
+export function useSystemUpdate() {
+  return useGetSystemUpdate<SystemUpdateStatus>({
+    query: {
+      refetchInterval: 30_000,
+      select: (resp) => resp.data as SystemUpdateStatus,
+    },
+  });
 }
 
 /** Poll the topic list every 5 seconds (SSE fallback). */

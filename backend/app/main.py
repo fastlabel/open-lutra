@@ -26,6 +26,7 @@ from app.features.media.router import router as media_router
 from app.features.recording import ROS2BagRecorder
 from app.features.recording.router import router as recording_router
 from app.features.recordings.router import router as recordings_router
+from app.features.system_update.router import router as system_update_router
 from app.features.topics.router import router as topics_router
 from app.features.upload.router import router as upload_router
 from app.features.validation import load_custom_validators
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(validation_router)
     app.include_router(lerobot_export_router)
     app.include_router(upload_router)
+    app.include_router(system_update_router)
 
     return app
 

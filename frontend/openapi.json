@@ -1529,6 +1529,56 @@
           }
         }
       }
+    },
+    "/api/system/update": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Get System Update",
+        "description": "Get whether a software update is waiting to be applied.",
+        "operationId": "getSystemUpdate",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemUpdateStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/update/apply": {
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Apply System Update",
+        "description": "Apply the pending software update. The application restarts shortly after.",
+        "operationId": "applySystemUpdate",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemUpdateStatus"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Recording in progress, or no pending update"
+          },
+          "503": {
+            "description": "Update agent unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2753,6 +2803,30 @@
         ],
         "title": "SubscriptionResponse",
         "description": "Response for PUT /api/topics/subscriptions."
+      },
+      "SystemUpdateStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "applying": {
+            "type": "boolean",
+            "title": "Applying"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "available",
+          "applying"
+        ],
+        "title": "SystemUpdateStatus",
+        "description": "Response for GET /api/system/update and POST /api/system/update/apply.\n\n`enabled` is false when no update agent is configured; the UI hides its\nupdate affordances in that case."
       },
       "TaskNamesResponse": {
         "properties": {

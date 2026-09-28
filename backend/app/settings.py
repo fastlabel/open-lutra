@@ -205,6 +205,11 @@ class Settings(BaseSettings):
     local_upload_dir: Path | None = None
     local_upload_path_template: str | None = None  # see app/features/upload/key_template.py
 
+    # Base URL of an external update agent that holds software updates until
+    # an operator applies them (see app/features/system_update/agent_client.py).
+    # When unset, the system update feature is disabled and the UI hides its button.
+    update_agent_url: str | None = None
+
     # --- Recording-specific settings loaded from YAML (cached) ---
     _recording: RecordingConfig | None = None
 

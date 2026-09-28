@@ -1,7 +1,8 @@
-/** Header: brand and navigation. */
+/** Header: brand, navigation, and the software update button. */
 
 import { Link } from "@tanstack/react-router";
 import { FolderOpen } from "lucide-react";
+import { SystemUpdateButton } from "@/features/system-update";
 
 export function Header() {
   return (
@@ -20,6 +21,9 @@ export function Header() {
           <FolderOpen size={14} />
           Recordings
         </Link>
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        <SystemUpdateButton />
       </div>
     </div>
   );
