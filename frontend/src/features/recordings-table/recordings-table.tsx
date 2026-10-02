@@ -15,7 +15,7 @@ import { useMemo, useRef } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BulkExportButton } from "@/features/lerobot-export";
-import { BulkDeleteButton, RecordingListItem, useRecordingsStore } from "@/features/recordings";
+import { BulkDeleteButton, BulkEditButton, RecordingListItem, useRecordingsStore } from "@/features/recordings";
 import { BulkUploadButton } from "@/features/upload";
 import { TaskFilter } from "./ui/task-filter";
 import { applySearchAndFilter, type TaskFilterValue } from "./utils";
@@ -108,6 +108,7 @@ export function RecordingsTable({
         <div className="flex items-center gap-1">
           <BulkUploadButton />
           <BulkExportButton />
+          <BulkEditButton />
           <BulkDeleteButton />
         </div>
       </div>

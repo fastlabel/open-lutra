@@ -74,3 +74,11 @@ def update_recording_meta(
         meta.metadata = dict(metadata)
     write_recording_meta(directory, meta)
     return meta
+
+
+def merge_recording_metadata(directory: Path, updates: dict[str, str]) -> RecordingMeta:
+    """Set the given metadata keys in recording_meta.json, keeping all other keys and fields."""
+    meta = read_recording_meta(directory) or RecordingMeta()
+    meta.metadata.update(updates)
+    write_recording_meta(directory, meta)
+    return meta

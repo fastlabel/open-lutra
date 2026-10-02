@@ -30,6 +30,16 @@ class UpdateMetaRequest(BaseModel):
     )
 
 
+class BulkUpdateMetaRequest(BaseModel):
+    """Request body for PATCH /api/recordings.
+
+    Each key in `metadata` is set on every folder; keys not present are left unchanged.
+    """
+
+    folders: list[str] = Field(..., description="Names of recording folders to update")
+    metadata: dict[str, str] = Field(..., description="Pre-registered metadata (key -> value) to set")
+
+
 class FileEntry(BaseModel):
     """Metadata for a single recording folder.
 
@@ -96,6 +106,12 @@ class DeleteResponse(BaseModel):
     """Response for DELETE /api/recordings."""
 
     deleted: list[str]
+
+
+class BulkUpdateMetaResponse(BaseModel):
+    """Response for PATCH /api/recordings."""
+
+    updated: list[str]
 
 
 class UpdateMetaResponse(BaseModel):

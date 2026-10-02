@@ -29,6 +29,7 @@ import {
 import { useGetRecordingStatus } from "@/api/generated/recording/recording";
 import {
   getGetRecordingsQueryKey,
+  useBulkUpdateRecordingMeta as useBulkUpdateRecordingMetaGenerated,
   useDeleteRecordings as useDeleteRecordingsGenerated,
   useGetRecordings,
   useGetRecordingTaskNames,
@@ -170,6 +171,18 @@ export function useDeleteRecordings() {
 export function useUpdateRecordingMeta() {
   const queryClient = useQueryClient();
   return useUpdateRecordingMetaGenerated({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() });
+      },
+    },
+  });
+}
+
+/** Mutation that sets metadata values on multiple recordings at once. */
+export function useBulkUpdateRecordingMeta() {
+  const queryClient = useQueryClient();
+  return useBulkUpdateRecordingMetaGenerated({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() });

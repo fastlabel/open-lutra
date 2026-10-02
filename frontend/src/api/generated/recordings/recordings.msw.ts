@@ -18,6 +18,7 @@ import type {
 } from 'msw';
 
 import type {
+  BulkUpdateMetaResponse,
   DeleteResponse,
   FilesResponse,
   RenameResponse,
@@ -31,6 +32,8 @@ export const getGetRecordingsResponseMock = (overrideResponse: Partial<Extract<F
       }})), ...overrideResponse})
 
 export const getDeleteRecordingsResponseMock = (overrideResponse: Partial<Extract<DeleteResponse, object>> = {}): DeleteResponse => ({deleted: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), ...overrideResponse})
+
+export const getBulkUpdateRecordingMetaResponseMock = (overrideResponse: Partial<Extract<BulkUpdateMetaResponse, object>> = {}): BulkUpdateMetaResponse => ({updated: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), ...overrideResponse})
 
 export const getGetRecordingTaskNamesResponseMock = (overrideResponse: Partial<Extract<TaskNamesResponse, object>> = {}): TaskNamesResponse => ({task_names: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}}))), ...overrideResponse})
 
@@ -60,6 +63,18 @@ export const getDeleteRecordingsMockHandler = (overrideResponse?: DeleteResponse
     return HttpResponse.json(overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
     : getDeleteRecordingsResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
+
+export const getBulkUpdateRecordingMetaMockHandler = (overrideResponse?: BulkUpdateMetaResponse | ((info: Parameters<Parameters<typeof http.patch>[1]>[0]) => Promise<BulkUpdateMetaResponse> | BulkUpdateMetaResponse), options?: RequestHandlerOptions) => {
+  return http.patch('*/api/recordings', async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getBulkUpdateRecordingMetaResponseMock(),
       { status: 200
       })
   }, options)
@@ -103,6 +118,7 @@ export const getUpdateRecordingMetaMockHandler = (overrideResponse?: UpdateMetaR
 export const getRecordingsMock = () => [
   getGetRecordingsMockHandler(),
   getDeleteRecordingsMockHandler(),
+  getBulkUpdateRecordingMetaMockHandler(),
   getGetRecordingTaskNamesMockHandler(),
   getRenameRecordingMockHandler(),
   getUpdateRecordingMetaMockHandler()

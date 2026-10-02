@@ -25,6 +25,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BulkUpdateMetaRequest,
+  BulkUpdateMetaResponse,
   DeleteRequest,
   DeleteResponse,
   FilesResponse,
@@ -244,6 +246,97 @@ export const useDeleteRecordings = <TError = HTTPValidationError,
         TContext
       > => {
       return useMutation(getDeleteRecordingsMutationOptions(options), queryClient);
+    }
+    export type bulkUpdateRecordingMetaResponse200 = {
+  data: BulkUpdateMetaResponse
+  status: 200
+}
+
+export type bulkUpdateRecordingMetaResponse422 = {
+  data: HTTPValidationError
+  status: 422
+}
+
+export type bulkUpdateRecordingMetaResponseSuccess = (bulkUpdateRecordingMetaResponse200) & {
+  headers: Headers;
+};
+export type bulkUpdateRecordingMetaResponseError = (bulkUpdateRecordingMetaResponse422) & {
+  headers: Headers;
+};
+
+export type bulkUpdateRecordingMetaResponse = (bulkUpdateRecordingMetaResponseSuccess | bulkUpdateRecordingMetaResponseError)
+
+export const getBulkUpdateRecordingMetaUrl = () => {
+
+
+
+
+  return `/api/recordings`
+}
+
+/**
+ * Set metadata values on multiple recording folders in one call.
+ *
+ * Every folder is resolved before anything is written, so a missing folder fails the whole request.
+ * @summary Bulk Update Recording Meta
+ */
+export const bulkUpdateRecordingMeta = async (bulkUpdateMetaRequest: BulkUpdateMetaRequest, options?: RequestInit): Promise<bulkUpdateRecordingMetaResponse> => {
+
+  return fetchClient<bulkUpdateRecordingMetaResponse>(getBulkUpdateRecordingMetaUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkUpdateMetaRequest)
+  }
+);}
+
+
+
+
+export const getBulkUpdateRecordingMetaMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>, TError,{data: BulkUpdateMetaRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>, TError,{data: BulkUpdateMetaRequest}, TContext> => {
+
+const mutationKey = ['bulkUpdateRecordingMeta'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>, {data: BulkUpdateMetaRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkUpdateRecordingMeta(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpdateRecordingMetaMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>>
+    export type BulkUpdateRecordingMetaMutationBody = BulkUpdateMetaRequest
+    export type BulkUpdateRecordingMetaMutationError = HTTPValidationError
+
+    /**
+ * @summary Bulk Update Recording Meta
+ */
+export const useBulkUpdateRecordingMeta = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>, TError,{data: BulkUpdateMetaRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpdateRecordingMeta>>,
+        TError,
+        {data: BulkUpdateMetaRequest},
+        TContext
+      > => {
+      return useMutation(getBulkUpdateRecordingMetaMutationOptions(options), queryClient);
     }
     export type getRecordingTaskNamesResponse200 = {
   data: TaskNamesResponse

@@ -64,6 +64,9 @@ metadata_fields:
   (persisted in the browser's `localStorage`), like the task name.
 - Values can also be edited after the fact from the metadata dialog on the
   recordings page, and appear as badges in the recordings list.
+- **Bulk edit**: with recordings checked, the **Edit** action in the list header
+  sets `select` fields on all of them at once (`PATCH /api/recordings`). Fields
+  left as *Unchanged* keep each recording's current value.
 
 ## Validation
 

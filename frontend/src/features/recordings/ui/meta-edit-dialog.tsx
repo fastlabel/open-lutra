@@ -1,12 +1,11 @@
 /** Dialog for editing task_name / tags / master-defined metadata.
  *
  * Provides chip-style tag input (commit with Enter / Tab / Comma; Backspace removes the trailing tag),
- * a single-line task_name input, and one control per master-defined metadata field (a select for
- * `select` fields, a text input for `number` / `text`). recording_config_name is fixed at recording
- * time and is not editable; it is shown for reference only.
+ * a single-line task_name input, and one control per master-defined metadata field.
+ * recording_config_name is fixed at recording time and is not editable; it is shown for reference only.
  */
 
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FileEntry } from "@/api/generated/schemas";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useConfig, useUpdateRecordingMeta } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
-import { matchesPattern } from "@/lib/metadata-field";
+import { MetadataFieldInput } from "./metadata-field-input";
 
 export function MetaEditDialog({
   entry,
@@ -143,56 +142,21 @@ export function MetaEditDialog({
             </div>
           </div>
 
-          {/* master-defined metadata fields */}
-          {fields.map((field) => {
-            const value = metadata[field.key] ?? "";
-            // Set (or clear, when empty) a single field, keeping the rest.
-            const setValue = (v: string) => {
-              const next = { ...metadata };
-              if (v === "") delete next[field.key];
-              else next[field.key] = v;
-              setMetadata(next);
-            };
-            return (
-              <div key={field.key} className="space-y-1.5">
-                <Label htmlFor={`meta-field-${field.key}`}>{field.label}</Label>
-                {field.type === "select" ? (
-                  <div className="relative">
-                    <select
-                      id={`meta-field-${field.key}`}
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      className="w-full appearance-none rounded-md border border-input bg-transparent py-2 pr-8 pl-3 text-sm text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-                    >
-                      <option value="">—</option>
-                      {field.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={14}
-                      className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground"
-                    />
-                  </div>
-                ) : (
-                  <Input
-                    id={`meta-field-${field.key}`}
-                    inputMode={field.type === "number" ? "numeric" : undefined}
-                    value={value}
-                    placeholder={field.placeholder ?? undefined}
-                    aria-invalid={!matchesPattern(field.pattern, value)}
-                    onChange={(e) => {
-                      // Number fields accept digits only, kept as a string so leading zeros survive.
-                      if (field.type === "number" && !/^[0-9]*$/.test(e.target.value)) return;
-                      setValue(e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
+          {/* master-defined metadata fields; an empty value clears the field */}
+          {fields.map((field) => (
+            <MetadataFieldInput
+              key={field.key}
+              field={field}
+              value={metadata[field.key] ?? ""}
+              emptyLabel="—"
+              onChange={(v) => {
+                const next = { ...metadata };
+                if (v === "") delete next[field.key];
+                else next[field.key] = v;
+                setMetadata(next);
+              }}
+            />
+          ))}
 
           {/* recording_config_name (read-only) */}
           {entry.recording_config_name && (
