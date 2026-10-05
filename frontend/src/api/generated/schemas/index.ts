@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.4.3
  */
 
+export * from './bulkUpdateMetaRequest.ts';
+export * from './bulkUpdateMetaRequestMetadata.ts';
+export * from './bulkUpdateMetaResponse.ts';
 export * from './bulkUploadRequest.ts';
 export * from './bulkUploadResponse.ts';
 export * from './bulkUploadResultItem.ts';
