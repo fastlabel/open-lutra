@@ -93,7 +93,7 @@ export function MetaEditDialog({
           <DialogDescription>{entry.name}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="mt-1 space-y-4">
           {/* task_name */}
           <div className="space-y-1.5">
             <Label htmlFor="meta-task-name">Task name</Label>
@@ -167,7 +167,7 @@ export function MetaEditDialog({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-3">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
             Cancel
           </Button>

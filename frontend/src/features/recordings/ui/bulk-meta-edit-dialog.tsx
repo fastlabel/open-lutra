@@ -69,7 +69,7 @@ export function BulkMetaEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="mt-1 space-y-4">
           {selectFields.map((field) => (
             <MetadataFieldInput
               key={field.key}
@@ -88,7 +88,7 @@ export function BulkMetaEditDialog({
 
         {errorMessage && <p className="text-[13px] text-red-400">Failed to update metadata: {errorMessage}</p>}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-3">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
             Cancel
           </Button>
