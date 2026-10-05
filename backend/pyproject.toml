@@ -1,6 +1,6 @@
 [project]
 name = "open-lutra"
-version = "0.4.3"
+version = "0.5.0"
 description = "ROS2 topic recorder for teleoperation robots (ROS2-standard topics)"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }

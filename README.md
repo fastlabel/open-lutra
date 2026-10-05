@@ -134,7 +134,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 
 ## Release status
 
-OpenLUTRA is currently **v0.4.3** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Pin a specific version for any production use. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
+OpenLUTRA is currently **v0.5.0** and follows the [SemVer](https://semver.org/) `0.y.z` convention: minor versions may include breaking changes until v1.0.0. Pin a specific version for any production use. Only the latest `main` is eligible for security fixes (see [SECURITY.md](./SECURITY.md)).
 
 Docker images are **not** published at this stage; the project is distributed as source.
 
