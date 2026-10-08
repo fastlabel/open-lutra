@@ -1694,6 +1694,14 @@
             "type": "string",
             "title": "Robot Name"
           },
+          "default_color_mode": {
+            "type": "string",
+            "enum": [
+              "dark",
+              "light"
+            ],
+            "title": "Default Color Mode"
+          },
           "default_topics": {
             "items": {
               "type": "string"
@@ -1721,6 +1729,7 @@
         "required": [
           "ros_domain_id",
           "robot_name",
+          "default_color_mode",
           "default_topics",
           "stamp_quality",
           "upload_enabled",

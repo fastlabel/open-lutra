@@ -13,6 +13,7 @@ export * from './bulkUploadRequest.ts';
 export * from './bulkUploadResponse.ts';
 export * from './bulkUploadResultItem.ts';
 export * from './configResponse.ts';
+export * from './configResponseDefaultColorMode.ts';
 export * from './deleteRequest.ts';
 export * from './deleteResponse.ts';
 export * from './discoveredTopic.ts';

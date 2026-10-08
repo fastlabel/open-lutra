@@ -39,6 +39,7 @@ function makeConfig(metadata_fields: ConfigResponse["metadata_fields"]): ConfigR
   return {
     ros_domain_id: 0,
     robot_name: "Robot",
+    default_color_mode: "dark",
     default_topics: [],
     stamp_quality: false,
     upload_enabled: false,

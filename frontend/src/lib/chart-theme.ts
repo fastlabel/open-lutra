@@ -4,7 +4,7 @@
  * `--border` (the subtle divider color) for grid lines, and `--foreground` for the playhead.
  */
 import { useMemo } from "react";
-import { useThemeStore } from "@/stores/theme-store";
+import { selectTheme, useThemeStore } from "@/stores/theme-store";
 
 export interface ChartColors {
   axis: string;
@@ -23,7 +23,7 @@ export function getChartColors(): ChartColors {
 
 /** Chart colors for the current theme; a new object on each theme switch, so charts can rebuild on it. */
 export function useChartColors(): ChartColors {
-  const theme = useThemeStore((s) => s.theme);
+  const theme = useThemeStore(selectTheme);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the CSS variables change with the theme
   return useMemo(getChartColors, [theme]);
 }

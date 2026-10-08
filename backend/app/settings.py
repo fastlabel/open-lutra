@@ -109,6 +109,10 @@ class RecordingConfig(BaseModel):
     expected_hz_patterns: list[HzPattern] = Field(default_factory=list)
     validators: list[ValidatorEntry] = Field(default_factory=list)
     metadata_fields: list[MetadataField] = Field(default_factory=list)
+    default_color_mode: Literal["dark", "light"] = Field(
+        default="dark",
+        description="UI color mode shown until the operator picks one with the header toggle",
+    )
     stamp_quality: bool = Field(
         default=False,
         description="Compute live-quality loss_rate based on header.stamp (intended for real hardware)",
@@ -245,6 +249,10 @@ class Settings(BaseSettings):
     @property
     def default_topics(self) -> list[str]:
         return self.recording.default_topics
+
+    @property
+    def default_color_mode(self) -> Literal["dark", "light"]:
+        return self.recording.default_color_mode
 
     @property
     def stamp_quality(self) -> bool:

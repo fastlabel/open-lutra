@@ -24,6 +24,7 @@ async def get_config() -> ConfigResponse:
     return ConfigResponse(
         ros_domain_id=settings.ros_domain_id,
         robot_name=settings.robot_name,
+        default_color_mode=settings.default_color_mode,
         default_topics=settings.default_topics,
         stamp_quality=settings.stamp_quality,
         upload_enabled=is_upload_enabled(settings),

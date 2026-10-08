@@ -2,10 +2,10 @@
 
 import { Link } from "@tanstack/react-router";
 import { FolderOpen, Moon, Sun } from "lucide-react";
-import { useThemeStore } from "@/stores/theme-store";
+import { selectTheme, useThemeStore } from "@/stores/theme-store";
 
 export function Header() {
-  const theme = useThemeStore((s) => s.theme);
+  const theme = useThemeStore(selectTheme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   return (

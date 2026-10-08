@@ -41,6 +41,7 @@ class ConfigResponse(BaseModel):
 
     ros_domain_id: int
     robot_name: str
+    default_color_mode: Literal["dark", "light"]
     default_topics: list[str]
     stamp_quality: bool
     upload_enabled: bool

@@ -5,6 +5,7 @@
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
  * OpenAPI spec version: 0.5.0
  */
+import type { ConfigResponseDefaultColorMode } from './configResponseDefaultColorMode.ts';
 import type { MetadataFieldResponse } from './metadataFieldResponse.ts';
 
 /**
@@ -13,6 +14,7 @@ import type { MetadataFieldResponse } from './metadataFieldResponse.ts';
 export interface ConfigResponse {
   ros_domain_id: number;
   robot_name: string;
+  default_color_mode: ConfigResponseDefaultColorMode;
   default_topics: string[];
   stamp_quality: boolean;
   upload_enabled: boolean;

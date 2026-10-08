@@ -6,14 +6,17 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useConfig } from "@/hooks/use-api";
 import { useJobsStream } from "@/hooks/use-jobs-stream";
 import { isDevMode } from "@/lib/dev-mode";
 import { queryClient } from "@/lib/query-client";
 import { usePanelStore } from "@/stores/panel-store";
+import { useThemeStore } from "@/stores/theme-store";
 
 /** Inner layout that runs under the QueryClientProvider.
  *
@@ -21,8 +24,18 @@ import { usePanelStore } from "@/stores/panel-store";
  * inside the Provider, so they cannot live in the same component as the Provider itself.
  */
 function RootLayoutInner() {
+  // --- Server state ---
+  const { data: config } = useConfig();
+  const setConfigDefaultTheme = useThemeStore((s) => s.setConfigDefault);
+
+  // --- Streaming / subscription ---
   // Job queue SSE connection (shared by the preview panel and the StatusBar job pill).
   useJobsStream();
+
+  // --- Side effects ---
+  useEffect(() => {
+    if (config) setConfigDefaultTheme(config.default_color_mode);
+  }, [config, setConfigDefaultTheme]);
 
   return (
     <TooltipProvider delayDuration={300}>
