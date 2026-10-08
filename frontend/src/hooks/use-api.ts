@@ -68,16 +68,6 @@ import {
 
 // --- Initialization queries (fetched once on app start) ---
 
-/** Fetch application configuration once on first load (cached thereafter). */
-export function useConfig() {
-  return useGetConfig<ConfigResponse>({
-    query: {
-      staleTime: Infinity,
-      select: (resp) => resp.data as ConfigResponse,
-    },
-  });
-}
-
 /** Fetch the active robot's LeRobot export mapping summary (for the export dialog). */
 export function useLeRobotConfig() {
   return useGetLeRobotConfig<LeRobotConfigResponse>({
@@ -86,6 +76,16 @@ export function useLeRobotConfig() {
 }
 
 // --- Continuous polling queries ---
+
+/** Poll the application configuration every 10 seconds, so a redeployed recording config applies without a reload. */
+export function useConfig() {
+  return useGetConfig<ConfigResponse>({
+    query: {
+      refetchInterval: 10_000,
+      select: (resp) => resp.data as ConfigResponse,
+    },
+  });
+}
 
 /** Poll the recording status every second. */
 export function useRecordingStatus() {
