@@ -145,7 +145,7 @@ export function RugPlot({ selectedFolder }: { selectedFolder: string }) {
           const bgClass = isMajor
             ? "bg-red-500/20 border-x border-red-500/40"
             : "bg-amber-400/20 border-x border-amber-400/40";
-          const textClass = isMajor ? "text-red-400" : "text-amber-400";
+          const textClass = isMajor ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400";
           return (
             <div
               key={gap.startSec}
@@ -198,7 +198,13 @@ export function RugPlot({ selectedFolder }: { selectedFolder: string }) {
           {formatDuration(viewRange.from)} ~ {formatDuration(viewRange.to)}
         </span>
         {gaps.length > 0 && (
-          <span className={gaps.some((g) => g.severity === "major") ? "text-red-400" : "text-amber-400"}>
+          <span
+            className={
+              gaps.some((g) => g.severity === "major")
+                ? "text-red-600 dark:text-red-400"
+                : "text-amber-600 dark:text-amber-400"
+            }
+          >
             {gaps.length} gaps
           </span>
         )}
@@ -210,7 +216,7 @@ export function RugPlot({ selectedFolder }: { selectedFolder: string }) {
           {gaps.map((gap) => {
             const isMajor = gap.severity === "major";
             const bgClass = isMajor ? "bg-red-500/5" : "bg-amber-400/5";
-            const textClass = isMajor ? "text-red-400" : "text-amber-400";
+            const textClass = isMajor ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400";
             return (
               <div key={gap.startSec} className={`rounded ${bgClass} px-2 py-1`}>
                 <span className={textClass}>gap {gap.durationSec.toFixed(3)}s</span>

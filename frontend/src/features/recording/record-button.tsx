@@ -40,14 +40,16 @@ export function RecordButton() {
         title={active ? "Stop recording (Space)" : "Start recording (Space)"}
         aria-label={label}
         aria-pressed={active}
-        className={`flex h-20 w-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-white text-[14px] font-bold tracking-wider text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          active ? "bg-card hover:bg-card/80" : "bg-red-500 hover:bg-red-500/90"
+        className={`flex h-20 w-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 text-[14px] font-bold tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+          active
+            ? "border-foreground bg-card text-foreground hover:bg-card/80"
+            : "border-white bg-red-500 text-white hover:bg-red-500/90"
         }`}
       >
         {/* Icon: morph between a circle (start) and a rounded square (stop) via border-radius */}
         <span className="flex h-7 w-7 items-center justify-center">
           <span
-            className={`block bg-white transition-[border-radius,transform] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+            className={`block bg-current transition-[border-radius,transform] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
               active ? "h-6 w-6 rounded-[3px]" : "h-7 w-7 rounded-full"
             }`}
           />

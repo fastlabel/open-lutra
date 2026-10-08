@@ -86,7 +86,9 @@ export function BulkMetaEditDialog({
           ))}
         </div>
 
-        {errorMessage && <p className="text-[13px] text-red-400">Failed to update metadata: {errorMessage}</p>}
+        {errorMessage && (
+          <p className="text-[13px] text-red-600 dark:text-red-400">Failed to update metadata: {errorMessage}</p>
+        )}
 
         <div className="flex justify-end gap-2 pt-3">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>

@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>OpenLUTRA</title>
+    <!-- Mirrors the persisted theme store (src/stores/theme-store.ts); dark unless light was chosen. -->
+    <script>
+      try {
+        if (JSON.parse(localStorage.getItem("app-theme"))?.state?.theme !== "light") {
+          document.documentElement.classList.add("dark");
+        }
+      } catch {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -5,22 +5,22 @@ import { useLogs } from "@/hooks/use-topics-stream";
 import { type Severity, useLogStore } from "./store";
 
 const severityStyles: Record<string, string> = {
-  info: "text-blue-400",
-  warning: "text-amber-400",
-  danger: "text-red-400",
+  info: "text-blue-600 dark:text-blue-400",
+  warning: "text-amber-600 dark:text-amber-400",
+  danger: "text-red-600 dark:text-red-400",
 };
 
 const severityBadgeStyles: Record<Severity, { active: string; inactive: string }> = {
   info: {
-    active: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    active: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
     inactive: "bg-muted text-muted-foreground border-border",
   },
   warning: {
-    active: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    active: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
     inactive: "bg-muted text-muted-foreground border-border",
   },
   danger: {
-    active: "bg-red-500/20 text-red-400 border-red-500/30",
+    active: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
     inactive: "bg-muted text-muted-foreground border-border",
   },
 };

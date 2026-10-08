@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 import { useGetJoints } from "@/api/generated/media/media";
 import type { JointTopicsResponse } from "@/api/generated/schemas";
-import { getChartAxisColors } from "@/lib/chart-theme";
+import { useChartColors } from "@/lib/chart-theme";
 import { formatElapsed } from "@/lib/format";
 import { useQualityTimelineStore } from "../store";
 
@@ -25,7 +25,7 @@ const COLORS = [
 ];
 
 /** uPlot plugin that draws the playhead vertical line. */
-function playheadPlugin(playheadRef: React.RefObject<number>): uPlot.Plugin {
+function playheadPlugin(playheadRef: React.RefObject<number>, color: string): uPlot.Plugin {
   return {
     hooks: {
       draw: [
@@ -38,7 +38,7 @@ function playheadPlugin(playheadRef: React.RefObject<number>): uPlot.Plugin {
 
           u.ctx.save();
           u.ctx.beginPath();
-          u.ctx.strokeStyle = "#e5e5e5";
+          u.ctx.strokeStyle = color;
           u.ctx.lineWidth = 1;
           u.ctx.setLineDash([]);
           u.ctx.moveTo(x, top);
@@ -157,6 +157,7 @@ function JointChart({ topic }: { topic: JointTopicsResponse["topics"][number] })
   const uplotRef = useRef<uPlot | null>(null);
   const viewRange = useQualityTimelineStore((s) => s.viewRange);
   const playheadSec = useQualityTimelineStore((s) => s.playheadSec);
+  const chartColors = useChartColors();
   const playheadRef = useRef(playheadSec);
   playheadRef.current = playheadSec;
 
@@ -171,23 +172,22 @@ function JointChart({ topic }: { topic: JointTopicsResponse["topics"][number] })
     const el = containerRef.current;
     const { seriesData, seriesOpts } = buildJointSeries(topic);
 
-    const { axis: axisColor, grid: gridColor } = getChartAxisColors();
     const opts: uPlot.Options = {
       width: el.clientWidth || 600,
       height: el.clientHeight || 160,
       series: seriesOpts,
-      plugins: [playheadPlugin(playheadRef), tooltipPlugin()],
+      plugins: [playheadPlugin(playheadRef, chartColors.playhead), tooltipPlugin()],
       scales: { x: { time: false } },
       axes: [
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           values: (_u, vals) => vals.map((v) => formatElapsed(v)),
           font: "11px monospace",
         },
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           label: "rad",
           labelFont: "11px monospace",
           font: "11px monospace",
@@ -204,7 +204,7 @@ function JointChart({ topic }: { topic: JointTopicsResponse["topics"][number] })
       uplotRef.current?.destroy();
       uplotRef.current = null;
     };
-  }, [topic]);
+  }, [topic, chartColors]);
 
   // viewRange + playhead → bundle X-axis scale update and plugin redraw into one effect
   // biome-ignore lint/correctness/useExhaustiveDependencies: plugin redraw must be triggered by playheadSec

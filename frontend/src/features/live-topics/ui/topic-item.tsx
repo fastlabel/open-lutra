@@ -21,7 +21,7 @@ function HzLabel({ topic }: { topic: TopicInfo }) {
   }
 
   if (status === "danger") {
-    return <span className="text-red-400">stalled</span>;
+    return <span className="text-red-600 dark:text-red-400">stalled</span>;
   }
 
   if (baseline_hz == null && actual_hz === 0) {
@@ -96,11 +96,11 @@ export const TopicItem = memo(function TopicItem({
       </p>
       <div className="flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
         {loss_rate > 0.02 && (
-          <span className={loss_rate > 0.05 ? "text-red-400" : "text-amber-400"}>
+          <span className={loss_rate > 0.05 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}>
             {(loss_rate * 100).toFixed(1)}% loss
           </span>
         )}
-        {showAuto && <span className="text-blue-400">auto</span>}
+        {showAuto && <span className="text-blue-600 dark:text-blue-400">auto</span>}
         <HzLabel topic={topic} />
       </div>
     </div>

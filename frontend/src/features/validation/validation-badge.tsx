@@ -15,10 +15,10 @@ const ICON_BY_STATUS: Record<
   ValidationStatus,
   { Icon: ComponentType<{ size?: number; className?: string }>; className: string; label: string }
 > = {
-  pass: { Icon: CheckCircle2, className: "text-emerald-300", label: "Pass" },
-  warn: { Icon: AlertTriangle, className: "text-amber-300", label: "Warn" },
-  fail: { Icon: XCircle, className: "text-red-300", label: "Fail" },
-  error: { Icon: CircleAlert, className: "text-purple-300", label: "Error" },
+  pass: { Icon: CheckCircle2, className: "text-emerald-700 dark:text-emerald-300", label: "Pass" },
+  warn: { Icon: AlertTriangle, className: "text-amber-700 dark:text-amber-300", label: "Warn" },
+  fail: { Icon: XCircle, className: "text-red-700 dark:text-red-300", label: "Fail" },
+  error: { Icon: CircleAlert, className: "text-purple-700 dark:text-purple-300", label: "Error" },
 };
 
 function isValidationStatus(value: string | null): value is ValidationStatus {

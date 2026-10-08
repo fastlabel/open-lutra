@@ -53,7 +53,7 @@ export function QualityTimeline({ selectedFolder }: { selectedFolder: string }) 
   if (data?.status === "error") {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-xs text-red-400/80">Error: {data.error}</p>
+        <p className="text-xs text-red-600/80 dark:text-red-400/80">Error: {data.error}</p>
       </div>
     );
   }

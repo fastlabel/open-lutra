@@ -23,7 +23,8 @@ export function TopicMetrics({
 
   // Count-based loss rate: received frames vs the expected count (uses the configured
   // expected_hz when set). Colored by the same 2% / 5% warn/danger thresholds.
-  const missClass = loss_rate > 0.05 ? "text-red-400" : loss_rate > 0.02 ? "text-amber-400" : "";
+  const missClass =
+    loss_rate > 0.05 ? "text-red-600 dark:text-red-400" : loss_rate > 0.02 ? "text-amber-600 dark:text-amber-400" : "";
   const chevronIcon = expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />;
 
   return (
@@ -33,12 +34,14 @@ export function TopicMetrics({
       <span>{message_count.toLocaleString()} msgs</span>
       <span className={missClass}>{(loss_rate * 100).toFixed(2)}% loss</span>
       {start_delay_sec > 0.1 && (
-        <span className="rounded bg-blue-500/15 px-1 py-0 text-[10px] text-blue-400">
+        <span className="rounded bg-blue-500/15 px-1 py-0 text-[10px] text-blue-600 dark:text-blue-400">
           +{start_delay_sec.toFixed(1)}s delay
         </span>
       )}
       {zero_size_count > 0 && (
-        <span className="rounded bg-red-500/15 px-1 py-0 text-[10px] text-red-400">{zero_size_count} empty</span>
+        <span className="rounded bg-red-500/15 px-1 py-0 text-[10px] text-red-600 dark:text-red-400">
+          {zero_size_count} empty
+        </span>
       )}
       {hasDetails &&
         (onChevronClick ? (
@@ -48,14 +51,18 @@ export function TopicMetrics({
             aria-label={expanded ? "Collapse" : "Expand"}
             className="ml-auto flex items-center gap-1 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
           >
-            {minor_loss_count > 0 && <span className="text-amber-400">{minor_loss_count} minor</span>}
-            {major_loss_count > 0 && <span className="text-red-400">{major_loss_count} major</span>}
+            {minor_loss_count > 0 && (
+              <span className="text-amber-600 dark:text-amber-400">{minor_loss_count} minor</span>
+            )}
+            {major_loss_count > 0 && <span className="text-red-600 dark:text-red-400">{major_loss_count} major</span>}
             {chevronIcon}
           </button>
         ) : (
           <span className="ml-auto flex items-center gap-1 shrink-0">
-            {minor_loss_count > 0 && <span className="text-amber-400">{minor_loss_count} minor</span>}
-            {major_loss_count > 0 && <span className="text-red-400">{major_loss_count} major</span>}
+            {minor_loss_count > 0 && (
+              <span className="text-amber-600 dark:text-amber-400">{minor_loss_count} minor</span>
+            )}
+            {major_loss_count > 0 && <span className="text-red-600 dark:text-red-400">{major_loss_count} major</span>}
             {chevronIcon}
           </span>
         ))}

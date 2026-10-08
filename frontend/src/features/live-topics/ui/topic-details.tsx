@@ -22,14 +22,19 @@ function QualityLine({ topic }: { topic: TopicInfo }) {
   // loss_rate is meaningless when the topic is stalled (backend resets it to 0)
   // or when no baseline has been established — render "--" in those cases.
   const lossUnknown = topic.status === "danger" || topic.baseline_hz == null;
-  const lossColor = topic.loss_rate > 0.05 ? "text-red-400" : topic.loss_rate > 0.02 ? "text-amber-400" : "";
+  const lossColor =
+    topic.loss_rate > 0.05
+      ? "text-red-600 dark:text-red-400"
+      : topic.loss_rate > 0.02
+        ? "text-amber-600 dark:text-amber-400"
+        : "";
   const statusColor =
     topic.status === "ok"
-      ? "text-emerald-400"
+      ? "text-emerald-600 dark:text-emerald-400"
       : topic.status === "warning"
-        ? "text-amber-400"
+        ? "text-amber-600 dark:text-amber-400"
         : topic.status === "danger"
-          ? "text-red-400"
+          ? "text-red-600 dark:text-red-400"
           : "text-muted-foreground";
 
   return (

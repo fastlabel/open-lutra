@@ -41,7 +41,7 @@ export function RecordingControl() {
         <div className="flex min-w-[90px] flex-col justify-center gap-1">
           {isRecording ? (
             <>
-              <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wider text-red-400">
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wider text-red-600 dark:text-red-400">
                 <span className="h-2 w-2 rounded-full bg-current animate-[pulse-dot_1s_infinite]" />
                 REC
               </span>
@@ -49,7 +49,7 @@ export function RecordingControl() {
             </>
           ) : isCountingDown ? (
             <>
-              <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wider text-amber-400">
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wider text-amber-600 dark:text-amber-400">
                 <span className="h-2 w-2 rounded-full bg-current animate-[pulse-dot_1s_infinite]" />
                 COUNTDOWN
               </span>
@@ -125,7 +125,7 @@ export function RecordingControl() {
             Hidden during recording / countdown so the bar stays focused on the active session. */}
         {!buttonActive && missingDefaults.length > 0 && (
           <span
-            className="flex items-center gap-1.5 text-[13px] text-amber-400"
+            className="flex items-center gap-1.5 text-[13px] text-amber-600 dark:text-amber-400"
             role="status"
             title={missingDefaults.join("\n")}
           >

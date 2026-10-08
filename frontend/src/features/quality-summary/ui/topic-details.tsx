@@ -34,8 +34,12 @@ export function TopicDetails({
       {(hasDelay || hasEarlyEnd) && (
         <div className="flex items-center gap-1.5">
           <Timer size={11} className="shrink-0 text-muted-foreground" />
-          {hasDelay && <span className="text-blue-400">Start +{topic.start_delay_sec.toFixed(2)}s</span>}
-          {hasEarlyEnd && <span className="text-amber-400">End -{topic.end_early_sec.toFixed(2)}s</span>}
+          {hasDelay && (
+            <span className="text-blue-600 dark:text-blue-400">Start +{topic.start_delay_sec.toFixed(2)}s</span>
+          )}
+          {hasEarlyEnd && (
+            <span className="text-amber-600 dark:text-amber-400">End -{topic.end_early_sec.toFixed(2)}s</span>
+          )}
           <span className="text-muted-foreground">/ {formatDuration(recordingDuration)}</span>
         </div>
       )}
@@ -44,7 +48,8 @@ export function TopicDetails({
       {showLossEvents && (
         <div>
           {topic.loss_events.map((le, i, arr) => {
-            const colorClass = le.severity === "major" ? "text-red-400" : "text-amber-400";
+            const colorClass =
+              le.severity === "major" ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400";
             return (
               <div
                 key={le.timestamp_sec}

@@ -210,7 +210,7 @@ export const RecordingListItem = memo(function RecordingListItem({
           <>
             <button
               type="button"
-              className="rounded p-1 text-emerald-400 hover:bg-muted/50"
+              className="rounded p-1 text-emerald-600 dark:text-emerald-400 hover:bg-muted/50"
               onClick={commitEdit}
               title="Confirm"
             >
@@ -235,7 +235,7 @@ export const RecordingListItem = memo(function RecordingListItem({
           <AlertDialogTrigger asChild>
             <button
               type="button"
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
               disabled={editing || deleteMutation.isPending}
               title="Delete"
             >

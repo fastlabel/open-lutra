@@ -38,7 +38,7 @@ function StatusMessage({
     );
   }
   if (data?.status === "error") {
-    return <p className="px-3 py-3 text-[13px] text-red-400/80">Validation error: {data.error}</p>;
+    return <p className="px-3 py-3 text-[13px] text-red-600/80 dark:text-red-400/80">Validation error: {data.error}</p>;
   }
   return <p className="px-3 py-3 text-[13px] text-muted-foreground">No validation results yet.</p>;
 }

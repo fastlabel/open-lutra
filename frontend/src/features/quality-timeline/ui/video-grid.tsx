@@ -62,7 +62,7 @@ export function VideoGrid({ selectedFolder, enabled = true }: { selectedFolder: 
     job?.progress ?? (data?.progress as JobProgressSchema | null | undefined);
 
   if (data?.status === "error") {
-    return <p className="py-4 text-center text-[13px] text-red-400/80">{data.error}</p>;
+    return <p className="py-4 text-center text-[13px] text-red-600/80 dark:text-red-400/80">{data.error}</p>;
   }
 
   const isGenerating = data?.status === "generating";

@@ -45,7 +45,7 @@ export function UploadBadge({ entry }: { entry: FileEntry }) {
         data-status="uploaded"
         title="Uploaded"
       >
-        <CloudCheck size={14} className="text-emerald-300" />
+        <CloudCheck size={14} className="text-emerald-700 dark:text-emerald-300" />
       </span>
     );
   }
@@ -57,7 +57,7 @@ export function UploadBadge({ entry }: { entry: FileEntry }) {
         data-status="failed"
         title="Upload failed"
       >
-        <CloudOff size={14} className="text-red-300" />
+        <CloudOff size={14} className="text-red-700 dark:text-red-300" />
       </span>
     );
   }

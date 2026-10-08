@@ -53,7 +53,7 @@ export function BulkDeleteButton() {
             <button
               type="button"
               disabled={deleteMutation.isPending}
-              className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-red-400 transition-colors enabled:hover:bg-red-500/20 disabled:text-muted-foreground/40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-red-600 dark:text-red-400 transition-colors enabled:hover:bg-red-500/20 disabled:text-muted-foreground/40 disabled:cursor-not-allowed"
             >
               {deleteMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
               Delete

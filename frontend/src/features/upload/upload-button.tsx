@@ -78,7 +78,7 @@ export function UploadButton({ folderPath }: { folderPath: string }) {
         <span>{text}</span>
       </Button>
       {failed && error && (
-        <span className="max-w-[18rem] truncate text-[13px] text-red-300" title={error}>
+        <span className="max-w-[18rem] truncate text-[13px] text-red-700 dark:text-red-300" title={error}>
           {error}
         </span>
       )}

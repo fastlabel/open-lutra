@@ -8,7 +8,7 @@
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 import type { TimelineData } from "@/api/generated/schemas";
-import { getChartAxisColors } from "@/lib/chart-theme";
+import { useChartColors } from "@/lib/chart-theme";
 import { formatElapsed } from "@/lib/format";
 import { buildLossRateData } from "../loss-rate-utils";
 import { useQualityTimelineStore } from "../store";
@@ -68,7 +68,7 @@ function thresholdPlugin(): uPlot.Plugin {
 }
 
 /** uPlot plugin that draws the playhead vertical line. */
-function playheadPlugin(playheadRef: React.RefObject<number>): uPlot.Plugin {
+function playheadPlugin(playheadRef: React.RefObject<number>, color: string): uPlot.Plugin {
   return {
     hooks: {
       draw: [
@@ -81,7 +81,7 @@ function playheadPlugin(playheadRef: React.RefObject<number>): uPlot.Plugin {
 
           u.ctx.save();
           u.ctx.beginPath();
-          u.ctx.strokeStyle = "#e5e5e5";
+          u.ctx.strokeStyle = color;
           u.ctx.lineWidth = 1;
           u.ctx.setLineDash([]);
           u.ctx.moveTo(x, top);
@@ -100,6 +100,7 @@ export function LossRateChart({ data }: { data: TimelineData }) {
   const selectedTopic = useQualityTimelineStore((s) => s.selectedTopic);
   const viewRange = useQualityTimelineStore((s) => s.viewRange);
   const playheadSec = useQualityTimelineStore((s) => s.playheadSec);
+  const chartColors = useChartColors();
 
   const playheadRef = useRef(playheadSec);
   playheadRef.current = playheadSec;
@@ -136,12 +137,11 @@ export function LossRateChart({ data }: { data: TimelineData }) {
       }),
     ];
 
-    const { axis: axisColor, grid: gridColor } = getChartAxisColors();
     const opts: uPlot.Options = {
       width,
       height,
       series,
-      plugins: [thresholdPlugin(), playheadPlugin(playheadRef)],
+      plugins: [thresholdPlugin(), playheadPlugin(playheadRef, chartColors.playhead)],
       scales: {
         x: { time: false },
         // Keep a [0, 10]% window for the common near-zero case, but expand to fit
@@ -152,14 +152,14 @@ export function LossRateChart({ data }: { data: TimelineData }) {
       },
       axes: [
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           values: (_u, vals) => vals.map((v) => formatElapsed(v)),
           font: "11px monospace",
         },
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           font: "11px monospace",
           // Omit the label ("loss%") to save left margin — values already include "%"
           size: 36,
@@ -177,7 +177,7 @@ export function LossRateChart({ data }: { data: TimelineData }) {
       uplotRef.current?.destroy();
       uplotRef.current = null;
     };
-  }, [data, topicKey, selectedTopic]);
+  }, [data, topicKey, selectedTopic, chartColors]);
 
   useEffect(() => {
     if (!uplotRef.current) return;

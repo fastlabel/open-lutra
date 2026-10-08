@@ -24,10 +24,10 @@ export const Timer = memo(function Timer({ className: override }: { className?: 
   let fallback: string;
   if (isCountingDown) {
     value = formatTime(-countdownSec);
-    fallback = "text-[13px] text-amber-400";
+    fallback = "text-[13px] text-amber-600 dark:text-amber-400";
   } else if (isRecording) {
     value = formatTime(status?.elapsed_sec ?? 0);
-    fallback = "text-[13px] text-red-400";
+    fallback = "text-[13px] text-red-600 dark:text-red-400";
   } else if (delaySec > 0) {
     value = formatTime(-delaySec);
     fallback = "text-[13px] text-muted-foreground";

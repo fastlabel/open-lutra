@@ -31,7 +31,7 @@ function StatusMessage({
     );
   }
   if (data?.status === "error") {
-    return <p className="px-3 py-3 text-xs text-red-400/80">Analysis error: {data.error}</p>;
+    return <p className="px-3 py-3 text-xs text-red-600/80 dark:text-red-400/80">Analysis error: {data.error}</p>;
   }
   if (data?.status === "not_found") {
     return (

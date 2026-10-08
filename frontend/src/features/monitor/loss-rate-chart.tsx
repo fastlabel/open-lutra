@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import uPlot from "uplot";
 import { useLiveTopicsStore } from "@/features/live-topics";
-import { getChartAxisColors } from "@/lib/chart-theme";
+import { useChartColors } from "@/lib/chart-theme";
 import { type QualitySnapshot, type RecordingMarker, useQualityHistoryStore } from "@/stores/quality-history-store";
 
 // --- Per-topic color palette ---
@@ -178,6 +178,7 @@ export function LossRateChart() {
   const markersRef = useRef(markers);
   markersRef.current = markers;
   const selectedTopics = useLiveTopicsStore((s) => s.selectedTopics);
+  const chartColors = useChartColors();
 
   // Restrict the chart to topics chosen as recording targets (preserving SSE-discovery order).
   const topicNames = useMemo(() => allTopicNames.filter((n) => selectedTopics.has(n)), [allTopicNames, selectedTopics]);
@@ -208,7 +209,6 @@ export function LossRateChart() {
       })),
     ];
 
-    const { axis: axisColor, grid: gridColor } = getChartAxisColors();
     const opts: uPlot.Options = {
       width: containerRef.current.clientWidth || 600,
       height: containerRef.current.clientHeight || 200,
@@ -220,14 +220,14 @@ export function LossRateChart() {
       },
       axes: [
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           values: (_u, vals) => vals.map((v) => fmtElapsed(v)),
           font: "11px monospace",
         },
         {
-          stroke: axisColor,
-          grid: { stroke: gridColor, width: 1 },
+          stroke: chartColors.axis,
+          grid: { stroke: chartColors.grid, width: 1 },
           label: "loss%",
           labelFont: "11px monospace",
           font: "11px monospace",
@@ -248,7 +248,7 @@ export function LossRateChart() {
       uplotRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topicNames, snapshots]);
+  }, [topicNames, snapshots, chartColors]);
 
   useEffect(() => {
     if (!uplotRef.current || topicNames.length === 0 || snapshots.length === 0) return;

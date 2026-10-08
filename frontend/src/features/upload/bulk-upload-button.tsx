@@ -61,7 +61,7 @@ export function BulkUploadButton() {
       type="button"
       disabled={!uploadEnabled || startBulkUpload.isPending}
       onClick={handleClick}
-      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-emerald-300 transition-colors enabled:hover:bg-emerald-500/20 disabled:pointer-events-none disabled:text-muted-foreground/40"
+      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-emerald-700 dark:text-emerald-300 transition-colors enabled:hover:bg-emerald-500/20 disabled:pointer-events-none disabled:text-muted-foreground/40"
     >
       {startBulkUpload.isPending ? <Loader2 size={13} className="animate-spin" /> : <CloudUpload size={13} />}
       Upload

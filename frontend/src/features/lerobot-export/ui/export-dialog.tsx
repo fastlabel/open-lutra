@@ -53,7 +53,7 @@ function ExportProgress({ job, outputName }: { job: JobSchema | undefined; outpu
   }
   if (job?.status === "failed") {
     return (
-      <div className="flex items-start gap-2 text-sm text-red-400">
+      <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
         <XCircle size={16} className="mt-0.5 shrink-0" />
         <span>Export failed: {job.error ?? "unknown error"}</span>
       </div>
@@ -161,7 +161,7 @@ export function ExportDialog({
                 />
                 <p className="text-[13px] text-muted-foreground">Written to _lerobot_exports/&lt;name&gt;/</p>
               </div>
-              {submitError && <p className="text-[13px] text-red-400">{submitError}</p>}
+              {submitError && <p className="text-[13px] text-red-600 dark:text-red-400">{submitError}</p>}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
