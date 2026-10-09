@@ -20,6 +20,7 @@ export default mergeConfig(
           "src/features/**/mutations.ts",
           "src/features/**/quality-utils.tsx",
           "src/features/recording/store.ts",
+          "src/features/recordings/bulk-tags.ts",
           "src/stores/quality-history-store.ts",
           "src/stores/toast-store.ts",
         ],
