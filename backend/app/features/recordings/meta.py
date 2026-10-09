@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -76,9 +77,27 @@ def update_recording_meta(
     return meta
 
 
-def merge_recording_metadata(directory: Path, updates: dict[str, str]) -> RecordingMeta:
-    """Set the given metadata keys in recording_meta.json, keeping all other keys and fields."""
+def merge_recording_meta(
+    directory: Path,
+    *,
+    metadata: Mapping[str, str],
+    add_tags: Sequence[str],
+    remove_tags: Sequence[str],
+) -> RecordingMeta:
+    """Apply a partial update to recording_meta.json in a single write.
+
+    `metadata` keys are set (other keys kept), `remove_tags` are dropped where
+    present, and `add_tags` are appended where not already present, keeping
+    the existing tag order. A missing or unreadable file starts from an empty
+    RecordingMeta, as update_recording_meta does.
+    """
     meta = read_recording_meta(directory) or RecordingMeta()
-    meta.metadata.update(updates)
+    meta.metadata.update(metadata)
+    remove = set(remove_tags)
+    tags = [t for t in meta.tags if t not in remove]
+    for tag in add_tags:
+        if tag not in tags:
+            tags.append(tag)
+    meta.tags = tags
     write_recording_meta(directory, meta)
     return meta

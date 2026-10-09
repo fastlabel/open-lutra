@@ -6,7 +6,7 @@ import shutil
 from fastapi import APIRouter, HTTPException, status
 
 from app.dependencies import require_dir, resolve_safe_path
-from app.features.recordings.meta import merge_recording_metadata, update_recording_meta
+from app.features.recordings.meta import merge_recording_meta, update_recording_meta
 from app.features.recordings.scanner import collect_recent_task_names, scan_output_dir
 from app.features.recordings.schemas import (
     BulkUpdateMetaRequest,
@@ -101,13 +101,13 @@ def update_recording_meta_endpoint(name: str, req: UpdateMetaRequest) -> UpdateM
 
 @router.patch("", response_model=BulkUpdateMetaResponse, operation_id="bulkUpdateRecordingMeta")
 def bulk_update_recording_meta(req: BulkUpdateMetaRequest) -> BulkUpdateMetaResponse:  # pragma: no cover
-    """Set metadata values on multiple recording folders in one call.
+    """Set metadata values and add / remove tags on multiple recording folders in one call.
 
     Every folder is resolved before anything is written, so a missing folder fails the whole request.
     """
     targets = [require_dir(resolve_safe_path(path=folder)) for folder in req.folders]
     for target in targets:
-        merge_recording_metadata(target, req.metadata)
+        merge_recording_meta(target, metadata=req.metadata, add_tags=req.add_tags, remove_tags=req.remove_tags)
     return BulkUpdateMetaResponse(updated=req.folders)
 
 
