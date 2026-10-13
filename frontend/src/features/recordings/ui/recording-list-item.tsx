@@ -121,23 +121,22 @@ export const RecordingListItem = memo(function RecordingListItem({
           : undefined
       }
     >
-      {/* Checkbox */}
-      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={isChecked}
-          disabled={checkDisabled}
-          // Handled on click rather than onCheckedChange to read the Shift key; the store owns the checked state.
-          onClick={(e) => {
-            e.preventDefault();
-            if (e.shiftKey && displayedFolders) checkRange(displayedFolders, entry.name);
-            else toggleCheck(entry.name);
-          }}
-          // Keep Shift+click from extending the page's text selection across the rows.
-          onMouseDown={(e) => {
-            if (e.shiftKey) e.preventDefault();
-          }}
-          aria-label={`Select ${entry.name}`}
-        />
+      {/* Checkbox cell: spans the row height and its left padding so a near-miss toggles the row instead of opening it */}
+      <div
+        className="-my-2 -mr-3 -ml-4 flex shrink-0 items-center self-stretch pr-3 pl-4 transition-colors hover:bg-muted"
+        // Handles clicks on the checkbox too (they bubble here) so Shift is read in one place; the store owns the checked state.
+        onClick={(e) => {
+          e.stopPropagation();
+          if (checkDisabled) return;
+          if (e.shiftKey && displayedFolders) checkRange(displayedFolders, entry.name);
+          else toggleCheck(entry.name);
+        }}
+        // Keep Shift+click from extending the page's text selection across the rows.
+        onMouseDown={(e) => {
+          if (e.shiftKey) e.preventDefault();
+        }}
+      >
+        <Checkbox checked={isChecked} disabled={checkDisabled} aria-label={`Select ${entry.name}`} />
       </div>
 
       <ValidationBadge status={entry.validation_overall_status} />

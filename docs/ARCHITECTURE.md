@@ -329,6 +329,8 @@ Clicking the details panel header navigates to the MCAP detail page (`/recording
 - This makes "filter or search to narrow down, then bulk-delete with one button" possible with minimal operations.
 - The count on each filter tab updates in real time to reflect the breakdown within the current search hits.
 
+**Checkbox hit area**: each checkbox (rows and select-all) sits in a cell that spans the row height and the row's left padding, and a click anywhere in that cell toggles it rather than opening the recording.
+
 **Range selection**: a plain click on a row checkbox toggles it and makes it the anchor; Shift+clicking another row applies the anchor's state (checked / unchecked) to every row between them, inclusive, in the current display order (only rows shown by the active search / filter). Select-all, filter / search changes and clearing the selection drop the anchor. Logic: `features/recordings/range-select.ts`.
 
 **Bulk action feedback**: bulk edit and bulk delete report completion with a toast (`stores/toast-store.ts`) carrying the count; a failed request, or a delete that skipped recordings that no longer exist, raises an error toast instead.

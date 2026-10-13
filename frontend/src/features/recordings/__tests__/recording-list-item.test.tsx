@@ -1,10 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FileEntry } from "@/api/generated/schemas";
 import { useRecordingsStore } from "../store";
 import { RecordingListItem } from "../ui/recording-list-item";
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+const { navigateMock } = vi.hoisted(() => ({ navigateMock: vi.fn() }));
+
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigateMock }));
 vi.mock("@/features/upload", () => ({ UploadBadge: () => null }));
 vi.mock("@/features/validation", () => ({ ValidationBadge: () => null }));
 vi.mock("@/hooks/use-api", () => ({
@@ -37,20 +39,31 @@ function makeEntry(name: string): FileEntry {
   };
 }
 
-function renderRows(displayedFolders?: string[]) {
+function renderRows(displayedFolders?: string[], checkDisabled?: boolean) {
   render(
     <div>
       {DISPLAYED.map((name) => (
-        <RecordingListItem key={name} entry={makeEntry(name)} displayedFolders={displayedFolders} />
+        <RecordingListItem
+          key={name}
+          entry={makeEntry(name)}
+          displayedFolders={displayedFolders}
+          checkDisabled={checkDisabled}
+        />
       ))}
     </div>,
   );
 }
 
 const checkbox = (name: string) => screen.getByRole("checkbox", { name: `Select ${name}` });
+/** The widened hit area wrapping the checkbox. */
+const checkCell = (name: string) => checkbox(name).parentElement as HTMLElement;
 
 beforeEach(() => {
   useRecordingsStore.getState().clearChecked();
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
 });
 
 describe("RecordingListItem checkbox", () => {
@@ -74,10 +87,39 @@ describe("RecordingListItem checkbox", () => {
     expect(useRecordingsStore.getState().checkedFolders).toEqual(new Set(["rec_a", "rec_c"]));
   });
 
+  it("toggles the row from a click anywhere in the checkbox cell without opening the recording", () => {
+    renderRows(DISPLAYED);
+
+    fireEvent.click(checkCell("rec_b"));
+    expect(checkbox("rec_b")).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(checkCell("rec_b"));
+    expect(checkbox("rec_b")).toHaveAttribute("aria-checked", "false");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("selects a range on Shift+click in the checkbox cell", () => {
+    renderRows(DISPLAYED);
+
+    fireEvent.click(checkCell("rec_a"));
+    fireEvent.click(checkCell("rec_c"), { shiftKey: true });
+
+    expect(useRecordingsStore.getState().checkedFolders).toEqual(new Set(["rec_a", "rec_b", "rec_c"]));
+  });
+
+  it("ignores clicks in the checkbox cell while checking is disabled", () => {
+    renderRows(DISPLAYED, true);
+
+    fireEvent.click(checkCell("rec_a"));
+
+    expect(useRecordingsStore.getState().checkedFolders.size).toBe(0);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it("suppresses text selection on Shift+mousedown only", () => {
     renderRows(DISPLAYED);
 
-    expect(fireEvent.mouseDown(checkbox("rec_a"), { shiftKey: true })).toBe(false);
-    expect(fireEvent.mouseDown(checkbox("rec_a"))).toBe(true);
+    expect(fireEvent.mouseDown(checkCell("rec_a"), { shiftKey: true })).toBe(false);
+    expect(fireEvent.mouseDown(checkCell("rec_a"))).toBe(true);
   });
 });
