@@ -33,10 +33,13 @@ import { MetaEditDialog } from "./meta-edit-dialog";
 // own checked state, read via a store selector inside) changes should re-render.
 export const RecordingListItem = memo(function RecordingListItem({
   entry,
+  displayedFolders,
   checkDisabled,
   canRename,
 }: {
   entry: FileEntry;
+  /** Folder names in display order; Shift+clicking the checkbox selects the range within them. */
+  displayedFolders?: string[];
   /** Disable the check operation (e.g. during recording). */
   checkDisabled?: boolean;
   /** Allow renaming on double-click. */
@@ -48,6 +51,7 @@ export const RecordingListItem = memo(function RecordingListItem({
   // --- Server state (TanStack Query) ---
   const isChecked = useRecordingsStore((s) => s.checkedFolders.has(entry.name));
   const toggleCheck = useRecordingsStore((s) => s.toggleCheck);
+  const checkRange = useRecordingsStore((s) => s.checkRange);
 
   const deleteMutation = useDeleteRecordings();
   const renameMutation = useRenameRecording();
@@ -122,7 +126,16 @@ export const RecordingListItem = memo(function RecordingListItem({
         <Checkbox
           checked={isChecked}
           disabled={checkDisabled}
-          onCheckedChange={() => toggleCheck(entry.name)}
+          // Handled on click rather than onCheckedChange to read the Shift key; the store owns the checked state.
+          onClick={(e) => {
+            e.preventDefault();
+            if (e.shiftKey && displayedFolders) checkRange(displayedFolders, entry.name);
+            else toggleCheck(entry.name);
+          }}
+          // Keep Shift+click from extending the page's text selection across the rows.
+          onMouseDown={(e) => {
+            if (e.shiftKey) e.preventDefault();
+          }}
           aria-label={`Select ${entry.name}`}
         />
       </div>

@@ -131,7 +131,7 @@ export function RecordingsTable({
                   className="absolute top-0 left-0 w-full"
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
-                  <RecordingListItem entry={entry} />
+                  <RecordingListItem entry={entry} displayedFolders={allFolders} />
                 </div>
               );
             })}

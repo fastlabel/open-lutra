@@ -21,6 +21,7 @@ export default mergeConfig(
           "src/features/**/quality-utils.tsx",
           "src/features/recording/store.ts",
           "src/features/recordings/bulk-tags.ts",
+          "src/features/recordings/range-select.ts",
           "src/stores/quality-history-store.ts",
           "src/stores/toast-store.ts",
         ],
