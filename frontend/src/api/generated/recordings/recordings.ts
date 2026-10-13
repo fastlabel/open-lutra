@@ -275,7 +275,7 @@ export const getBulkUpdateRecordingMetaUrl = () => {
 }
 
 /**
- * Set metadata values on multiple recording folders in one call.
+ * Set metadata values and add / remove tags on multiple recording folders in one call.
  *
  * Every folder is resolved before anything is written, so a missing folder fails the whole request.
  * @summary Bulk Update Recording Meta

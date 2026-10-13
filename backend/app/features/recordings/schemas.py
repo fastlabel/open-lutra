@@ -1,6 +1,6 @@
 """Request/response schemas for recording directory operation APIs."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class RenameRequest(BaseModel):
@@ -33,11 +33,28 @@ class UpdateMetaRequest(BaseModel):
 class BulkUpdateMetaRequest(BaseModel):
     """Request body for PATCH /api/recordings.
 
-    Each key in `metadata` is set on every folder; keys not present are left unchanged.
+    Each key in `metadata` is set on every folder, `add_tags` are appended where
+    missing and `remove_tags` are dropped where present. Anything not mentioned
+    is left unchanged, so a request that mentions nothing is rejected.
     """
 
     folders: list[str] = Field(..., description="Names of recording folders to update")
-    metadata: dict[str, str] = Field(..., description="Pre-registered metadata (key -> value) to set")
+    metadata: dict[str, str] = Field(default_factory=dict, description="Pre-registered metadata (key -> value) to set")
+    add_tags: list[str] = Field(
+        default_factory=list, description="Tags to add to every folder (skipped where already present)"
+    )
+    remove_tags: list[str] = Field(
+        default_factory=list, description="Tags to remove from every folder (ignored where absent)"
+    )
+
+    @model_validator(mode="after")
+    def _require_a_change(self) -> "BulkUpdateMetaRequest":
+        if not (self.metadata or self.add_tags or self.remove_tags):
+            raise ValueError("Nothing to update: metadata, add_tags and remove_tags are all empty")
+        overlap = sorted(set(self.add_tags) & set(self.remove_tags))
+        if overlap:
+            raise ValueError(f"Tags cannot be both added and removed: {overlap}")
+        return self
 
 
 class FileEntry(BaseModel):

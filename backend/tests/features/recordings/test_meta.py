@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from app.features.recordings.meta import (
     RecordingMeta,
-    merge_recording_metadata,
+    merge_recording_meta,
     read_recording_meta,
     update_recording_meta,
     write_recording_meta,
@@ -206,8 +206,8 @@ class TestUpdateRecordingMeta:
         assert result.metadata == {}
 
 
-class TestMergeRecordingMetadata:
-    """Tests for merge_recording_metadata."""
+class TestMergeRecordingMeta:
+    """Tests for merge_recording_meta."""
 
     def test_sets_given_keys_and_keeps_other_fields(self, tmp_path: Path) -> None:
         """Given keys are overwritten or added; other keys, task_name, and tags are preserved."""
@@ -221,7 +221,9 @@ class TestMergeRecordingMetadata:
             ),
         )
 
-        result = merge_recording_metadata(tmp_path, {"target_object": "cup", "scene": "kitchen"})
+        result = merge_recording_meta(
+            tmp_path, metadata={"target_object": "cup", "scene": "kitchen"}, add_tags=[], remove_tags=[]
+        )
 
         assert result.metadata == {"operator_id": "op001", "target_object": "cup", "scene": "kitchen"}
         assert result.task_name == "keep"
@@ -231,7 +233,40 @@ class TestMergeRecordingMetadata:
 
     def test_creates_meta_when_missing(self, tmp_path: Path) -> None:
         """Older recording folders without recording_meta.json get a new file."""
-        result = merge_recording_metadata(tmp_path, {"target_object": "cup"})
+        result = merge_recording_meta(tmp_path, metadata={"target_object": "cup"}, add_tags=["a"], remove_tags=[])
 
         assert result.metadata == {"target_object": "cup"}
+        assert result.tags == ["a"]
+        assert read_recording_meta(tmp_path) == result
+
+    def test_add_tags_appends_in_order_without_duplicates(self, tmp_path: Path) -> None:
+        """New tags go to the end in the given order; tags already present (or repeated) are not duplicated."""
+        write_recording_meta(tmp_path, RecordingMeta(tags=["good", "retry"]))
+
+        result = merge_recording_meta(
+            tmp_path, metadata={}, add_tags=["reviewed", "good", "night", "reviewed"], remove_tags=[]
+        )
+
+        assert result.tags == ["good", "retry", "reviewed", "night"]
+
+    def test_remove_tags_drops_only_present_ones(self, tmp_path: Path) -> None:
+        """Listed tags are removed where present; absent ones are ignored and the rest keep their order."""
+        write_recording_meta(tmp_path, RecordingMeta(tags=["good", "retry", "blurry"]))
+
+        result = merge_recording_meta(tmp_path, metadata={}, add_tags=[], remove_tags=["retry", "missing"])
+
+        assert result.tags == ["good", "blurry"]
+
+    def test_metadata_and_tags_in_one_write(self, tmp_path: Path) -> None:
+        """Metadata and both tag lists are applied together with a single file write."""
+        write_recording_meta(tmp_path, RecordingMeta(tags=["retry"], metadata={"operator_id": "op001"}))
+
+        with patch("app.features.recordings.meta.write_recording_meta", wraps=write_recording_meta) as mock_write:
+            result = merge_recording_meta(
+                tmp_path, metadata={"target_object": "cup"}, add_tags=["reviewed"], remove_tags=["retry"]
+            )
+
+        assert mock_write.call_count == 1
+        assert result.metadata == {"operator_id": "op001", "target_object": "cup"}
+        assert result.tags == ["reviewed"]
         assert read_recording_meta(tmp_path) == result

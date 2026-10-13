@@ -65,8 +65,13 @@ metadata_fields:
 - Values can also be edited after the fact from the metadata dialog on the
   recordings page, and appear as badges in the recordings list.
 - **Bulk edit**: with recordings checked, the **Edit** action in the list header
-  sets `select` fields on all of them at once (`PATCH /api/recordings`). Fields
-  left as *Unchanged* keep each recording's current value.
+  opens one dialog for all of them (`PATCH /api/recordings`). Its **Tags**
+  section lists every tag present on the selection with a tri-state checkbox
+  (on all / on some / on none): checking a tag adds it to every selected
+  recording (`add_tags`), unchecking removes it from every one (`remove_tags`),
+  and a new tag can be typed in. Its **Metadata** section sets `select` fields.
+  Tags and fields left unchanged keep each recording's current value, and a
+  request that changes nothing is rejected.
 
 ## Validation
 

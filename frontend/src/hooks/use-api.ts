@@ -179,7 +179,7 @@ export function useUpdateRecordingMeta() {
   });
 }
 
-/** Mutation that sets metadata values on multiple recordings at once. */
+/** Mutation that sets metadata values and adds / removes tags on multiple recordings at once. */
 export function useBulkUpdateRecordingMeta() {
   const queryClient = useQueryClient();
   return useBulkUpdateRecordingMetaGenerated({
