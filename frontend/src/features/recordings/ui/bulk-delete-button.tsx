@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteRecordings } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
+import { toast } from "@/stores/toast-store";
 import { useRecordingsStore } from "../store";
 
 export function BulkDeleteButton() {
@@ -34,12 +35,22 @@ export function BulkDeleteButton() {
       {
         onSuccess: (resp) => {
           const deleted = resp.status === 200 ? (resp.data as { deleted: string[] }).deleted : [];
-          addLog("info", `Deleted ${deleted.length} recording${deleted.length === 1 ? "" : "s"}`);
+          const summary = `Deleted ${deleted.length} recording${deleted.length === 1 ? "" : "s"}`;
+          addLog("info", summary);
+          // Folders that were already gone are skipped by the backend rather than failing the request.
+          const missing = folders.filter((f) => !deleted.includes(f));
+          if (missing.length === 0) toast.success(summary);
+          else
+            toast.error(
+              `Deleted ${deleted.length} of ${folders.length} recordings`,
+              `Not found: ${missing.join(", ")}`,
+            );
           clearChecked();
         },
         onError: (err: unknown) => {
           const msg = err instanceof Error ? err.message : "Delete failed";
           addLog("danger", `Delete failed: ${msg}`);
+          toast.error("Failed to delete recordings", msg);
         },
       },
     );

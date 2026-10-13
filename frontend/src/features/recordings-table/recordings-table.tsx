@@ -84,12 +84,17 @@ export function RecordingsTable({
 
       {/* Select-all + filter + action row */}
       <div className="flex h-9 items-center justify-between border-b border-border bg-muted/30 px-4 text-xs">
-        <div className="flex items-center gap-3">
-          <Checkbox
-            checked={allFolders.length > 0 && allFolders.every((f) => checkedFolders.has(f))}
-            onCheckedChange={() => toggleCheckAll(allFolders)}
-            aria-label="Select all"
-          />
+        <div className="flex items-center gap-3 self-stretch">
+          {/* Same widened hit area as the row checkboxes, so the two columns line up. */}
+          <div
+            className="-mr-3 -ml-4 flex cursor-pointer items-center self-stretch pr-3 pl-4 transition-colors hover:bg-muted"
+            onClick={() => toggleCheckAll(allFolders)}
+          >
+            <Checkbox
+              checked={allFolders.length > 0 && allFolders.every((f) => checkedFolders.has(f))}
+              aria-label="Select all"
+            />
+          </div>
           <span className="text-muted-foreground tabular-nums">{filteredEntries.length}</span>
           <span className="mx-1 h-3 w-px bg-border" />
           <TaskFilter
@@ -131,7 +136,7 @@ export function RecordingsTable({
                   className="absolute top-0 left-0 w-full"
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
-                  <RecordingListItem entry={entry} />
+                  <RecordingListItem entry={entry} displayedFolders={allFolders} />
                 </div>
               );
             })}

@@ -329,6 +329,12 @@ Clicking the details panel header navigates to the MCAP detail page (`/recording
 - This makes "filter or search to narrow down, then bulk-delete with one button" possible with minimal operations.
 - The count on each filter tab updates in real time to reflect the breakdown within the current search hits.
 
+**Checkbox hit area**: each checkbox (rows and select-all) sits in a cell that spans the row height and the row's left padding, and a click anywhere in that cell toggles it rather than opening the recording.
+
+**Range selection**: a plain click on a row checkbox toggles it and makes it the anchor; Shift+clicking another row applies the anchor's state (checked / unchecked) to every row between them, inclusive, in the current display order (only rows shown by the active search / filter). Select-all, filter / search changes and clearing the selection drop the anchor. Logic: `features/recordings/range-select.ts`.
+
+**Bulk action feedback**: bulk edit and bulk delete report completion with a toast (`stores/toast-store.ts`) carrying the count; a failed request, or a delete that skipped recordings that no longer exist, raises an error toast instead.
+
 **Where bulk actions live**: bulk-action buttons are individual components under `frontend/src/features/recordings/ui/bulk-*.tsx` (today: `bulk-delete-button.tsx`) and mounted inside `features/recordings-table/recordings-table.tsx`. They read the selected set from `useRecordingsStore.checkedFolders` (a Zustand store inside the `recordings` feature). Add new bulk actions by mirroring this pattern.
 
 **Rendering & scan (large lists)**: the table is virtualized with `@tanstack/react-virtual`, so only the rows in view are mounted (each row is absolutely positioned and measured) and the list stays responsive with thousands of recordings. On the backend, `scan_output_dir` caches each folder's parsed metadata keyed by a source-file fingerprint and scans folders in parallel, so repeated list fetches are cheap; file size and mtime are always recomputed fresh so they never go stale.

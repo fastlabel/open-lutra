@@ -33,10 +33,13 @@ import { MetaEditDialog } from "./meta-edit-dialog";
 // own checked state, read via a store selector inside) changes should re-render.
 export const RecordingListItem = memo(function RecordingListItem({
   entry,
+  displayedFolders,
   checkDisabled,
   canRename,
 }: {
   entry: FileEntry;
+  /** Folder names in display order; Shift+clicking the checkbox selects the range within them. */
+  displayedFolders?: string[];
   /** Disable the check operation (e.g. during recording). */
   checkDisabled?: boolean;
   /** Allow renaming on double-click. */
@@ -48,6 +51,7 @@ export const RecordingListItem = memo(function RecordingListItem({
   // --- Server state (TanStack Query) ---
   const isChecked = useRecordingsStore((s) => s.checkedFolders.has(entry.name));
   const toggleCheck = useRecordingsStore((s) => s.toggleCheck);
+  const checkRange = useRecordingsStore((s) => s.checkRange);
 
   const deleteMutation = useDeleteRecordings();
   const renameMutation = useRenameRecording();
@@ -117,14 +121,22 @@ export const RecordingListItem = memo(function RecordingListItem({
           : undefined
       }
     >
-      {/* Checkbox */}
-      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={isChecked}
-          disabled={checkDisabled}
-          onCheckedChange={() => toggleCheck(entry.name)}
-          aria-label={`Select ${entry.name}`}
-        />
+      {/* Checkbox cell: spans the row height and its left padding so a near-miss toggles the row instead of opening it */}
+      <div
+        className="-my-2 -mr-3 -ml-4 flex shrink-0 items-center self-stretch pr-3 pl-4 transition-colors hover:bg-muted"
+        // Handles clicks on the checkbox too (they bubble here) so Shift is read in one place; the store owns the checked state.
+        onClick={(e) => {
+          e.stopPropagation();
+          if (checkDisabled) return;
+          if (e.shiftKey && displayedFolders) checkRange(displayedFolders, entry.name);
+          else toggleCheck(entry.name);
+        }}
+        // Keep Shift+click from extending the page's text selection across the rows.
+        onMouseDown={(e) => {
+          if (e.shiftKey) e.preventDefault();
+        }}
+      >
+        <Checkbox checked={isChecked} disabled={checkDisabled} aria-label={`Select ${entry.name}`} />
       </div>
 
       <ValidationBadge status={entry.validation_overall_status} />

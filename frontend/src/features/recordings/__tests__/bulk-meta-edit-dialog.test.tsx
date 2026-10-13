@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigResponse, FileEntry, FilesResponse } from "@/api/generated/schemas";
+import { useToastStore } from "@/stores/toast-store";
 import { BulkMetaEditDialog } from "../ui/bulk-meta-edit-dialog";
 
 const { configMock, filesMock, mutateMock, addLogMock } = vi.hoisted(() => ({
@@ -103,6 +104,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  useToastStore.setState({ toasts: [] });
 });
 
 describe("BulkMetaEditDialog", () => {
@@ -280,7 +282,7 @@ describe("BulkMetaEditDialog", () => {
     expect(saveButton(2)).toBeDisabled();
   });
 
-  it("logs, closes and clears the selection after a successful save", () => {
+  it("logs, toasts, closes and clears the selection after a successful save", () => {
     mutateMock.mockImplementation((_vars, options) => options.onSuccess());
     const { onOpenChange, onSaved } = renderDialog();
 
@@ -288,11 +290,12 @@ describe("BulkMetaEditDialog", () => {
     fireEvent.click(saveButton(2));
 
     expect(addLogMock).toHaveBeenCalledWith("info", "Updated 2 recordings");
+    expect(useToastStore.getState().toasts).toMatchObject([{ variant: "success", title: "Updated 2 recordings" }]);
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onSaved).toHaveBeenCalled();
   });
 
-  it("shows the error and stays open when the save fails", () => {
+  it("shows the error, toasts it and stays open when the save fails", () => {
     mutateMock.mockImplementation((_vars, options) => options.onError(new Error("disk full")));
     const { onOpenChange } = renderDialog();
 
@@ -301,6 +304,9 @@ describe("BulkMetaEditDialog", () => {
 
     expect(screen.getByText("Failed to update recordings: disk full")).toBeInTheDocument();
     expect(addLogMock).toHaveBeenCalledWith("danger", "Failed to update recordings: disk full");
+    expect(useToastStore.getState().toasts).toMatchObject([
+      { variant: "error", title: "Failed to update recordings", description: "disk full" },
+    ]);
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 

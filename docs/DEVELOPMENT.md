@@ -229,6 +229,7 @@ open frontend/coverage/index.html
 | `src/lib/**` | Pure functions (format.ts, topic-sort.ts, etc.) | statements/branches/functions: 100% |
 | `src/features/**/mutations.ts` | Mutation orchestration (side effects + branching) | - |
 | `src/features/**/quality-utils.tsx` | Pure quality-decision utilities | - |
+| `src/features/recordings/range-select.ts` | Shift+click range selection over the displayed rows | - |
 | `src/features/recording/store.ts` | Countdown state machine (a store, included as an exception) | - |
 | `src/stores/quality-history-store.ts` | Buffer-management algorithm (a store, included as an exception) | - |
 

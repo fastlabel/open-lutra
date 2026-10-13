@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useBulkUpdateRecordingMeta, useConfig, useFiles } from "@/hooks/use-api";
 import { useAddLog } from "@/hooks/use-topics-stream";
+import { toast } from "@/stores/toast-store";
 import { buildTagRows, cycleTagCheck, newTagRow, type TagCheck, tagRequest, withTagChecked } from "../bulk-tags";
 import { BulkTagPicker } from "./bulk-tag-picker";
 import { MetadataFieldInput } from "./metadata-field-input";
@@ -84,7 +85,9 @@ export function BulkMetaEditDialog({
       { data: { folders, metadata: changes, add_tags, remove_tags } },
       {
         onSuccess: () => {
-          addLog("info", `Updated ${folders.length} recording${folders.length === 1 ? "" : "s"}`);
+          const summary = `Updated ${folders.length} recording${folders.length === 1 ? "" : "s"}`;
+          addLog("info", summary);
+          toast.success(summary);
           onOpenChange(false);
           onSaved();
         },
@@ -92,6 +95,7 @@ export function BulkMetaEditDialog({
           const msg = err instanceof Error ? err.message : "Update failed";
           setErrorMessage(msg);
           addLog("danger", `Failed to update recordings: ${msg}`);
+          toast.error("Failed to update recordings", msg);
         },
       },
     );
