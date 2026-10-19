@@ -1,0 +1,121 @@
+<div id="monitor" hx-get="/dashboard/monitor?period={{ period }}" hx-trigger="every 10s" hx-swap="outerHTML" class="mb-5">
+  <div class="d-flex flex-wrap flex-items-center flex-justify-between mb-3" style="gap: 8px">
+    <div>
+      <h2 class="h3 text-normal">Collection monitor</h2>
+      <div class="f6 color-fg-muted">Recorded hours that passed validation, and the status of each edge PC. Updates every 10 s (CloudWatch values are per minute).</div>
+    </div>
+    <div class="BtnGroup" role="group" aria-label="Period">
+      {% for key, label in periods.items() %}
+      <button type="button" class="btn btn-sm BtnGroup-item {{ 'btn-primary' if key == period }}" aria-pressed="{{ 'true' if key == period else 'false' }}"
+        hx-get="/dashboard/monitor?period={{ key }}" hx-target="#monitor" hx-swap="outerHTML">{{ label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% set rate = (collected.passed_hours / collected.recorded_hours * 100) | round | int if collected.recorded_hours else none %}
+  <div class="kpi-grid mb-3">
+    <div class="Box p-3 kpi kpi-primary">
+      <div class="f6">Recorded hours passing validation ({{ periods[period] }})</div>
+      <div class="kpi-value">{{ "%.1f" | format(collected.passed_hours) }}<span class="f4 text-normal ml-1">hours</span></div>
+      <div class="f6">Recordings that passed validation</div>
+    </div>
+    <div class="Box p-3 kpi">
+      <div class="f6 color-fg-muted">Pass rate</div>
+      <div class="kpi-value">{{ rate if rate is not none else "-" }}{% if rate is not none %}<span class="f4 text-normal ml-1">%</span>{% endif %}</div>
+      <div class="f6 color-fg-muted">Share of {{ "%.1f" | format(collected.recorded_hours) }} recorded hours that passed</div>
+    </div>
+    <div class="Box p-3 kpi">
+      <div class="f6 color-fg-muted">Online edge PCs</div>
+      <div class="kpi-value">{{ online }}<span class="f4 text-normal ml-1">/ {{ devices | length }} devices</span></div>
+      <div class="f6 color-fg-muted">{{ recording }} recording</div>
+    </div>
+    <div class="Box p-3 kpi">
+      <div class="f6 color-fg-muted">Needs attention</div>
+      <div class="kpi-value {{ 'color-fg-danger' if issues }}">{{ issues }}<span class="f4 text-normal ml-1 color-fg-default">items</span></div>
+      <div class="f6 color-fg-muted">See health checks</div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap flex-items-start mb-3" style="gap: 16px">
+    <div class="Box flex-auto" style="flex: 2 1 520px; min-width: 0">
+      <div class="Box-header d-flex flex-items-center flex-justify-between">
+        <h3 class="Box-title">Recorded hours ({{ "hourly" if period == "today" else "daily" }})</h3>
+        <span class="d-flex f6 color-fg-muted" style="gap: 16px">
+          <span class="d-flex flex-items-center" style="gap: 6px"><span class="donut-key" style="background: var(--c-ok)"></span>Passed</span>
+          <span class="d-flex flex-items-center" style="gap: 6px"><span class="donut-key" style="background: var(--c-failed)"></span>Failed</span>
+        </span>
+      </div>
+      <div class="Box-body">
+        <div class="d-flex" style="gap: 8px">
+          <div class="chart-axis f6 color-fg-muted"><span>{{ axis_max | round(1) }}h</span><span>{{ (axis_max / 2) | round(1) }}h</span><span>0</span></div>
+          <div class="flex-auto" style="min-width: 0">
+            <div class="chart-plot">
+              {% for label, passed, other in collected.buckets %}
+              <div class="chart-bar" title="{{ label }} &middot; passed {{ '%.1f' | format(passed) }}h / failed {{ '%.1f' | format(other) }}h">
+                {% if other %}<span style="height: {{ other / axis_max * 100 }}%; background: var(--c-failed)"></span>{% endif %}
+                {% if passed %}<span style="height: {{ passed / axis_max * 100 }}%; background: var(--c-ok)"></span>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            <div class="chart-labels f6 color-fg-muted">
+              {% for label, _, _ in collected.buckets %}<span>{{ label if collected.buckets | length <= 12 or loop.index0 % 5 == 0 or loop.last else "" }}</span>{% endfor %}
+            </div>
+          </div>
+        </div>
+        {% if not collected.recorded_hours %}<p class="f6 color-fg-muted mt-2 mb-0">No recordings finished validation in this period.</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="Box" style="flex: 1 1 300px; min-width: 0">
+      <div class="Box-header"><h3 class="Box-title">Health checks</h3></div>
+      {% for c in checks %}
+      <div class="Box-row d-flex flex-items-start" style="gap: 10px">
+        <span class="Label {{ {'error': 'Label--danger', 'warning': 'Label--attention', 'ok': 'Label--success'}[c.level] }}" style="flex: 0 0 auto">{{ {'error': 'Error', 'warning': 'Warning', 'ok': 'OK'}[c.level] }}</span>
+        <div style="min-width: 0"><div class="text-bold">{{ c.name }}</div><div class="f6 color-fg-muted">{{ c.detail }}</div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="Box">
+    <div class="Box-header d-flex flex-items-center flex-justify-between">
+      <h3 class="Box-title">Status per edge PC ({{ periods[period] }})</h3>
+      <span class="f6 color-fg-muted">Warning when free space is below {{ disk_free_warning }}% or the disk fills within {{ disk_days_warning }} days</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="device-table">
+        <thead>
+          <tr><th>Edge PC</th><th>Connection</th><th>Recording</th><th class="text-right">Passed hours</th><th class="text-right">Pass rate</th><th class="text-right">Loss rate</th><th>Free disk</th><th>Last report</th></tr>
+        </thead>
+        <tbody>
+          {% for d in devices %}
+          {% set m = d.monitoring %}
+          {% set passed, recorded = collected.per_device.get(d.name, (0, 0)) %}
+          {% set left = m.days_until_full %}
+          {% set low_disk = 'disk' in m.problems %}
+          <tr>
+            <td><a href="/groups/{{ group_of[d.name] }}/devices/{{ d.name }}" class="text-bold">{{ d.name }}</a><div class="f6 color-fg-muted">{{ group_of[d.name] }}</div></td>
+            <td>{% if 'offline' in m.problems %}<span class="Label Label--danger">Offline</span>{% else %}<span class="Label Label--success">Online</span>{% endif %}</td>
+            <td>{% if m.recording is none %}<span class="color-fg-muted">Unknown</span>{% elif m.recording %}<span class="color-fg-danger text-bold">{{ octicon("dot-fill", 16) }}Recording</span>{% else %}Idle{% endif %}</td>
+            <td class="text-right text-bold">{{ "%.1f" | format(passed) }} h</td>
+            <td class="text-right">{{ ((passed / recorded * 100) | round | int ~ "%") if recorded else "-" }}</td>
+            <td class="text-right {{ 'color-fg-danger text-bold' if 'loss' in m.problems }}">{{ ("%.1f" | format(m.max_loss_rate) ~ "%") if m.max_loss_rate is not none else "-" }}</td>
+            <td>
+              {% if m.disk_free_percent is not none %}
+              <span class="d-flex flex-items-center" style="gap: 8px">
+                <span class="Progress" style="width: 90px"><span class="Progress-item {{ 'color-bg-attention-emphasis' if low_disk else 'color-bg-success-emphasis' }}" style="width: {{ m.disk_free_percent }}%"></span></span>
+                <span>{{ m.disk_free_percent | round | int }}%</span>
+                <span class="f6 {{ 'color-fg-attention text-bold' if low_disk else 'color-fg-muted' }}">{{ ((left | round | int) ~ " days left") if left is not none else "Not decreasing" }}</span>
+              </span>
+              {% else %}<span class="color-fg-muted">-</span>{% endif %}
+            </td>
+            <td class="color-fg-muted">{{ m.last_report | ago if m.last_report else "-" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="color-fg-muted">No devices.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

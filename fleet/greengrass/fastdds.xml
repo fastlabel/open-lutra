@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UDP-only Fast DDS profile for the backend container, released as an artifact of the
+  OpenLUTRA component and mounted by compose.yml (FASTRTPS_DEFAULT_PROFILES_FILE).
+
+  With network_mode: host, publishers on the same host (e.g. Isaac Sim run natively)
+  share the container's host ID, so Fast DDS picks the Shared Memory transport.
+  The container has its own /dev/shm, so discovery succeeds but no data arrives.
+  Dropping the builtin transports removes SHM and forces UDP.
+  See docs/domain/dds_gap.md at the repository root.
+-->
+<dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <profiles>
+    <transport_descriptors>
+      <transport_descriptor>
+        <transport_id>udp_only</transport_id>
+        <type>UDPv4</type>
+      </transport_descriptor>
+    </transport_descriptors>
+
+    <participant profile_name="udp_only_participant" is_default_profile="true">
+      <rtps>
+        <userTransports>
+          <transport_id>udp_only</transport_id>
+        </userTransports>
+        <useBuiltinTransports>false</useBuiltinTransports>
+      </rtps>
+    </participant>
+  </profiles>
+</dds>

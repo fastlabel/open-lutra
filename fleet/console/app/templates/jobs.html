@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import job_icon %}
+{% block title %}Jobs - {% endblock %}
+{% block content %}
+<div class="Box">
+  <div class="Box-header"><h3 class="Box-title">Jobs <span class="Counter">{{ jobs | length }}</span></h3>
+    <div class="f6 color-fg-muted">Builds, releases and deployments run from this console. Cleared when the console restarts.</div></div>
+  {% for job in jobs %}
+  <div class="Box-row Box-row--hover-gray d-flex flex-items-center" style="gap: 12px">
+    {{ job_icon(job.status) }}
+    <div class="flex-auto"><a href="/jobs/{{ job.id }}" class="Link--primary text-bold">{{ job.title }}</a>
+      <div class="f6 color-fg-muted">#{{ job.id }} &middot; {{ job.started | time }}</div></div>
+  </div>
+  {% else %}
+  <div class="blankslate">{{ octicon("terminal", 24, "blankslate-icon") }}<h3 class="blankslate-heading">No jobs yet</h3></div>
+  {% endfor %}
+</div>
+{% endblock %}

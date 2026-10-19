@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Versions - {% endblock %}
+{% block content %}
+<div class="Box">
+  <div class="Box-header"><h3 class="Box-title">Component versions <span class="Counter">{{ versions | length }}</span></h3></div>
+  {% for v, tag in versions %}
+  <div class="Box-row d-flex flex-items-center" style="gap: 12px">
+    {{ octicon("tag", 16, "color-fg-muted") }}
+    <div class="flex-auto">
+      <span class="text-bold mono">{{ v }}</span>
+      {% if loop.first %}<span class="Label Label--success ml-1">Latest</span>{% endif %}
+      <div class="f6 color-fg-muted mt-1">{{ octicon("container", 16, "mr-1") }}<span class="mono">{{ tag or "-" }}</span></div>
+    </div>
+    {% for g in in_use.get(v, []) %}<a href="/groups/{{ g }}" class="Label Label--accent">{{ octicon("stack", 16, "mr-1") }}{{ g }}</a>{% endfor %}
+  </div>
+  {% else %}
+  <div class="blankslate">{{ octicon("tag", 24, "blankslate-icon") }}<h3 class="blankslate-heading">No versions yet</h3><a href="/#release" class="btn btn-primary">Release</a></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-color-mode="light" data-light-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{% endblock %}Fleet Console</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@primer/css@21.5.1/dist/primer.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  </head>
+  <body>
+    {% set active_job = running_job() %}
+    {% set secret_count = secrets_on_disk() | length %}
+    {% set section = request.url.path.split("/")[1] %}
+    <header class="Header px-3 px-md-4">
+      <div class="Header-item">
+        <a href="/" class="Header-link d-flex flex-items-center" aria-label="Fleet Console">{{ octicon("broadcast", 32) }}</a>
+      </div>
+      <nav class="Header-item Header-item--full Header-nav">
+        <a href="/" class="Header-link {{ 'selected' if section in ('', 'groups') }}">Dashboard</a>
+        <a href="/versions" class="Header-link {{ 'selected' if section == 'versions' }}">Versions</a>
+        <a href="/secrets" class="Header-link {{ 'selected' if section == 'secrets' }}">Secrets{% if secret_count %}<span class="secret-alert ml-1" aria-label="Private keys remain on this PC"></span>{% endif %}</a>
+        <a href="/jobs" class="Header-link {{ 'selected' if section == 'jobs' }}">Jobs</a>
+      </nav>
+      {% if active_job %}
+      <div class="Header-item">
+        <a href="/jobs/{{ active_job.id }}" class="Header-link d-flex flex-items-center">{{ octicon("sync", 16, "anim-rotate-slow mr-1 color-fg-attention") }}{{ active_job.title }}</a>
+      </div>
+      {% endif %}
+      <div class="Header-item mr-0 color-fg-muted f6" style="color: rgba(255,255,255,0.5) !important">{{ component_name }}</div>
+    </header>
+    {% block header %}{% endblock %}
+    <main class="container-xl px-3 px-md-4 py-4">{% block content %}{% endblock %}</main>
+    <script src="/static/config-editor.js"></script>
+    <script>
+      document.body.addEventListener("htmx:afterSwap", (event) => {
+        event.detail.target.querySelectorAll(".job-log").forEach((log) => (log.scrollTop = log.scrollHeight));
+      });
+    </script>
+  </body>
+</html>

@@ -56,6 +56,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 - **MCAP → MP4 preview** — per-camera MP4s generated on demand from MCAP, streamed frame-by-frame through ffmpeg.
 - **Pluggable validation** — built-in validators plus a `@register_validator` extension point for custom per-recording rules. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md).
 - **Recording config as YAML** — topics, expected Hz, validators, pre-registered metadata fields, and `ROS_DOMAIN_ID` switched via the `RECORDING_CONFIG` environment variable.
+- **Fleet deployment** — release OpenLUTRA to edge PCs through AWS IoT Greengrass V2 and watch them from a local Fleet Console. See [fleet/README.md](fleet/README.md).
 
 <!-- TBD: short feature screenshots (recording page, recordings list, MCAP detail view) -->
 
@@ -129,6 +130,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide (dev environments, testing, lint) |
 | [backend/README.md](backend/README.md) | Backend container layout (what a restart picks up, what needs a rebuild) |
 | [frontend/README.md](frontend/README.md) | Frontend container layout (what a restart picks up, what needs a rebuild) |
+| [fleet/README.md](fleet/README.md) | Fleet: deploying to edge PCs with AWS IoT Greengrass and monitoring them (Fleet Console) |
 | [docs/domain/](docs/domain/index.md) | Domain notes (DDS gaps, quality analysis, validators, metadata, upload, LeRobot export, SSE) |
 | [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types) |
 

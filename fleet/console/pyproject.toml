@@ -1,0 +1,19 @@
+[project]
+name = "console"
+version = "0.1.0"
+description = "Local web console for releasing OpenLUTRA and watching devices"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35",
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "pyyaml>=6.0",
+    "uvicorn>=0.30",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.6"]
+
+[tool.ruff]
+line-length = 120

@@ -1,0 +1,54 @@
+{% from "_macros.html" import condition_label, status_label %}
+<div class="Subhead">
+  <h2 class="Subhead-heading d-flex flex-items-center" style="gap: 8px">{{ octicon("device-desktop", 24) }}{{ device.name }} {{ condition_label(condition) }}</h2>
+  <div class="Subhead-description">{{ octicon("sync", 16, "mr-1") }}Updates every 10 s</div>
+</div>
+
+{% if condition == "updating" %}
+<div class="flash mb-4">{{ octicon("sync") }}A new deployment is being applied. When it finishes, the version will be <span class="mono">{{ expected }}</span>.</div>
+{% endif %}
+{% for kind in device.issues(expected) %}
+<div class="flash {{ 'flash-error' if problems[kind][1] == 'error' else 'flash-warn' }} mb-2">{{ octicon("alert") }}{{ problems[kind][0] }}
+  {%- if kind == "version" %} (deployed: <span class="mono">{{ expected or "none" }}</span>){% elif kind == "deploy_failed" %}. Check the deployments below for the reason{% endif %}</div>
+{% endfor %}
+
+<div class="Layout Layout--sidebarPosition-end Layout--sidebarPosition-flowRow-end">
+  <div class="Layout-main">
+    <h3 class="h4 mb-2">Deployments</h3>
+    {% for d in detail.deployments %}
+    <div class="TimelineItem">
+      <div class="TimelineItem-badge {{ 'color-bg-success-emphasis color-fg-on-emphasis' if d.coreDeviceExecutionStatus in ('SUCCEEDED', 'COMPLETED') else 'color-bg-danger-emphasis color-fg-on-emphasis' if d.coreDeviceExecutionStatus in ('FAILED', 'TIMED_OUT', 'REJECTED') else '' }}">{{ octicon("rocket") }}</div>
+      <div class="TimelineItem-body">
+        <span class="text-bold color-fg-default">{{ d.deploymentName }}</span> {{ status_label(d.coreDeviceExecutionStatus) }}
+        <span class="color-fg-muted" title="{{ d.modifiedTimestamp | time }}">&middot; {{ d.modifiedTimestamp | ago }}</span>
+        {% if d.reason %}<div class="f6 mt-1">{{ d.reason }}</div>{% endif %}
+        {% if d.statusDetails and d.statusDetails.errorTypes %}<div class="f6 color-fg-danger mt-1">{{ d.statusDetails.errorTypes | join(", ") }}</div>{% endif %}
+      </div>
+    </div>
+    {% else %}<p class="color-fg-muted">No deployments.</p>{% endfor %}
+
+    <h3 class="h4 mt-4 mb-2">Monitoring</h3>
+    {% with monitoring = device.monitoring %}{% include "_monitoring.html" %}{% endwith %}
+
+    <h3 class="h4 mt-4 mb-2">Installed components</h3>
+    <div class="Box">
+      {% for c in detail.components %}
+      <div class="Box-row d-flex flex-items-center" style="gap: 8px">
+        {{ octicon("package", 16, "color-fg-muted") }}
+        <span class="flex-auto {{ 'text-bold' if c.componentName == component_name }}">{{ c.componentName }}</span>
+        <span class="mono">{{ c.componentVersion }}</span>
+        {{ status_label(c.lifecycleState) }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="Layout-sidebar">
+    {% macro fact(label) %}<div class="border-bottom py-3"><div class="f6 text-bold color-fg-muted mb-1">{{ label }}</div><div>{{ caller() }}</div></div>{% endmacro %}
+    {% call fact("OpenLUTRA version") %}<span class="mono">{{ device.version or "-" }}</span>{% endcall %}
+    {% call fact("OpenLUTRA status") %}{{ status_label(device.state) }}{% endcall %}
+    {% call fact("Device status") %}{{ status_label(detail.health) }}{% endcall %}
+    {% call fact("Last seen") %}<span title="{{ detail.last_seen | time }}">{{ detail.last_seen | ago }}</span>{% endcall %}
+    {% call fact("nucleus") %}{{ detail.nucleus_version or "-" }}{% endcall %}
+    {% call fact("Platform") %}{{ detail.platform or "-" }} / {{ detail.architecture or "-" }}{% endcall %}
+  </div>
+</div>

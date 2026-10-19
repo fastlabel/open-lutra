@@ -88,3 +88,23 @@ jobs:
 
       - name: Test (vitest)
         run: pnpm exec vitest run
+
+  fleet:
+    name: Fleet (lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fleet
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Lint (ruff + terraform fmt)
+        run: make lint

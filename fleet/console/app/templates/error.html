@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flash flash-error mb-3">{{ octicon("alert") }}<strong>{{ message }}</strong>
+  {% if hint %}<div class="mt-1">Check that the access key in <code>.env</code> is correct and has enough permissions (the IAM user is in the operator group), or, if you started with <code>make console AWS_VAULT_PROFILE=&lt;profile&gt;</code>, that your aws-vault (SSO) login has not expired.</div>{% endif %}
+</div>
+<div class="d-flex" style="gap: 8px">
+  {% if job %}<a href="/jobs/{{ job.id }}" class="btn btn-primary">View running job</a>{% endif %}
+  <a href="javascript:history.back()" class="btn">Back</a>
+</div>
+{% endblock %}

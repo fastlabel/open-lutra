@@ -1,0 +1,83 @@
+{% from "_macros.html" import condition_counts, condition_donut, condition_legend %}
+<div class="d-flex flex-items-center flex-justify-between mb-3">
+  <h2 class="h3 text-normal">Thing Group</h2>
+  <div class="d-flex flex-items-center" style="gap: 16px">
+    <span class="f6 color-fg-muted">{{ octicon("sync", 16, "mr-1") }}Updates every 10 s</span>
+    <a href="/groups/new" class="btn btn-sm">{{ octicon("plus", 16, "mr-1") }}New Thing Group</a>
+  </div>
+</div>
+{% if groups %}
+<div class="group-grid mb-5">
+  {% for g in groups %}
+  {% set counts = g.counts() %}
+  {% set total = g.devices | length %}
+  {% set updated = g.updated() %}
+  {% set recording = g.devices | selectattr("monitoring.recording") | list | length %}
+  {% set disks = g.devices | map(attribute="monitoring.disk_free_percent") | select("number") | list %}
+  <a href="/groups/{{ g.name }}" class="Box group-card no-underline color-fg-default">
+    <div class="Box-header d-flex flex-items-center" style="gap: 8px">
+      {{ octicon("stack", 16, "color-fg-muted") }}
+      <h3 class="Box-title flex-auto css-truncate css-truncate-target" style="max-width: none">{{ g.name }}</h3>
+      {% if g.deployment %}<span class="Label Label--secondary mono">{{ g.deployment.version }}</span>{% else %}<span class="Label Label--attention">Not deployed</span>{% endif %}
+    </div>
+    <div class="Box-body">
+      {{ condition_donut(counts, 132) }}
+      <div class="width-full mt-2">{{ condition_legend(counts) }}</div>
+      {% if g.deployment and total and updated < total %}
+      <div class="width-full mt-2">
+        <div class="d-flex f6 mb-1">
+          {% if counts.updating %}<span class="flex-auto">{{ octicon("sync", 16, "mr-1 color-fg-accent anim-rotate-slow") }}Updating to <span class="mono">{{ g.deployment.version }}</span></span>
+          {% else %}<span class="flex-auto"><span class="mono">{{ g.deployment.version }}</span> applied</span>{% endif %}
+          <strong>{{ updated }} / {{ total }} devices</strong>
+        </div>
+        <span class="Progress" title="{{ updated }} / {{ total }} devices updated"><span class="Progress-item color-bg-accent-emphasis" style="width: {{ updated / total * 100 }}%"></span></span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="Box-footer f6 color-fg-muted">
+      {% if g.deployment %}
+      <div>{{ octicon("rocket", 16, "mr-1") }}Deployed {{ g.deployment.created | ago }} &middot; {{ g.deployment.recording_config_file or "no recording config" }}</div>
+      {% else %}
+      <div>{{ component_name }} not deployed yet</div>
+      {% endif %}
+      <div class="mt-1">{{ octicon("dot-fill", 16, "mr-1 color-fg-danger" if recording else "mr-1") }}{{ recording }} recording</div>
+      {% if disks %}<div class="mt-1">{{ octicon("database", 16, "mr-1") }}Min. free disk {{ disks | min | round | int }}%</div>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="Box mb-5">
+  <div class="blankslate">
+    {{ octicon("stack", 24, "blankslate-icon") }}
+    <h3 class="blankslate-heading">No Thing Groups</h3>
+    <a href="/groups/new" class="btn btn-primary">Create Thing Group</a>
+  </div>
+</div>
+{% endif %}
+
+{% if versions_running %}
+{% set running_total = versions_running | sum(attribute=1) %}
+<div class="Box mb-5">
+  <div class="Box-header d-flex flex-items-center flex-justify-between">
+    <h3 class="Box-title">Running versions</h3>
+    <span class="f6 color-fg-muted">{{ running_total }} devices total</span>
+  </div>
+  <div class="Box-body">
+    <div class="version-bar mb-3" role="img" aria-label="Devices per version">
+      {% for version, count in versions_running %}
+      <span style="width: {{ count / running_total * 100 }}%; background: var(--{{ 'v-other' if version in ('Other', 'unknown') else 'v-' ~ loop.index }})" title="{{ version }}: {{ count }} device{{ 's' if count != 1 }}"></span>
+      {% endfor %}
+    </div>
+    <ul class="list-style-none d-flex flex-wrap" style="gap: 8px 24px">
+      {% for version, count in versions_running %}
+      <li class="d-flex flex-items-center" style="gap: 6px">
+        <span class="donut-key" style="background: var(--{{ 'v-other' if version in ('Other', 'unknown') else 'v-' ~ loop.index }})"></span>
+        <span class="mono text-bold">{{ version }}</span>
+        <span class="color-fg-muted">{{ count }} device{{ 's' if count != 1 }} ({{ (count / running_total * 100) | round | int }}%)</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}

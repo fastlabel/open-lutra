@@ -1,0 +1,163 @@
+{% macro condition_icon(key) %}{{ octicon(conditions[key][1], 16, "color-fg-" ~ conditions[key][2]) }}{% endmacro %}
+
+{% macro condition_label(key) %}<span class="Label Label--{{ conditions[key][2] }}">{{ conditions[key][0] }}</span>{% endmacro %}
+
+{% macro status_label(status) %}
+{%- set labels = {
+  "ACTIVE": ("success", "Active"), "COMPLETED": ("success", "Completed"), "SUCCEEDED": ("success", "Succeeded"),
+  "INACTIVE": ("secondary", "Past"), "IN_PROGRESS": ("accent", "In progress"), "QUEUED": ("accent", "Queued"),
+  "FAILED": ("danger", "Failed"), "TIMED_OUT": ("danger", "Timed out"), "REJECTED": ("danger", "Rejected"),
+  "CANCELED": ("secondary", "Canceled"), "running": ("accent", "Running"), "succeeded": ("success", "Succeeded"),
+  "failed": ("danger", "Failed"), "pending": ("secondary", "Pending"), "HEALTHY": ("success", "Healthy"), "UNHEALTHY": ("danger", "Unhealthy"),
+  "RUNNING": ("success", "Running"), "FINISHED": ("secondary", "Finished"), "ERRORED": ("danger", "Errored"), "BROKEN": ("danger", "Broken"),
+  "STARTING": ("accent", "Starting"), "STOPPING": ("accent", "Stopping"), "INSTALLED": ("secondary", "Installed"),
+} -%}
+{%- set kind, label = labels.get(status, ("secondary", status or "-")) -%}
+<span class="Label Label--{{ kind }}">{{ label }}</span>
+{%- endmacro %}
+
+{% macro job_icon(status) -%}
+{%- if status == "succeeded" -%}{{ octicon("check-circle-fill", 16, "color-fg-success") }}
+{%- elif status == "failed" -%}{{ octicon("x-circle-fill", 16, "color-fg-danger") }}
+{%- elif status == "running" -%}{{ octicon("sync", 16, "color-fg-attention anim-rotate-slow") }}
+{%- else -%}{{ octicon("circle", 16, "color-fg-muted") }}{%- endif -%}
+{%- endmacro %}
+
+{# Stacked bar of device conditions, like the language bar on a repository page. #}
+{% macro condition_bar(counts) %}
+{%- set total = counts.values() | sum -%}
+<span class="Progress">
+  {%- for key in conditions if total and counts[key] -%}
+  <span class="Progress-item color-bg-{{ conditions[key][2] }}-emphasis" style="width: {{ counts[key] / total * 100 }}%"></span>
+  {%- endfor -%}
+</span>
+{%- endmacro %}
+
+{% macro condition_counts(counts) %}
+<span class="d-inline-flex flex-wrap" style="gap: 12px">
+  {% for key, (label, icon, color) in conditions.items() %}
+  <span class="d-inline-flex flex-items-center f6 {{ 'color-fg-muted' if not counts[key] }}" style="gap: 4px">{{ octicon(icon, 16, "color-fg-" ~ color if counts[key] else "") }}<strong>{{ counts[key] }}</strong> {{ label }}</span>
+  {% endfor %}
+</span>
+{% endmacro %}
+
+{# Repository-style page head with underline tabs for a thing group. #}
+{% macro group_head(group, tab) %}
+<div class="color-bg-subtle border-bottom pt-3">
+  <div class="container-xl px-3 px-md-4">
+    <h1 class="h3 text-normal d-flex flex-items-center mb-3" style="gap: 8px">
+      {{ octicon("stack", 16, "color-fg-muted") }}
+      <a href="/" class="color-fg-default">Thing Group</a><span class="color-fg-muted">/</span>
+      <a href="/groups/{{ group }}" class="text-bold">{{ group }}</a>
+    </h1>
+    <nav class="UnderlineNav" style="box-shadow: none">
+      <div class="UnderlineNav-body">
+        <a href="/groups/{{ group }}" class="UnderlineNav-item" {{ 'aria-current=page' if tab == 'overview' }}>{{ octicon("device-desktop", 16, "UnderlineNav-octicon") }}<span>Devices</span></a>
+        <a href="/groups/{{ group }}/history" class="UnderlineNav-item" {{ 'aria-current=page' if tab == 'history' }}>{{ octicon("history", 16, "UnderlineNav-octicon") }}<span>Deployment history</span></a>
+        <a href="/groups/{{ group }}/deploy" class="UnderlineNav-item" {{ 'aria-current=page' if tab == 'deploy' }}>{{ octicon("rocket", 16, "UnderlineNav-octicon") }}<span>Deploy</span></a>
+      </div>
+    </nav>
+  </div>
+</div>
+{% endmacro %}
+
+{# Download / delete controls for a device bundle whose private key is still on this machine. #}
+{% macro bundle_actions(thing, back) %}
+<span class="d-inline-flex flex-items-center" style="gap: 8px">
+  <a href="/bundles/{{ thing }}.zip" class="btn btn-sm">{{ octicon("download", 16, "mr-1") }}Download</a>
+  <form method="post" action="/bundles/{{ thing }}/delete" class="d-inline" onsubmit="return confirm('Delete the private key for {{ thing }} from this PC? The issuance record is kept. Have you downloaded it?')">
+    <input type="hidden" name="back" value="{{ back }}" />
+    <button type="submit" class="btn btn-sm btn-danger">{{ octicon("trash", 16, "mr-1") }}Delete private key</button>
+  </form>
+</span>
+{% endmacro %}
+
+{% macro leftover_bundles(bundles, back) %}
+{% if bundles %}
+<div class="flash flash-warn mb-4">
+  {{ octicon("key") }}<strong>Private keys remain on this PC.</strong> Delete them once they are on the device. The issuance record stays in <a href="/secrets">Secrets</a>.
+  {% for b in bundles %}
+  <div class="d-flex flex-items-center mt-2" style="gap: 8px">{{ octicon("device-desktop") }}<span class="flex-auto"><strong>{{ b.thing }}</strong> <span class="f6 color-fg-muted">issued {{ b.created_at | ago }}</span></span>{{ bundle_actions(b.thing, back) }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Checkbox list for picking one or more thing groups as deploy targets. #}
+{% macro group_checkboxes(groups) %}
+<fieldset class="mb-2">
+  <legend class="text-bold mb-1">Deploy to (select one or more)</legend>
+  {% for g in groups %}
+  <div class="form-checkbox my-1"><label><input type="checkbox" name="group" value="{{ g }}" {{ 'checked' if groups | length == 1 }} />{{ g }}</label></div>
+  {% endfor %}
+</fieldset>
+{% endmacro %}
+
+{# Donut of device conditions. r=15.915 makes the circumference 100, so dash lengths are percentages; each
+   segment is shortened by GAP to leave a surface gap between segments. #}
+{% macro condition_donut(counts, size=160) %}
+{%- set total = counts.values() | sum -%}
+{%- set gap = 1.2 if (counts.values() | select | list | length) > 1 else 0 -%}
+<svg viewBox="0 0 42 42" width="{{ size }}" height="{{ size }}" class="donut" role="img" aria-label="{{ counts.ok }} of {{ total }} devices OK">
+  <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--borderColor-muted, #d8dee4)" stroke-width="4.5" />
+  {%- set ns = namespace(offset=25) -%}
+  {%- for key in conditions if total and counts[key] -%}
+  {%- set pct = counts[key] / total * 100 -%}
+  <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--c-{{ key }})" stroke-width="4.5"
+    stroke-dasharray="{{ [pct - gap, 0.01] | max }} {{ 100 - [pct - gap, 0.01] | max }}" stroke-dashoffset="{{ ns.offset }}">
+    <title>{{ conditions[key][0] }}: {{ counts[key] }} device{{ 's' if counts[key] != 1 }}</title>
+  </circle>
+  {%- set ns.offset = ns.offset - pct -%}
+  {%- endfor %}
+  {% if total %}
+  <text x="21" y="21" text-anchor="middle" font-size="9" font-weight="600" fill="var(--fgColor-default, #1f2328)">{{ counts.ok }}<tspan font-size="5" fill="var(--fgColor-muted, #59636e)">/{{ total }}</tspan></text>
+  <text x="21" y="27" text-anchor="middle" font-size="3.4" fill="var(--fgColor-muted, #59636e)">devices OK</text>
+  {% else %}
+  <text x="21" y="22.5" text-anchor="middle" font-size="4" fill="var(--fgColor-muted, #59636e)">No devices</text>
+  {% endif %}
+</svg>
+{%- endmacro %}
+
+{# Legend for the donut: icon + label + count, so a condition is never told by color alone. #}
+{% macro condition_legend(counts) %}
+<ul class="list-style-none">
+  {% for key, (label, icon, color) in conditions.items() %}
+  <li class="d-flex flex-items-center py-1 {{ 'color-fg-muted' if not counts[key] }}" style="gap: 8px">
+    <span class="donut-key" style="background: var(--c-{{ key }})"></span>{{ octicon(icon, 16, "color-fg-" ~ color if counts[key] else "") }}
+    <span class="flex-auto">{{ label }}</span><strong class="f4">{{ counts[key] }}</strong>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{# Recording config picker. The content sent is the hidden textarea; the modal edits a draft of it
+   (static/config-editor.js). #}
+{% macro config_fields(config_files, config_name, config_content, config_source, id) %}
+<div data-config-field>
+  <label class="d-block mb-1" for="{{ id }}">Recording config</label>
+  <select id="{{ id }}" name="recording_config_file" class="form-select input-block" data-config-select>
+    {% for f in config_files %}<option {{ 'selected' if f == config_name }}>{{ f }}</option>{% endfor %}
+  </select>
+  <textarea name="recording_config" hidden data-config-value>{{ config_content }}</textarea>
+  <div class="d-flex flex-items-center flex-wrap mt-2" style="gap: 8px">
+    <button type="button" class="btn btn-sm" data-config-open>{{ octicon("pencil", 16, "mr-1") }}View / edit</button>
+    <span class="f6 color-fg-muted" data-config-state data-source="{{ config_source }}">{{ config_source }}</span>
+  </div>
+  <label class="d-flex flex-items-center f6 mt-2" style="gap: 6px; font-weight: 400">
+    <input type="checkbox" name="save_config" value="true" /><span>Also save to greengrass/config/<span data-config-name>{{ config_name }}</span></span>
+  </label>
+  <dialog class="config-dialog" data-config-dialog aria-label="Edit recording config">
+    <div class="Box-header d-flex flex-items-center" style="gap: 8px">
+      {{ octicon("file", 16, "color-fg-muted") }}<h3 class="Box-title flex-auto">greengrass/config/<span data-config-name>{{ config_name }}</span></h3>
+    </div>
+    <div class="Box-body">
+      <textarea class="form-control input-block mono config-editor" rows="26" spellcheck="false" aria-label="Recording config content" data-config-draft></textarea>
+      <p class="note mt-2 mb-0">Applying sends this content with the deployment. It is written to the file only if "Also save to" is checked.</p>
+    </div>
+    <div class="Box-footer d-flex flex-justify-end" style="gap: 8px">
+      <button type="button" class="btn" data-config-cancel>Cancel</button>
+      <button type="button" class="btn btn-primary" data-config-apply>Apply</button>
+    </div>
+  </dialog>
+</div>
+{% endmacro %}

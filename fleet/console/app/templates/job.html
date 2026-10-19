@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}#{{ job.id }} {{ job.title }} - {% endblock %}
+{% block content %}
+<div hx-get="/jobs/{{ job.id }}/progress" hx-trigger="every 1s">{% include "_job_progress.html" %}</div>
+{% endblock %}

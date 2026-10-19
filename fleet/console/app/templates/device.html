@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_head %}
+{% block title %}{{ device.name }} - {% endblock %}
+{% block header %}{{ group_head(group, "overview") }}{% endblock %}
+{% block content %}
+<div hx-get="/groups/{{ group }}/devices/{{ device.name }}/body" hx-trigger="every 10s">{% include "_device_body.html" %}</div>
+{% endblock %}

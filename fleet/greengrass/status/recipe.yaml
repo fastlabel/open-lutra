@@ -1,0 +1,30 @@
+# Rendered by release.sh, like ../recipe.yaml.
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: ${STATUS_COMPONENT_NAME}
+ComponentVersion: ${COMPONENT_VERSION}
+ComponentDescription: Sends OpenLUTRA status (heartbeat, disk, recording, loss rate) to CloudWatch metrics.
+ComponentPublisher: ${COMPONENT_PUBLISHER}
+ComponentDependencies:
+  aws.greengrass.TokenExchangeService:
+    VersionRequirement: ^2.0.0
+  ${COMPONENT_NAME}:
+    VersionRequirement: ${COMPONENT_VERSION}
+    DependencyType: SOFT
+ComponentConfiguration:
+  DefaultConfiguration:
+    IntervalSeconds: "60"
+Manifests:
+  - Platform:
+      os: linux
+    Lifecycle:
+      Setenv:
+        STATUS_INTERVAL: "{configuration:/IntervalSeconds}"
+        OUTPUT_DIR: "{${COMPONENT_NAME}:configuration:/OutputDir}"
+      Install:
+        Script: python3 -m venv venv && venv/bin/pip install --quiet -r {artifacts:path}/requirements.txt
+        Timeout: 600
+      Run: exec venv/bin/python -u {artifacts:path}/status.py
+    Artifacts:
+      - URI: ${ARTIFACT_PREFIX}/status.py
+      - URI: ${ARTIFACT_PREFIX}/requirements.txt

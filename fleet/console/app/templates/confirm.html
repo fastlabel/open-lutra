@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Confirm - {% endblock %}
+{% block content %}
+{% set device_count = targets | sum(attribute="devices", start=[]) | length %}
+<div class="col-12 col-md-9">
+  <div class="Subhead">
+    <h2 class="Subhead-heading">Deploy to {{ groups | join(", ") }}?</h2>
+    <div class="Subhead-description">{% if action == "pipeline" %}Creates <span class="mono">{{ version }}</span>, then deploys it. {% endif %}Review the changes before running.</div>
+  </div>
+
+  {% macro row(label, before, after) %}
+  <div class="Box-row d-flex flex-items-center">
+    <div style="width: 30%" class="color-fg-muted">{{ label }}</div>
+    <div style="width: 35%" class="mono">{{ before }}</div>
+    <div style="width: 35%" class="mono {{ 'color-fg-success text-bold' if before != after }}">{% if before != after %}{{ octicon("diff-modified", 16, "mr-1") }}{% endif %}{{ after }}</div>
+  </div>
+  {% endmacro %}
+  {% for t in targets %}
+  <div class="Box mb-3">
+    <div class="Box-header d-flex flex-items-center f6 text-bold">
+      <div style="width: 30%" class="d-flex flex-items-center" ><span class="f5">{{ octicon("stack", 16, "mr-1") }}{{ t.group }}</span></div>
+      <div style="width: 35%" class="color-fg-muted">Current</div><div style="width: 35%" class="color-fg-muted">After deploy</div>
+    </div>
+    {{ row("Version", t.current.version if t.current else "none", version) }}
+    {{ row("Image tag", t.current_tag or "-", new_tag or "-") }}
+    {{ row("Recording config", t.current.recording_config_file if t.current and t.current.recording_config_file else "none", new_config) }}
+    <div class="Box-row f6">
+      {% if t.config_diff is none %}
+      <span class="color-fg-muted">No content diff available: there is no current deployment, or it did not send the recording config content.</span>
+      {% elif not t.config_diff %}
+      <span class="color-fg-muted">{{ octicon("check", 16, "mr-1") }}Recording config content is unchanged.</span>
+      {% else %}
+      <details>
+        <summary>Recording config changes ({{ t.config_changes }} line{{ 's' if t.config_changes != 1 }})</summary>
+        <pre class="config-diff mt-2">{% for line in t.config_diff %}<span class="{{ 'diff-add' if line.startswith('+') else 'diff-del' if line.startswith('-') else 'color-fg-muted' }}">{{ line }}</span>
+{% endfor %}</pre>
+      </details>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="flash flash-warn mb-4 mt-4">
+    {{ octicon("alert") }}<strong>OpenLUTRA will restart on {{ device_count }} device{{ 's' if device_count != 1 }}.</strong> Devices that are recording will stop too.
+    {% if device_count %}<div class="mt-2">{% for t in targets %}{% for d in t.devices %}<span class="Label mr-1">{{ octicon("device-desktop", 16, "mr-1") }}{{ d.name }}</span>{% endfor %}{% endfor %}</div>{% endif %}
+  </div>
+
+  <div class="Box mb-4">
+    <div class="Box-header"><h3 class="Box-title">Steps</h3></div>
+    {% for step in steps %}
+    <div class="Box-row d-flex flex-items-start" style="gap: 8px"><span class="Counter">{{ loop.index }}</span>
+      <div><div>{{ step.label }}</div><code class="f6 color-fg-muted">{{ step }}</code></div></div>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/jobs">
+    <input type="hidden" name="action" value="{{ action }}" />
+    {% for g in groups %}<input type="hidden" name="group" value="{{ g }}" />{% endfor %}
+    <input type="hidden" name="version" value="{{ version }}" />
+    <input type="hidden" name="configuration" value="{{ configuration or '' }}" />
+    {% if save_config %}<input type="hidden" name="save_config" value="true" />
+    <div class="flash mb-3">{{ octicon("file") }}Running this also saves the edited recording config to greengrass/config/{{ new_config }}.</div>{% endif %}
+    <div class="d-flex" style="gap: 8px">
+      <button type="submit" class="btn btn-danger">Deploy</button>
+      <a href="javascript:history.back()" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

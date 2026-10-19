@@ -49,6 +49,9 @@ help:
 	@echo "  make prod-up     - Start production (host network)"
 	@echo "  make prod-down   - Stop production"
 	@echo "  make prod-logs   - Show production logs"
+	@echo ""
+	@echo "Fleet (AWS IoT Greengrass deployment + Fleet Console):"
+	@echo "  make -C fleet <target> - See fleet/README.md"
 
 # ===== Docker (development) =====
 

@@ -1,0 +1,27 @@
+# Artifact of the Greengrass component. Both images share IMAGE_TAG so the
+# frontend and backend are always deployed as a matching pair.
+# Host networking is required for ROS 2 DDS discovery (Linux only).
+
+name: open-lutra
+
+services:
+  backend:
+    image: ${REGISTRY:?}/open-lutra-backend:${IMAGE_TAG:?}
+    network_mode: host
+    environment:
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      OUTPUT_DIR: /data/output
+      RECORDING_CONFIG: /app/config/${RECORDING_CONFIG_FILE:?}
+      DEBUG: "false"
+      # Read by both the rclpy monitor and the `ros2 bag record` subprocess.
+      FASTRTPS_DEFAULT_PROFILES_FILE: /app/fastdds.xml
+    volumes:
+      - ${CONFIG_DIR:?}:/app/config:ro
+      - ${FASTDDS_PROFILES:?}:/app/fastdds.xml:ro
+      - ${OUTPUT_DIR:?}:/data/output
+
+  frontend:
+    image: ${REGISTRY:?}/open-lutra-frontend:${IMAGE_TAG:?}
+    network_mode: host
+    depends_on:
+      - backend

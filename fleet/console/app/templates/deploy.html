@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_head, config_fields %}
+{% block title %}Deploy to {{ group }} - {% endblock %}
+{% block header %}{{ group_head(group, tab) }}{% endblock %}
+{% block content %}
+<div class="col-12 col-md-8">
+  <div class="Subhead"><h2 class="Subhead-heading">Deploy to {{ group }}</h2>
+    <div class="Subhead-description">Delivered to every device in this Thing Group, and OpenLUTRA restarts. Offline devices receive it the next time they connect.</div></div>
+  <form method="post" action="/confirm">
+    <input type="hidden" name="action" value="deploy" />
+    <input type="hidden" name="group" value="{{ group }}" />
+    <div class="form-group">
+      <div class="form-group-header"><label for="version">Component version</label></div>
+      <div class="form-group-body">
+        <select id="version" name="version" class="form-select" required>
+          {% for v, tag in versions %}<option value="{{ v }}" {{ 'selected' if v == selected }}>{{ v }} ({{ tag or "unknown image" }})</option>{% endfor %}
+        </select>
+        {% if current %}<p class="note">Currently deployed: <span class="mono">{{ current.version }}</span> ({{ current.created | ago }})</p>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      {{ config_fields(config_files, config_name, config_content, config_source, "config") }}
+      <p class="note">Choose a file from greengrass/config/. It starts with the currently deployed content. The content is sent with this deployment, so no new version is needed.</p>
+    </div>
+    <button type="submit" class="btn btn-primary">Review</button>
+  </form>
+</div>
+{% endblock %}
