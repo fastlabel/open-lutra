@@ -1,11 +1,12 @@
 """Domain models for the media feature (topic classification/mapping for MP4 / telemetry.json conversion).
 
 Used by `mcap_converter.py` when generating MP4 / telemetry.json:
-  - Deriving camera name / joint prefix from topic name
+  - Deriving per-topic video filenames / joint prefix from topic name
   - Classifying JointState topics as observation/action
   - Determining a stable sort order
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -58,14 +59,44 @@ def classify_joint_state_topic(topic_name: str) -> TopicRole | None:
     return None
 
 
-def derive_camera_name(topic_name: str) -> str:
-    """Derive the camera name from a ROS2 topic name.
+# --- Preview video filenames ---
 
-    Uses the first segment after stripping the leading "/" as the camera name.
-    Example: "/right_arm_depth_cam/color/image_raw/compressed" -> "right_arm_depth_cam"
+# Common filesystem limit for a single path component.
+_MAX_FILENAME_BYTES = 255
+
+
+def derive_video_name(topic_name: str) -> str:
+    """Derive the video name from a ROS2 topic name.
+
+    Uses the whole topic (leading "/" dropped, "/" replaced by "-") so that
+    topics sharing a namespace never map to the same name. ROS2 topic names
+    cannot contain "-", so the mapping is injective and reversible; the
+    frontend restores the topic for display by reversing it.
+    Example: "/camera/color/image_raw/compressed" -> "camera-color-image_raw-compressed"
     """
-    stripped = topic_name.lstrip("/")
-    return stripped.split("/")[0] if stripped else topic_name
+    return topic_name.lstrip("/").replace("/", "-")
+
+
+def plan_video_files(image_topics: Iterable[str]) -> dict[str, str]:
+    """Map each image topic to the MP4 filename it will be written to.
+
+    Raises:
+        MediaError: If two topics derive the same filename (only possible for
+            non-ROS2 topic names containing "-") or a filename exceeds the
+            filesystem limit. Failing here prevents one topic's video from
+            silently overwriting another's.
+    """
+    files: dict[str, str] = {}
+    topic_by_name: dict[str, str] = {}
+    for topic in image_topics:
+        name = f"observation.images.{derive_video_name(topic)}.mp4"
+        if len(name.encode()) > _MAX_FILENAME_BYTES:
+            raise MediaError(f"Video filename exceeds {_MAX_FILENAME_BYTES} bytes for topic {topic!r}")
+        if (other := topic_by_name.get(name)) is not None:
+            raise MediaError(f"Video filename collision: {other!r} and {topic!r} both map to {name}")
+        topic_by_name[name] = topic
+        files[topic] = name
+    return files
 
 
 # --- Joint topic mapping ---

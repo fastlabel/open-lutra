@@ -26,7 +26,7 @@ from app.features.media.models import (
     MediaError,
     MissingTopicError,
     build_joint_state_mapping,
-    derive_camera_name,
+    plan_video_files,
 )
 from app.infra.mcap import (
     MCAPReader,
@@ -68,6 +68,8 @@ def convert_mcap(  # pragma: no cover
     Raises:
         FileNotFoundError: If no MCAP file is found.
         MissingTopicError: If required topics are missing.
+        MediaError: If the MP4 filename plan is invalid (two image topics
+            mapping to one file, or a filename over the filesystem limit).
     """
     mcap_path = _find_mcap_file(mcap_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -82,6 +84,10 @@ def convert_mcap(  # pragma: no cover
     if not image_topics and not joint_topics:
         raise MissingTopicError(f"No convertible topics found: {mcap_dir.name}")
 
+    # Validate the filename plan before the full-file time-range scan so an
+    # invalid plan fails without paying for it.
+    video_files = plan_video_files(image_topics)
+
     # Get the time range from actual message timestamps (preferring header.stamp).
     # The MCAP summary is log_time-based and can deviate significantly from header.stamp.
     first_ts, last_ts = _scan_time_range(mcap_path)
@@ -91,11 +97,9 @@ def convert_mcap(  # pragma: no cover
     generated_files: list[str] = []
 
     try:
-        total_mp4 = len(image_topics)
-        for mp4_idx, topic in enumerate(image_topics):
+        total_mp4 = len(video_files)
+        for mp4_idx, (topic, output_name) in enumerate(video_files.items()):
             _progress("mp4", mp4_idx, total_mp4)
-            camera_name = derive_camera_name(topic)
-            output_name = f"observation.images.{camera_name}.mp4"
             output_path = output_dir / output_name
 
             _stream_generate_mp4(

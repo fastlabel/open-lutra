@@ -4,6 +4,7 @@ import { Loader2, Video } from "lucide-react";
 import { useGetVideoStatus } from "@/api/generated/media/media";
 import type { JobProgressSchema, VideoResponse } from "@/api/generated/schemas";
 import { useJob } from "@/hooks/use-jobs-stream";
+import { videoTopicLabel } from "../video-label";
 import { VideoPlayer } from "./video-player";
 
 /** Progress indicator (prefers SSE-delivered job progress, falls back to the video response's progress). */
@@ -26,12 +27,6 @@ function ProgressIndicator({ progress }: { progress?: JobProgressSchema | null }
       </div>
     </div>
   );
-}
-
-/** Extracts a camera name from an MP4 filename. */
-function cameraLabel(filename: string): string {
-  // "observation.images.head_cam.mp4" → "head_cam"
-  return filename.replace(/^observation\.images\./, "").replace(/\.mp4$/, "");
 }
 
 function gridCols(count: number): string {
@@ -101,7 +96,7 @@ export function VideoGrid({ selectedFolder, enabled = true }: { selectedFolder: 
             <VideoPlayer
               key={filename}
               src={`${apiBase}?path=${targetParam}&name=${encodeURIComponent(filename)}`}
-              label={cameraLabel(filename)}
+              label={videoTopicLabel(filename)}
             />
           ))}
         </div>
