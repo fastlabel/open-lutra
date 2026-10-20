@@ -8,7 +8,8 @@ How OpenLUTRA images get from the build environment to edge PCs via AWS IoT Gree
 [Build environment / CI] ──docker push──▶ ECR (backend, frontend)
      │
      └─ create-component-version ─▶ Greengrass component
-     │                               └─ OpenLutra (recipe + compose.yml, fastdds.xml on S3)
+     │                               ├─ OpenLutra (recipe + compose.yml, fastdds.xml on S3)
+     │                               └─ Status (recipe + status.py, requirements.txt on S3)
      └─ create-deployment (to a Thing Group)
                                           ▼
 [Edge PC] Greengrass nucleus ──X.509 certificate──▶ AWS IoT Core
@@ -43,7 +44,7 @@ One repository per image (`open-lutra-backend`, `open-lutra-frontend`).
 
 ### Artifact bucket — `s3.tf`
 
-Holds component artifacts other than container images (`compose.yml` and `fastdds.xml`). Keys are `<component name>/<version>/<file name>`, and artifacts of a released version are never overwritten. The recipe references them as `s3://<bucket>/<key>`, and the nucleus downloads them with the Token Exchange Role's permissions. The bucket is fully private.
+Holds component artifacts other than container images (OpenLutra's `compose.yml` and `fastdds.xml`, Status's `status.py` and `requirements.txt`). Keys are `<component name>/<version>/<file name>`, and artifacts of a released version are never overwritten. The recipe references them as `s3://<bucket>/<key>`, and the nucleus downloads them with the Token Exchange Role's permissions. The bucket is fully private.
 
 ### Token Exchange Role — `iam.tf`
 
@@ -98,11 +99,9 @@ Put each device in only one of the groups that deploy OpenLutra. If several grou
 
 Runs `docker compose up` in the foreground. The nucleus watches this process and restarts it if it dies.
 
-The recording config is sent with its contents in the deployment's component configuration (the file name in `RecordingConfigFile`, the YAML in `RecordingConfig`). At startup, the contents are written under the same name to the component's work directory, and compose mounts it into the backend. Even a deployment that changes only the config changes the startup environment variables, so the component restarts and reads the new config. `deploy.sh` resets these two and then merges every time, so no config from a previous deployment remains.
+The recording config is sent with its contents in the deployment's component configuration (the file name in `RecordingConfigFile`, the YAML in `RecordingConfig`). This is the only recording config a device uses: it is not bundled with the release, and there is no mechanism to override it with a file on the device (to prevent running with a config not visible in Fleet Console). At startup, the contents are written under the same name to the component's work directory, and compose mounts it into the backend. If no contents were sent, the component fails instead of silently starting OpenLUTRA with defaults. Even a deployment that changes only the config changes the startup environment variables, so the component restarts and reads the new config. `deploy.sh` resets these two and then merges every time, so no config from a previous deployment remains.
 
 The Fast DDS profile XML (`greengrass/fastdds.xml`) is bundled as a component artifact like `compose.yml`, mounted at `/app/fastdds.xml` in the backend, and loaded via `FASTRTPS_DEFAULT_PROFILES_FILE`. It applies to both monitoring (rclpy) and recording (`ros2 bag record`). It currently disables Shared Memory and uses UDP only (with Isaac Sim and the like on the same PC, the container's `/dev/shm` is separate, so data does not arrive over Shared Memory; see [dds_gap.md](../../../docs/domain/dds_gap.md#notes-on-shared-memory-transport)). It does not change often; to change it, release a new `COMPONENT_VERSION`. If the XML is broken, Fast DDS logs `XMLPARSER Error` and runs with the default settings.
-
-The only recording config a device uses is the contents sent by the deployment. It is not bundled with the release, and there is no mechanism to override it with a file on the device (to prevent running with a config not visible in Fleet Console). If the deployment did not send the contents, the component fails instead of silently starting OpenLUTRA with defaults.
 
 ### Status
 
@@ -128,7 +127,7 @@ An AWS-provided component. Sends the nucleus logs and the OpenLutra and Status l
 | Aspect | Mechanism |
 |---|---|
 | Is it connected | "Status not arriving" if 10 minutes or more have passed since the last `Heartbeat` |
-| Can it record | "Low disk space" if free space is below 5%. The loss rate and whether it is recording are also shown |
+| Can it record | "Low disk space" if free space is below 5% or the disk will likely be full within 3 days. The loss rate and whether it is recording are also shown |
 | Did the deployment succeed | Per-device deployment status in Fleet Console and `make status` |
 | What happened | CloudWatch Logs sent by LogManager |
 | Is the PC healthy | Nucleus telemetry (enabled by default). It is best-effort, so use `Heartbeat` for liveness |
@@ -154,7 +153,7 @@ To register many devices on site in production, use Fleet Provisioning (devices 
 
 ### Setup (`device/setup.sh`)
 
-On the edge PC (Ubuntu), installs Docker (including the compose plugin), Java, and `python3-venv` (a dependency of the Status component), installs the nucleus with `--provision false`, and registers it with systemd. `ggc_user` is created before the installer and added to the docker group, so docker is usable as soon as the first deployment arrives.
+On the edge PC (Ubuntu), installs Docker (including the compose plugin), Java, and `python3-venv` (a dependency of the Status component), installs the nucleus with the bundle's certificate and config (`--init-config`), and registers it with systemd. It creates no AWS resources (`provision.sh` on the operator's PC does). `ggc_user` is created before the installer and added to the docker group, so docker is usable as soon as the first deployment arrives.
 
 ### Network
 
