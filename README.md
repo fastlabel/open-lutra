@@ -130,7 +130,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 | [backend/README.md](backend/README.md) | Backend container layout (what a restart picks up, what needs a rebuild) |
 | [frontend/README.md](frontend/README.md) | Frontend container layout (what a restart picks up, what needs a rebuild) |
 | [docs/domain/](docs/domain/index.md) | Domain notes (DDS gaps, quality analysis, validators, metadata, upload, LeRobot export, SSE) |
-| [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types) |
+| [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types, deploying with AWS IoT Greengrass) |
 
 ## Release status
 

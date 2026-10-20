@@ -1,0 +1,11 @@
+output/
+.terraform/
+*.tfstate
+*.tfstate.*
+provisioned/
+__pycache__/
+.venv/
+.env
+# Recording configs other than the example stay on this machine.
+greengrass/config/*
+!greengrass/config/example.yaml

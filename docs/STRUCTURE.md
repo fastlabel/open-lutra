@@ -17,7 +17,7 @@ open-lutra/
 ├── simulator/                  # Development simulator (see simulator/README.md)
 ├── config/                     # Recording configs (YAML; selected via RECORDING_CONFIG)
 ├── docs/                       # Documentation
-├── examples/                   # Reference snippets (e.g. custom ROS2 message types)
+├── examples/                   # Reference snippets (e.g. custom ROS2 message types, AWS IoT Greengrass)
 ├── .devcontainer/              # Dev Container settings
 ├── .local/                     # Local materials (gitignored)
 ├── docker-compose.yml          # Development environment

@@ -55,7 +55,7 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 
 → Details (test structure, `pragma: no cover` policy, environment constraints): the "Testing" section of [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing)
 
-- **Maintain 100% coverage** — verify with `make test-cov`. Tests run on the host (no Docker or rclpy needed).
+- **Maintain 100% coverage** — verify with `make test-cov`. Tests run on the host (no Docker or rclpy needed). `examples/greengrass/` is outside this requirement (lint only).
 
 ## Coding Style
 

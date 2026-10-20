@@ -1,0 +1,29 @@
+server {
+    listen 5173;
+    root /usr/share/nginx/html;
+
+    # Mirrors the Vite dev server's proxy. Buffering is off for the SSE and
+    # MJPEG endpoints, which stay open indefinitely.
+    location /api/ {
+        proxy_pass ${BACKEND_ORIGIN};
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+        client_max_body_size 0;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Revalidate the entry point so a new deployment is picked up on reload.
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    location / {
+        try_files $uri /index.html;
+    }
+}

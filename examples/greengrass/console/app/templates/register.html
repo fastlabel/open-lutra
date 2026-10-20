@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_head, leftover_bundles %}
+{% block title %}Register device in {{ group }} - {% endblock %}
+{% block header %}{{ group_head(group, tab) }}{% endblock %}
+{% block content %}
+{{ leftover_bundles(bundles, "/groups/" ~ group ~ "/register") }}
+<div class="col-12 col-md-8">
+  <div class="Subhead">
+    <h2 class="Subhead-heading">Register device</h2>
+    <div class="Subhead-description">Registers the device in AWS IoT, issues a certificate, and adds it to {{ group }}. The device gets only the certificate, never AWS credentials.</div>
+  </div>
+  <div class="Box mb-4">
+    <div class="Box-row d-flex flex-items-start" style="gap: 8px"><span class="Counter">1</span><div>Choose a name and register. The certificate and private key are written to <code>provisioned/</code> on this PC.</div></div>
+    <div class="Box-row d-flex flex-items-start" style="gap: 8px"><span class="Counter">2</span><div>Download the registration bundle as a zip and copy it to the edge PC securely. The zip also contains <code>setup.sh</code>, <code>cleanup.sh</code> for starting over, and a <code>README.md</code> with instructions.</div></div>
+    <div class="Box-row d-flex flex-items-start" style="gap: 8px"><span class="Counter">3</span><div>On the edge PC, unzip it and run <code>sudo bash setup.sh &lt;device name&gt;</code>. The version deployed to {{ group }} is delivered automatically.</div></div>
+    <div class="Box-row d-flex flex-items-start" style="gap: 8px"><span class="Counter">4</span><div>Once it works, delete the private key from this PC. The record of when and to which device it was issued is kept.</div></div>
+  </div>
+  <form method="post" action="/groups/{{ group }}/register">
+    <div class="form-group">
+      <div class="form-group-header"><label for="thing">Device name (Thing name)</label></div>
+      <div class="form-group-body">
+        <input id="thing" name="thing" class="form-control" pattern="[A-Za-z0-9:_\-]{1,128}" required autofocus />
+        <p class="note">Letters, digits and <code>: _ -</code>. The name must not already exist.</p>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_head %}
+{% block title %}{{ group }} - {% endblock %}
+{% block header %}{{ group_head(group, tab) }}{% endblock %}
+{% block content %}
+{% if current %}
+<div class="Box mb-4">
+  <div class="Box-body d-flex flex-wrap" style="gap: 32px">
+    <div><div class="f6 color-fg-muted">Deployed version</div><div class="f4 text-bold mono">{{ current.version }}</div></div>
+    <div><div class="f6 color-fg-muted">Image tag</div><div class="f4 mono">{{ current_tag or "-" }}</div></div>
+    <div><div class="f6 color-fg-muted">Recording config</div><div class="f4">{{ current.recording_config_file or "none" }}</div></div>
+    <div><div class="f6 color-fg-muted">Deployed</div><div class="f4" title="{{ current.created | time }}">{{ current.created | ago }}</div></div>
+  </div>
+</div>
+{% else %}
+<div class="flash mb-4">{{ octicon("info") }}{{ component_name }} has not been deployed to this Thing Group yet. <a href="/groups/{{ group }}/deploy">Deploy</a></div>
+{% endif %}
+
+<div class="d-flex flex-justify-end mb-2">
+  <a href="/groups/{{ group }}/register" class="btn btn-sm">{{ octicon("plus", 16, "mr-1") }}Register device</a>
+</div>
+<div hx-get="/groups/{{ group }}/devices?expected={{ current.version if current else '' }}" hx-trigger="load, every 10s">
+  <div class="Box"><div class="Box-body color-fg-muted">{{ octicon("sync", 16, "anim-rotate-slow mr-1") }}Fetching device status...</div></div>
+</div>
+{% endblock %}

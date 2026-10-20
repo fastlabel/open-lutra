@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Create Thing Group - {% endblock %}
+{% block content %}
+<div class="col-12 col-md-8">
+  <div class="Subhead">
+    <h2 class="Subhead-heading">Create Thing Group</h2>
+    <div class="Subhead-description">One group per site lets you deploy a different version or recording config to each. Put each device in only one deployment group.</div>
+  </div>
+  <form method="post" action="/groups">
+    <div class="form-group">
+      <div class="form-group-header"><label for="name">Name</label></div>
+      <div class="form-group-body">
+        <input id="name" name="name" class="form-control" pattern="[A-Za-z0-9:_\-]{1,128}" required autofocus />
+        <p class="note">Letters, digits and <code>: _ -</code>. Example: <code>open-lutra-site-a</code></p>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Create</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+# Rendered by release.sh. ${...} are filled in at release time; {...} are
+# Greengrass recipe variables resolved on the device.
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: ${COMPONENT_NAME}
+ComponentVersion: ${COMPONENT_VERSION}
+ComponentDescription: OpenLUTRA ${IMAGE_TAG} backend and frontend, run with Docker Compose.
+ComponentPublisher: ${COMPONENT_PUBLISHER}
+ComponentDependencies:
+  aws.greengrass.DockerApplicationManager:
+    VersionRequirement: ^2.0.0
+  aws.greengrass.TokenExchangeService:
+    VersionRequirement: ^2.0.0
+ComponentConfiguration:
+  DefaultConfiguration:
+    RecordingConfigFile: ""
+    RecordingConfig: ""
+    OutputDir: /var/lib/open-lutra/output
+Manifests:
+  - Platform:
+      os: linux
+      architecture: ${ARCHITECTURE}
+    Lifecycle:
+      Setenv:
+        REGISTRY: ${REGISTRY}
+        IMAGE_TAG: ${IMAGE_TAG}
+        RECORDING_CONFIG_FILE: "{configuration:/RecordingConfigFile}"
+        RECORDING_CONFIG: "{configuration:/RecordingConfig}"
+        OUTPUT_DIR: "{configuration:/OutputDir}"
+        FASTDDS_PROFILES: "{artifacts:path}/fastdds.xml"
+      # The recording config is the RecordingConfig content the deployment sent.
+      Run: |
+        if [ -z "$RECORDING_CONFIG_FILE" ] || [ -z "$RECORDING_CONFIG" ]; then
+          echo "no recording config: the deployment sent none" >&2
+          exit 1
+        fi
+        export CONFIG_DIR="{work:path}/config"
+        mkdir -p "$CONFIG_DIR"
+        printf '%s\n' "$RECORDING_CONFIG" >"$CONFIG_DIR/$RECORDING_CONFIG_FILE"
+        echo "recording config: $RECORDING_CONFIG_FILE"
+        exec docker compose -f {artifacts:path}/compose.yml up --pull never --abort-on-container-exit
+      Shutdown:
+        Script: docker compose -f {artifacts:path}/compose.yml down
+        Timeout: 60
+    Artifacts:
+      - URI: docker:${REGISTRY}/open-lutra-backend:${IMAGE_TAG}
+      - URI: docker:${REGISTRY}/open-lutra-frontend:${IMAGE_TAG}
+      - URI: ${ARTIFACT_PREFIX}/compose.yml
+      - URI: ${ARTIFACT_PREFIX}/fastdds.xml

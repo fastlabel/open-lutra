@@ -1,0 +1,31 @@
+{% from "_macros.html" import job_icon, status_label, bundle_actions %}
+<div class="Subhead">
+  <h2 class="Subhead-heading d-flex flex-items-center" style="gap: 8px">{{ job_icon(job.status) }}{{ job.title }}</h2>
+  <div class="Subhead-description">
+    <a href="/jobs" class="color-fg-muted">Job</a> #{{ job.id }} &middot; started {{ job.started | time }} &middot; {{ status_label(job.status) }}
+    {% if job.status == "succeeded" %}{% for g in job.groups %} &middot; <a href="/groups/{{ g }}">View devices in {{ g }}</a>{% endfor %}{% endif %}
+  </div>
+</div>
+{% if job.status == "succeeded" and job.bundle %}
+{% set issued = bundle(job.bundle) %}
+{% if issued and issued.has_secret %}
+<div class="flash flash-success mb-4">
+  <div class="d-flex flex-items-center mb-2" style="gap: 8px">{{ octicon("key") }}<strong class="flex-auto">Registered {{ job.bundle }}. Download the registration bundle (certificate and private key).</strong>{{ bundle_actions(job.bundle, "/jobs/" ~ job.id) }}</div>
+  <div>On the edge PC, unzip it and run <code>sudo bash setup.sh {{ job.bundle }}</code> in that directory (instructions are in the zip's README.md). Once it works, delete it here.</div>
+</div>
+{% else %}
+<div class="flash mb-4">{{ octicon("check") }}The private key for {{ job.bundle }} has been deleted from this PC. The issuance record is in <a href="/secrets">Secrets</a>.</div>
+{% endif %}
+{% endif %}
+<div class="Box">
+  {% for step in job.steps %}
+  {% set status = job.step_status(loop.index0) %}
+  <details class="Box-row p-0" {{ 'open' if status in ("running", "failed") }}>
+    <summary class="d-flex flex-items-center px-3 py-2" style="gap: 8px; cursor: pointer">
+      {{ job_icon(status) }}<span class="flex-auto">{{ step.label }}</span>
+      <span class="f6 color-fg-muted">{{ job.logs[loop.index0] | length }} lines</span>
+    </summary>
+    <pre class="job-log">{{ job.logs[loop.index0] | join("\n") }}</pre>
+  </details>
+  {% endfor %}
+</div>

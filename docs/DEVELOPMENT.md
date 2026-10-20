@@ -163,6 +163,8 @@ Backend tests run on the host with `uv` alone — neither Docker nor rclpy is re
 
 ### Testing Policy
 
+The policy below covers `backend/` and `frontend/`. `examples/greengrass/` (the AWS IoT Greengrass example and its Fleet Console) has no automated tests and is outside the coverage requirement; CI only lints it (`make -C examples/greengrass lint`).
+
 **Backend:**
 
 Maintain 100% coverage. For code that cannot be tested, exclude it from coverage measurement instead of writing tests.
@@ -250,6 +252,7 @@ open frontend/coverage/index.html
 ```bash
 make lint    # ruff + mypy (backend) / tsc + biome (frontend)
 make format  # ruff (backend) / biome (frontend)
+make -C examples/greengrass lint  # ruff (Fleet Console) / terraform fmt (Greengrass example)
 ```
 
 Per-side variants (`make lint-backend`, `make format-frontend`, ...) are listed by `make help`; the exact commands each target runs are in the [Makefile](../Makefile).

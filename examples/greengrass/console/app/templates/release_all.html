@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_checkboxes, config_fields %}
+{% block title %}Run all - {% endblock %}
+{% block content %}
+<div class="col-12 col-md-8">
+  <div class="Subhead">
+    <h2 class="Subhead-heading"><a href="/#release" class="color-fg-muted">Dashboard</a> / Run all</h2>
+    <div class="Subhead-description">Runs everything from build to deploy in one go.</div>
+  </div>
+  <div class="Box mb-4">
+    <div class="Box-row d-flex flex-items-center" style="gap: 8px">{% if images_exist %}{{ octicon("skip", 16, "color-fg-muted") }}{% else %}<span class="Counter">1</span>{% endif %}
+      Build and push images {% if images_exist %}<span class="Label Label--secondary">Skipped (already pushed)</span>{% endif %}</div>
+    <div class="Box-row d-flex flex-items-center" style="gap: 8px"><span class="Counter">2</span>Create component</div>
+    <div class="Box-row d-flex flex-items-center" style="gap: 8px"><span class="Counter">3</span>Deploy to Thing Groups</div>
+  </div>
+  <form method="post" action="/confirm">
+    <input type="hidden" name="action" value="pipeline" />
+    <p>Source: <span class="mono">{{ commit }}</span> (tag <span class="mono">{{ image_tag }}</span>)</p>
+    <div class="form-group"><div class="form-group-header"><label for="v">New version</label></div>
+      <div class="form-group-body"><input id="v" class="form-control mono" name="version" value="{{ next_version }}" pattern="\d+\.\d+\.\d+" required /></div></div>
+    <div class="form-group">{{ group_checkboxes(groups) }}</div>
+    <div class="form-group">{{ config_fields(config_files, config_name, config_content, config_source, "release-all-config") }}</div>
+    <button type="submit" class="btn btn-primary">Review</button>
+  </form>
+</div>
+{% endblock %}

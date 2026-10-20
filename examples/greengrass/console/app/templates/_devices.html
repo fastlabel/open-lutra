@@ -1,0 +1,32 @@
+{% from "_macros.html" import condition_icon, condition_label, condition_bar, condition_counts %}
+<div class="Box">
+  <div class="Box-header">
+    <div class="d-flex flex-items-center flex-justify-between mb-2">
+      <h3 class="Box-title">Devices <span class="Counter">{{ devices | length }}</span></h3>
+      {{ condition_counts(counts) }}
+    </div>
+    {{ condition_bar(counts) }}
+  </div>
+  {% for d in devices %}
+  {% set key = d.condition(expected) %}
+  <div class="Box-row Box-row--hover-gray d-flex flex-items-center" style="gap: 12px">
+    {{ condition_icon(key) }}
+    <div class="flex-auto">
+      <a href="/groups/{{ group }}/devices/{{ d.name }}" class="Link--primary text-bold">{{ d.name }}</a>
+      {{ condition_label(key) }}
+      {% set m = d.monitoring %}
+      {% if m.recording %}<span class="Label Label--danger">{{ octicon("dot-fill", 16) }}Recording</span>{% endif %}
+      {% for kind in d.issues(expected) %}<span class="Label {{ 'Label--danger' if problems[kind][1] == 'error' else 'Label--attention' }}">{{ problems[kind][0] }}</span>{% endfor %}
+      <div class="f6 color-fg-muted mt-1">
+        Version <span class="mono">{{ d.version or "-" }}</span>{% if key == "updating" %} → <span class="mono">{{ expected }}</span>{% endif %}
+        &middot; Free disk {% if m.disk_free_percent is not none %}<span class="{{ 'color-fg-attention text-bold' if 'disk' in m.problems }}">{{ m.disk_free_percent | round | int }}%</span>{% else %}-{% endif %}
+        &middot; Last report <span title="{{ m.last_report | time }}">{{ m.last_report | ago if m.last_report else "none in the last 30 min" }}</span>
+      </div>
+    </div>
+    {{ octicon("chevron-right", 16, "color-fg-muted") }}
+  </div>
+  {% else %}
+  <div class="blankslate">{{ octicon("device-desktop", 24, "blankslate-icon") }}<h3 class="blankslate-heading">No devices</h3><p>Devices added to this Thing Group appear here.</p></div>
+  {% endfor %}
+</div>
+<p class="f6 color-fg-muted mt-2">{{ octicon("sync", 16, "mr-1") }}Updates every 10 s</p>

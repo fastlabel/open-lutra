@@ -23,3 +23,4 @@ If you want to use the project root's `/app` etc. under 0BSD, copy the relevant 
 | Example | Description |
 |---|---|
 | [`custom_ros2_messages/`](./custom_ros2_messages/) | How to record topics that use custom ROS2 message types (vendor-specific or user-defined), including a sample `Dockerfile`. |
+| [`greengrass/`](./greengrass/) | Deploying OpenLUTRA to edge PCs with AWS IoT Greengrass V2 and monitoring them from a local web console (Fleet Console). |

@@ -37,5 +37,8 @@ output
 # Frontend (built separately)
 frontend
 
+# Greengrass example (runs on the operator's PC, not in the backend image)
+examples/greengrass
+
 # Tests (not needed in production)
 tests

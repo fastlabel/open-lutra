@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_checkboxes, config_fields %}
+{% block content %}
+{% include "_monitor.html" %}
+
+<div hx-get="/dashboard/groups" hx-trigger="every 10s">{% include "_dashboard_groups.html" %}</div>
+
+<div id="release" class="d-flex flex-items-center flex-justify-between mt-6 mb-2">
+  <h2 class="h3 text-normal">Release</h2>
+  <a href="/release/all" class="btn btn-sm">{{ octicon("zap", 16, "mr-1") }}Run all</a>
+</div>
+<p class="color-fg-muted">Delivers OpenLUTRA <span class="mono">{{ commit }}</span> to the edge PCs: build → create component → deploy.</p>
+
+{% macro node(ok, icon, title, value, note) %}
+<div class="pipeline-node">
+  <div class="d-flex flex-items-center f6 color-fg-muted mb-1" style="gap: 6px">
+    {% if ok %}{{ octicon("check-circle-fill", 16, "color-fg-success") }}{% else %}{{ octicon("dot-fill", 16, "color-fg-attention") }}{% endif %}
+    {{ octicon(icon) }}{{ title }}
+  </div>
+  <div class="text-bold">{{ value }}</div>
+  <div class="f6 color-fg-muted">{{ note }}</div>
+</div>
+{% endmacro %}
+
+<div class="Box mb-3">
+  <div class="pipeline color-bg-subtle">
+    {{ node(true, "git-commit", "Source", image_tag, "OpenLUTRA commit") }}
+    <span class="pipeline-edge"></span>
+    {{ node(images_exist, "container", "Container image", "Pushed to ECR" if images_exist else "Not pushed", "Amazon ECR") }}
+    <span class="pipeline-edge"></span>
+    {{ node(released_version, "package", "Component", released_version or "Not created", "Latest: " ~ (latest_version or "-")) }}
+    <span class="pipeline-edge"></span>
+    {{ node(groups, "stack", "Thing Group", (groups | length) ~ (" site" if groups | length == 1 else " sites"), "AWS IoT Greengrass") }}
+    <span class="pipeline-edge"></span>
+    {{ node(device_total and totals.ok == device_total, "device-desktop", "Edge PCs", totals.ok ~ " / " ~ device_total ~ " devices OK", "Running OpenLUTRA") }}
+  </div>
+</div>
+
+{% macro step_head(number, done, title, description) %}
+<div class="Box-header d-flex flex-items-center" style="gap: 8px">
+  {% if done %}{{ octicon("check-circle-fill", 16, "color-fg-success") }}{% else %}<span class="Counter">{{ number }}</span>{% endif %}
+  <div><h3 class="Box-title">{{ title }}</h3><div class="f6 color-fg-muted">{{ description }}</div></div>
+</div>
+{% endmacro %}
+
+<div class="d-flex flex-column flex-md-row" style="gap: 16px">
+  <div class="Box flex-1 d-flex flex-column">
+    {{ step_head(1, images_exist, "Build images", "Build with Docker and push to ECR") }}
+    <div class="Box-body flex-auto">
+      <p>Tag <span class="mono">{{ image_tag }}</span>
+        {% if images_exist %}<span class="Label Label--success">Pushed</span>{% else %}<span class="Label Label--attention">Not pushed</span>{% endif %}</p>
+      {% if images_exist %}<p class="f6 color-fg-muted">ECR tags are immutable, so each commit is pushed only once.</p>{% endif %}
+    </div>
+    <div class="Box-footer">
+      <form method="post" action="/jobs"><input type="hidden" name="action" value="push" />
+        <button type="submit" class="btn btn-block" {{ 'disabled' if images_exist }}>Build and push</button></form>
+    </div>
+  </div>
+
+  <div class="Box flex-1 d-flex flex-column">
+    {{ step_head(2, released_version, "Create component", "Create a Greengrass component version") }}
+    <form method="post" action="/jobs" class="d-flex flex-column flex-auto">
+      <input type="hidden" name="action" value="release" />
+      <div class="Box-body flex-auto">
+        {% if released_version %}<p>This image is already released as <span class="mono text-bold">{{ released_version }}</span>.</p>
+        {% elif not images_exist %}<p class="color-fg-muted">Push the images first.</p>{% endif %}
+        <label class="d-block mb-1" for="release-version">New version</label>
+        <input id="release-version" class="form-control input-block mono" name="version" value="{{ next_version }}" pattern="\d+\.\d+\.\d+" required />
+      </div>
+      <div class="Box-footer"><button type="submit" class="btn btn-block" {{ 'disabled' if not images_exist }}>Create</button></div>
+    </form>
+  </div>
+
+  <div class="Box flex-1 d-flex flex-column">
+    {{ step_head(3, deployed_groups, "Deploy to Thing Groups", "Deliver to the edge PCs at each site") }}
+    <form method="post" action="/confirm" class="d-flex flex-column flex-auto">
+      <input type="hidden" name="action" value="deploy" />
+      <input type="hidden" name="version" value="{{ released_version or '' }}" />
+      <div class="Box-body flex-auto">
+        {% if deployed_groups %}<p>Deployed to {{ deployed_groups | join(", ") }}.</p>
+        {% elif not released_version %}<p class="color-fg-muted">Create the component first.</p>{% endif %}
+        {{ group_checkboxes(group_names) }}
+        {{ config_fields(config_files, config_name, config_content, config_source, "release-config") }}
+      </div>
+      <div class="Box-footer"><button type="submit" class="btn btn-primary btn-block" {{ 'disabled' if not released_version }}>Review</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

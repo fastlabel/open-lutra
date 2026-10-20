@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import group_head, status_label %}
+{% block title %}{{ group }} deployment history - {% endblock %}
+{% block header %}{{ group_head(group, tab) }}{% endblock %}
+{% block content %}
+<p class="color-fg-muted">Newest first. Rolling back to a past deployment redeploys the same version and config.</p>
+{% for d in history %}
+<div class="TimelineItem {{ 'TimelineItem--condensed' if not loop.first }}">
+  <div class="TimelineItem-badge {{ 'color-bg-success-emphasis color-fg-on-emphasis' if loop.first }}">{{ octicon("rocket" if loop.first else "history") }}</div>
+  <div class="TimelineItem-body d-flex flex-items-center flex-wrap" style="gap: 8px">
+    <div class="flex-auto">
+      <span class="text-bold color-fg-default mono">{{ d.version }}</span>
+      {% if loop.first %}<span class="Label Label--success">Current</span>{% else %}{{ status_label(d.status) }}{% endif %}
+      <span class="color-fg-muted">deployed &middot; <span title="{{ d.created | time }}">{{ d.created | ago }}</span></span>
+      <div class="f6 color-fg-muted mt-1">Image <span class="mono">{{ image_tags[d.version] or "deleted" }}</span> &middot; Recording config {{ d.recording_config_file or "none" }}</div>
+    </div>
+    {% if not loop.first and image_tags[d.version] and d.configuration %}
+    <form method="post" action="/confirm">
+      <input type="hidden" name="action" value="deploy" />
+      <input type="hidden" name="group" value="{{ group }}" />
+      <input type="hidden" name="version" value="{{ d.version }}" />
+      <input type="hidden" name="configuration" value="{{ d.configuration or '' }}" />
+      <button type="submit" class="btn btn-sm">{{ octicon("undo", 16, "mr-1") }}Roll back to this</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="blankslate">{{ octicon("history", 24, "blankslate-icon") }}<h3 class="blankslate-heading">No deployment history</h3></div>
+{% endfor %}
+{% endblock %}

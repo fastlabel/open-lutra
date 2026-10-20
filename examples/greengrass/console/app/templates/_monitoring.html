@@ -1,0 +1,14 @@
+{% set m = monitoring %}
+    <div class="Box mb-2">
+      <div class="Box-body d-flex flex-wrap" style="gap: 32px">
+        <div><div class="f6 color-fg-muted">Free disk</div>
+          <div class="f4 text-bold {{ 'color-fg-attention' if 'disk' in m.problems }}">{% if m.disk_free_percent is not none %}{{ m.disk_free_percent | round(1) }}%<span class="f6 text-normal color-fg-muted"> ({{ m.disk_free_gb | round(1) }} GB)</span>{% else %}-{% endif %}</div>
+          {% if m.disk_free_percent is not none %}<span class="Progress mt-1" style="width: 160px"><span class="Progress-item {{ 'color-bg-attention-emphasis' if 'disk' in m.problems else 'color-bg-success-emphasis' }}" style="width: {{ 100 - m.disk_free_percent }}%"></span></span>{% endif %}
+        </div>
+        <div><div class="f6 color-fg-muted">Recording</div><div class="f4">{% if m.recording is none %}-{% elif m.recording %}<span class="color-fg-danger text-bold">Recording</span>{% else %}Stopped{% endif %}</div></div>
+        <div><div class="f6 color-fg-muted">Max loss rate</div><div class="f4">{{ (m.max_loss_rate | round(1) ~ "%") if m.max_loss_rate is not none else "-" }}</div></div>
+        <div><div class="f6 color-fg-muted">OpenLUTRA responding</div><div class="f4">{% if m.openlutra_up is none %}-{% elif m.openlutra_up %}Yes{% else %}<span class="color-fg-danger">No</span>{% endif %}</div></div>
+        <div><div class="f6 color-fg-muted">Last report</div><div class="f4" title="{{ m.last_report | time }}">{{ m.last_report | ago if m.last_report else "none in the last 30 min" }}</div></div>
+      </div>
+    </div>
+    {% for kind in m.problems %}<div class="flash {{ 'flash-error' if problems[kind][1] == 'error' else 'flash-warn' }} mb-2">{{ octicon("alert") }}{{ problems[kind][0] }}</div>{% endfor %}
