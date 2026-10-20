@@ -2,10 +2,14 @@
 
 Deploys this repository's OpenLUTRA to edge PCs with Amazon ECR and AWS IoT Greengrass V2, and monitors them. The backend image is built from the repository's root `Dockerfile`; the frontend is built into static files from `frontend/` and served by nginx.
 
-See [docs/architecture.md](docs/architecture.md) for how it works.
-
 > [!NOTE]
 > This is a sample implementation of deploying OpenLUTRA with Greengrass, not meant to be used in production as-is. Adapt the component name, region, recording config, monitoring thresholds, and so on to your environment.
+
+## Architecture
+
+![Architecture](docs/architecture.svg)
+
+See [docs/architecture.md](docs/architecture.md) for how it works.
 
 All commands below run in `examples/greengrass/` (`cd examples/greengrass` first, or `make -C examples/greengrass ...`). Paths are relative to `examples/greengrass/`.
 
