@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-FLEET_ROOT = Path(__file__).resolve().parents[2]
+EXAMPLE_ROOT = Path(__file__).resolve().parents[2]
 # AWS IoT thing and thing group names.
 NAME_PATTERN = re.compile(r"[A-Za-z0-9:_-]{1,128}")
 
@@ -88,7 +88,7 @@ def _run(job: Job) -> None:
         try:
             process = subprocess.Popen(
                 step.args,
-                cwd=FLEET_ROOT,
+                cwd=EXAMPLE_ROOT,
                 env={**os.environ, **step.env},
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -146,14 +146,14 @@ def image_commit() -> str:
 def _image_source() -> list[str]:
     return subprocess.run(
         ["make", "-s", "image-tag"],
-        cwd=FLEET_ROOT,
+        cwd=EXAMPLE_ROOT,
         capture_output=True,
         text=True,
         check=True,
     ).stdout.splitlines()
 
 
-CONFIG_ROOT = FLEET_ROOT / "greengrass" / "config"
+CONFIG_ROOT = EXAMPLE_ROOT / "greengrass" / "config"
 
 
 def recording_config_files() -> list[str]:

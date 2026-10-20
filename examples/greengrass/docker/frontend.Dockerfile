@@ -26,7 +26,7 @@ FROM nginx:1.27-alpine
 # The nginx image renders templates/*.template with envsubst at startup,
 # substituting only variables that are defined in the environment.
 ENV BACKEND_ORIGIN=http://127.0.0.1:8000
-COPY fleet/docker/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY examples/greengrass/docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 5173

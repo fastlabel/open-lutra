@@ -37,8 +37,8 @@ output
 # Frontend (built separately)
 frontend
 
-# Fleet tooling (runs on the operator's PC, not in the backend image)
-fleet
+# Greengrass example (runs on the operator's PC, not in the backend image)
+examples/greengrass
 
 # Tests (not needed in production)
 tests

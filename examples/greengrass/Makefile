@@ -7,10 +7,10 @@ dotenv = $(patsubst "%",%,$(shell sed -n 's/^$(1)=//p' .env 2>/dev/null | tail -
 
 REGISTRY ?= local
 # One tag for both images, derived from the last commit that changed what goes into them, so a commit
-# that touches only the rest of fleet/ needs no new push. Paths are relative to the repository root.
-IMAGE_SOURCES = Dockerfile .dockerignore .env.example backend config frontend fleet/docker
-IMAGE_COMMIT = $(shell git -C .. log -1 --format=%H -- $(IMAGE_SOURCES))
-IMAGE_TAG ?= $(shell git -C .. describe --tags --always $(IMAGE_COMMIT))
+# that touches only the rest of this example needs no new push. Paths are relative to the repository root.
+IMAGE_SOURCES = Dockerfile .dockerignore .env.example backend config frontend examples/greengrass/docker
+IMAGE_COMMIT = $(shell git -C ../.. log -1 --format=%H -- $(IMAGE_SOURCES))
+IMAGE_TAG ?= $(shell git -C ../.. describe --tags --always $(IMAGE_COMMIT))
 PLATFORM ?= linux/amd64
 COMPONENT_NAME ?= $(or $(call dotenv,COMPONENT_NAME),com.example.OpenLutra)
 COMPONENT_PUBLISHER ?= $(or $(call dotenv,COMPONENT_PUBLISHER),Example)
@@ -40,10 +40,10 @@ GREENGRASS_ENV = COMPONENT_NAME=$(COMPONENT_NAME) STATUS_COMPONENT_NAME=$(STATUS
 build: build-backend build-frontend
 
 build-backend:
-	docker build --platform $(PLATFORM) -t $(REGISTRY)/open-lutra-backend:$(IMAGE_TAG) ..
+	docker build --platform $(PLATFORM) -t $(REGISTRY)/open-lutra-backend:$(IMAGE_TAG) ../..
 
 build-frontend:
-	docker build --platform $(PLATFORM) -f docker/frontend.Dockerfile -t $(REGISTRY)/open-lutra-frontend:$(IMAGE_TAG) ..
+	docker build --platform $(PLATFORM) -f docker/frontend.Dockerfile -t $(REGISTRY)/open-lutra-frontend:$(IMAGE_TAG) ../..
 
 push: REGISTRY = $(shell scripts/infra-output.sh ECR_REGISTRY registry)
 push: build
@@ -73,7 +73,7 @@ provision:
 # The console shows the tag and the commit it comes from.
 image-tag:
 	@echo $(IMAGE_TAG)
-	@git -C .. log -1 --format='%h %s' $(IMAGE_COMMIT)
+	@git -C ../.. log -1 --format='%h %s' $(IMAGE_COMMIT)
 
 lint:
 	uv run --project console ruff check console

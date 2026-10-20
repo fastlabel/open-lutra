@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.jobs import FLEET_ROOT
+from app.jobs import EXAMPLE_ROOT
 
-ROOT = FLEET_ROOT / "provisioned"
+ROOT = EXAMPLE_ROOT / "provisioned"
 SECRET = "private.pem.key"
 METADATA = "metadata.json"
 
@@ -82,7 +82,7 @@ def get(thing: str) -> Bundle | None:
 
 def _readme(bundle: Bundle) -> str:
     """device/bundle-README.md filled in for one device: the steps an operator follows on the edge PC."""
-    text = (FLEET_ROOT / "device" / "bundle-README.md").read_text()
+    text = (EXAMPLE_ROOT / "device" / "bundle-README.md").read_text()
     created = bundle.created_at.astimezone().strftime("%Y-%m-%d %H:%M") if bundle.created_at else "unknown"
     for key, value in {
         "thing": bundle.thing,
@@ -99,8 +99,8 @@ def download(thing: str) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr("README.md", _readme(_load(directory)))
-        archive.write(FLEET_ROOT / "device" / "setup.sh", "setup.sh")
-        archive.write(FLEET_ROOT / "device" / "cleanup.sh", "cleanup.sh")
+        archive.write(EXAMPLE_ROOT / "device" / "setup.sh", "setup.sh")
+        archive.write(EXAMPLE_ROOT / "device" / "cleanup.sh", "cleanup.sh")
         for path in sorted(directory.iterdir()):
             if path.name != METADATA:
                 archive.write(path, f"{thing}/{path.name}")

@@ -89,12 +89,12 @@ jobs:
       - name: Test (vitest)
         run: pnpm exec vitest run
 
-  fleet:
-    name: Fleet (lint)
+  greengrass:
+    name: Greengrass example (lint)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: fleet
+        working-directory: examples/greengrass
     steps:
       - uses: actions/checkout@v4
 

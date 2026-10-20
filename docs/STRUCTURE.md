@@ -15,10 +15,9 @@ open-lutra/
 │   └── tests/                  # Backend tests (mirrors backend/app/)
 ├── frontend/                   # Frontend (React + Vite, Bulletproof React)
 ├── simulator/                  # Development simulator (see simulator/README.md)
-├── fleet/                      # Greengrass deployment + Fleet Console (see fleet/README.md)
 ├── config/                     # Recording configs (YAML; selected via RECORDING_CONFIG)
 ├── docs/                       # Documentation
-├── examples/                   # Reference snippets (e.g. custom ROS2 message types)
+├── examples/                   # Reference snippets (e.g. custom ROS2 message types, AWS IoT Greengrass)
 ├── .devcontainer/              # Dev Container settings
 ├── .local/                     # Local materials (gitignored)
 ├── docker-compose.yml          # Development environment

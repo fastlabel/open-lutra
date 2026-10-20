@@ -1,13 +1,13 @@
-# Fleet
+# OpenLUTRA on AWS IoT Greengrass
 
-Fleet deploys this repository's OpenLUTRA to edge PCs with Amazon ECR and AWS IoT Greengrass V2, and monitors them. The backend image is built from the repository's root `Dockerfile`; the frontend is built into static files from `frontend/` and served by nginx.
+Deploys this repository's OpenLUTRA to edge PCs with Amazon ECR and AWS IoT Greengrass V2, and monitors them. The backend image is built from the repository's root `Dockerfile`; the frontend is built into static files from `frontend/` and served by nginx.
 
 See [docs/architecture.md](docs/architecture.md) for how it works.
 
 > [!NOTE]
-> The defaults (component name, region, recording config, monitoring thresholds, and so on) are examples. Adapt them to your environment.
+> This is a sample implementation of deploying OpenLUTRA with Greengrass, not meant to be used in production as-is. Adapt the component name, region, recording config, monitoring thresholds, and so on to your environment.
 
-All commands below run in `fleet/` (`cd fleet` first, or `make -C fleet ...`). Paths are relative to `fleet/`.
+All commands below run in `examples/greengrass/` (`cd examples/greengrass` first, or `make -C examples/greengrass ...`). Paths are relative to `examples/greengrass/`.
 
 ## Requirements
 
@@ -65,7 +65,7 @@ make deploy COMPONENT_VERSION=0.2.1 THING_GROUP=<group> RECORDING_CONFIG=greengr
 ```
 
 - The backend image is built from the root `Dockerfile` and the frontend image from `docker/frontend.Dockerfile`, both with the repository root as the build context (the frontend's is filtered by `docker/frontend.Dockerfile.dockerignore`).
-- The image tag (`IMAGE_TAG`) is `git describe --tags` of the last commit that changed what goes into the images (the root `Dockerfile`, `.dockerignore`, `.env.example`, `backend/`, `config/`, `frontend/`, `fleet/docker/`). A commit that touches only the rest of `fleet/` needs no new push. ECR tags cannot be overwritten, so a tag can be pushed only once. `make image-tag` prints it.
+- The image tag (`IMAGE_TAG`) is `git describe --tags` of the last commit that changed what goes into the images (the root `Dockerfile`, `.dockerignore`, `.env.example`, `backend/`, `config/`, `frontend/`, `examples/greengrass/docker/`). A commit that touches only the rest of `examples/greengrass/` needs no new push. ECR tags cannot be overwritten, so a tag can be pushed only once. `make image-tag` prints it.
 - Images are built for `linux/amd64` by default. Change it with `PLATFORM=...`.
 - The component name defaults to `com.example.OpenLutra`. Write a name in your own domain and the recipe publisher in `COMPONENT_NAME` / `COMPONENT_PUBLISHER` in `.env` (see `.env.example`). Changing the name makes a different component; version and deployment history do not carry over.
 - Specify `COMPONENT_VERSION` every time. Only the `MAJOR.MINOR.PATCH` form is allowed (versions with a hyphen cannot be resolved on the device). It is independent of `IMAGE_TAG`.

@@ -37,7 +37,6 @@ A **hybrid architecture** is used: recording via `subprocess` (`ros2 bag record`
 - **MCAP I/O is consolidated in `backend/app/infra/mcap/`**: Centralizes `make_reader` + `DecoderFactory` initialization, header.stamp-preferred timestamp normalization, and image/Joint structure detection. All consumers in analysis / media read MCAP through this layer.
 - **Validation takes a ValidationContext as input**: After a recording stops, quality → validation runs automatically as a chain in JobQueue, and results are saved to `validation_result.json`. Builtins live in `backend/app/features/validation/builtins/`; user-defined validators go in `custom/` and are applied on restart. See [docs/domain/custom_validators.md](docs/domain/custom_validators.md).
 - **Upload destinations are pluggable behind a Protocol**: `UploadDestination` (`backend/app/features/upload/destinations/`) abstracts the storage backend; `UPLOAD_DESTINATION` selects the active one (S3-compatible / local filesystem today), and when unset the upload feature is disabled. See [docs/domain/upload.md](docs/domain/upload.md).
-- **Fleet deployment lives in `fleet/`, separate from the app**: OpenLUTRA images are released to edge PCs as AWS IoT Greengrass V2 components, and the Fleet Console (FastAPI + Jinja, run on the operator's PC with AWS credentials) drives releases and monitoring. It is never imported by `backend/` or `frontend/`, and has its own Makefile (`make -C fleet ...`). See [fleet/README.md](fleet/README.md).
 - **Pre-registered recording metadata is master-defined**: Fields are declared in the active recording config's `metadata_fields:` section, filled by operators in the recording bar, and written into each recording's `recording_meta.json` under `metadata` — **always stored as strings**, validated only in the UI. See [docs/domain/metadata.md](docs/domain/metadata.md).
 
 ## Frontend Architecture
@@ -56,7 +55,7 @@ Uses the **Bulletproof React** pattern. See [docs/ARCHITECTURE.md](docs/ARCHITEC
 
 → Details (test structure, `pragma: no cover` policy, environment constraints): the "Testing" section of [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing)
 
-- **Maintain 100% coverage** — verify with `make test-cov`. Tests run on the host (no Docker or rclpy needed). `fleet/` is outside this requirement (lint only).
+- **Maintain 100% coverage** — verify with `make test-cov`. Tests run on the host (no Docker or rclpy needed). `examples/greengrass/` is outside this requirement (lint only).
 
 ## Coding Style
 

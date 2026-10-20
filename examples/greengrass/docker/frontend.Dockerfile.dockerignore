@@ -1,6 +1,6 @@
 *
 !frontend
-!fleet/docker/nginx.conf.template
+!examples/greengrass/docker/nginx.conf.template
 frontend/node_modules
 frontend/dist
 frontend/coverage
