@@ -19,6 +19,7 @@ export default mergeConfig(
           "src/lib/**",
           "src/features/**/mutations.ts",
           "src/features/**/quality-utils.tsx",
+          "src/features/quality-timeline/video-label.ts",
           "src/features/recording/store.ts",
           "src/features/recordings/bulk-tags.ts",
           "src/features/recordings/range-select.ts",

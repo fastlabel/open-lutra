@@ -5,11 +5,13 @@ import pytest
 from app.features.media.models import (
     JointStateMapping,
     JointTopicEntry,
+    MediaError,
     TopicRole,
     build_joint_state_mapping,
     classify_joint_state_topic,
-    derive_camera_name,
     derive_joint_prefix,
+    derive_video_name,
+    plan_video_files,
 )
 
 
@@ -89,28 +91,56 @@ class TestClassifyJointStateTopic:
         assert classify_joint_state_topic("/mcap/slave_arm_right") == TopicRole.OBSERVATION
 
 
-class TestDeriveCameraName:
-    """Tests for deriving a camera name."""
+class TestDeriveVideoName:
+    """Tests for deriving a video name from a topic."""
 
     @pytest.mark.parametrize(
         ("topic", "expected"),
         [
-            ("/right_arm_depth_cam/color/image_raw/compressed", "right_arm_depth_cam"),
-            ("/some_cam/camera/color/image_raw/compressed", "some_cam"),
-            ("/left_arm_depth_cam/color/image_raw/compressed", "left_arm_depth_cam"),
+            ("/right_arm_depth_cam/color/image_raw/compressed", "right_arm_depth_cam-color-image_raw-compressed"),
+            ("/camera/color/image_raw/compressed", "camera-color-image_raw-compressed"),
+            ("/camera/depth/image_raw/compressed", "camera-depth-image_raw-compressed"),
         ],
     )
-    def test_derives_first_segment(self, topic: str, expected: str) -> None:
-        assert derive_camera_name(topic) == expected
+    def test_uses_whole_topic(self, topic: str, expected: str) -> None:
+        assert derive_video_name(topic) == expected
 
     def test_single_segment(self) -> None:
-        assert derive_camera_name("/camera") == "camera"
+        assert derive_video_name("/camera") == "camera"
 
     def test_no_leading_slash(self) -> None:
-        assert derive_camera_name("camera/image") == "camera"
+        assert derive_video_name("camera/image") == "camera-image"
 
     def test_empty_string(self) -> None:
-        assert derive_camera_name("") == ""
+        assert derive_video_name("") == ""
+
+
+class TestPlanVideoFiles:
+    """Tests for mapping image topics to MP4 filenames."""
+
+    def test_topics_sharing_a_namespace_get_distinct_files(self) -> None:
+        files = plan_video_files(["/camera/color/image_raw/compressed", "/camera/depth/image_raw/compressed"])
+        assert files == {
+            "/camera/color/image_raw/compressed": "observation.images.camera-color-image_raw-compressed.mp4",
+            "/camera/depth/image_raw/compressed": "observation.images.camera-depth-image_raw-compressed.mp4",
+        }
+
+    def test_preserves_topic_order(self) -> None:
+        files = plan_video_files(["/b/image", "/a/image"])
+        assert list(files) == ["/b/image", "/a/image"]
+
+    def test_empty(self) -> None:
+        assert plan_video_files([]) == {}
+
+    def test_collision_raises_naming_both_topics(self) -> None:
+        """Only non-ROS2 names containing "-" can collide; refuse rather than overwrite."""
+        with pytest.raises(MediaError, match=r"'/cam-color/image'.*'/cam/color/image'"):
+            plan_video_files(["/cam-color/image", "/cam/color/image"])
+
+    def test_too_long_filename_raises(self) -> None:
+        topic = "/" + "a" * 240
+        with pytest.raises(MediaError, match="exceeds 255 bytes"):
+            plan_video_files([topic])
 
 
 class TestDeriveJointPrefix:

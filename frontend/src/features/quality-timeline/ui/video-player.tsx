@@ -72,7 +72,9 @@ export function VideoPlayer({ src, label }: { src: string; label: string }) {
 
   return (
     <div className="space-y-1">
-      <span className="text-[13px] text-muted-foreground truncate block">{label}</span>
+      <span className="text-[13px] text-muted-foreground truncate block" title={label}>
+        {label}
+      </span>
       <div className="relative">
         {!loaded && !error && (
           <div className="flex items-center justify-center rounded border border-border bg-black/50 aspect-video">

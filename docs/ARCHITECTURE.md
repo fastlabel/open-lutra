@@ -557,7 +557,7 @@ output/
 │   ├── validation_result.json             # Validation result (cache)
 │   ├── timeline_data.json                 # Timeline analysis result (cache)
 │   ├── joint_data*.json                   # Joint preview data (cache; decimation-suffixed variants)
-│   ├── observation.images.{camera}.mp4    # Per-camera preview videos (generated on first preview)
+│   ├── observation.images.{topic}.mp4     # Per-image-topic preview videos; {topic} is the topic with "/" → "-" (generated on first preview)
 │   └── upload_state.json                  # Upload history/state (created once uploaded)
 └── _lerobot_exports/                      # LeRobot dataset exports (reserved; skipped by the recordings scanner)
 ```
