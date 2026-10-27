@@ -1,0 +1,23 @@
+# domain_bridge config for the relay prototype (RELAY=1).
+# The entrypoint overrides from/to on the command line; the Humble parser still
+# requires them here.
+name: open_lutra_relay
+from_domain: 0
+to_domain: 42
+topics:
+  /chest_depth_cam/color/image_raw/compressed:
+    type: sensor_msgs/msg/CompressedImage
+  /head_depth_cam/color/image_raw/compressed:
+    type: sensor_msgs/msg/CompressedImage
+  /left_arm_depth_cam/color/image_raw/compressed:
+    type: sensor_msgs/msg/CompressedImage
+  /sim/slave_arm_left:
+    type: sensor_msgs/msg/JointState
+  /sim/slave_arm_left/gripper:
+    type: std_msgs/msg/Float64
+  /sim/slave_arm_left/pose:
+    type: geometry_msgs/msg/Point
+  /sim/master_arm_left:
+    type: sensor_msgs/msg/JointState
+  /sim/master_arm_left/hand:
+    type: std_msgs/msg/Float64

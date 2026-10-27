@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     ros-humble-rosbag2-storage-mcap \
+    ros-humble-domain-bridge \
     python3-colcon-common-extensions \
     ros-humble-rosidl-default-generators \
     && rm -rf /var/lib/apt/lists/*
@@ -52,6 +53,12 @@ source /opt/ros/humble/setup.bash
 [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash
 if [ -f "${RECORDING_CONFIG:-}" ]; then
   export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG}')).get('ros_domain_id', 0))")
+fi
+# Prototype: relay the robot domain into a local-only domain so the robot
+# sends each sample once; bag and monitor receive it from the relay over SHM.
+if [ "${RELAY:-0}" = "1" ]; then
+  ros2 run domain_bridge domain_bridge --from "${ROS_DOMAIN_ID:-0}" --to "${RELAY_DOMAIN_ID:-42}" "${RELAY_CONFIG:-config/relay/simulator.yaml}" &
+  export ROS_DOMAIN_ID="${RELAY_DOMAIN_ID:-42}"
 fi
 # Hand over to `command:` when one is given, so compose can add flags such as
 # --reload. Everything above is the ROS 2 environment the command needs.
