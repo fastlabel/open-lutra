@@ -30,6 +30,7 @@ import type {
   DeleteRequest,
   DeleteResponse,
   FilesResponse,
+  GetRecordingsParams,
   HTTPValidationError,
   RenameRequest,
   RenameResponse,
@@ -50,28 +51,42 @@ export type getRecordingsResponse200 = {
   status: 200
 }
 
+export type getRecordingsResponse422 = {
+  data: HTTPValidationError
+  status: 422
+}
+
 export type getRecordingsResponseSuccess = (getRecordingsResponse200) & {
   headers: Headers;
 };
-;
+export type getRecordingsResponseError = (getRecordingsResponse422) & {
+  headers: Headers;
+};
 
-export type getRecordingsResponse = (getRecordingsResponseSuccess)
+export type getRecordingsResponse = (getRecordingsResponseSuccess | getRecordingsResponseError)
 
-export const getGetRecordingsUrl = () => {
+export const getGetRecordingsUrl = (params?: GetRecordingsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/recordings`
+  return stringifiedParams.length > 0 ? `/api/recordings?${stringifiedParams}` : `/api/recordings`
 }
 
 /**
- * List recording folders directly under the output directory.
+ * List recording folders directly under the output directory, optionally filtered by start time.
  * @summary List Recordings
  */
-export const getRecordings = async ( options?: RequestInit): Promise<getRecordingsResponse> => {
+export const getRecordings = async (params?: GetRecordingsParams, options?: RequestInit): Promise<getRecordingsResponse> => {
 
-  return fetchClient<getRecordingsResponse>(getGetRecordingsUrl(),
+  return fetchClient<getRecordingsResponse>(getGetRecordingsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -84,23 +99,23 @@ export const getRecordings = async ( options?: RequestInit): Promise<getRecordin
 
 
 
-export const getGetRecordingsQueryKey = () => {
+export const getGetRecordingsQueryKey = (params?: GetRecordingsParams,) => {
     return [
-    `/api/recordings`
+    `/api/recordings`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetRecordingsQueryOptions = <TData = Awaited<ReturnType<typeof getRecordings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+export const getGetRecordingsQueryOptions = <TData = Awaited<ReturnType<typeof getRecordings>>, TError = HTTPValidationError>(params?: GetRecordingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetRecordingsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetRecordingsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecordings>>> = ({ signal }) => getRecordings({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecordings>>> = ({ signal }) => getRecordings(params, { signal, ...requestOptions });
 
 
 
@@ -110,11 +125,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetRecordingsQueryResult = NonNullable<Awaited<ReturnType<typeof getRecordings>>>
-export type GetRecordingsQueryError = unknown
+export type GetRecordingsQueryError = HTTPValidationError
 
 
-export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>> & Pick<
+export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = HTTPValidationError>(
+ params: undefined |  GetRecordingsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getRecordings>>,
           TError,
@@ -123,8 +138,8 @@ export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings
       >, request?: SecondParameter<typeof fetchClient>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>> & Pick<
+export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = HTTPValidationError>(
+ params?: GetRecordingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getRecordings>>,
           TError,
@@ -133,20 +148,20 @@ export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings
       >, request?: SecondParameter<typeof fetchClient>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = HTTPValidationError>(
+ params?: GetRecordingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Recordings
  */
 
-export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
+export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings>>, TError = HTTPValidationError>(
+ params?: GetRecordingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecordings>>, TError, TData>>, request?: SecondParameter<typeof fetchClient>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetRecordingsQueryOptions(options)
+  const queryOptions = getGetRecordingsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -158,96 +173,7 @@ export function useGetRecordings<TData = Awaited<ReturnType<typeof getRecordings
 
 
 
-export type deleteRecordingsResponse200 = {
-  data: DeleteResponse
-  status: 200
-}
-
-export type deleteRecordingsResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteRecordingsResponseSuccess = (deleteRecordingsResponse200) & {
-  headers: Headers;
-};
-export type deleteRecordingsResponseError = (deleteRecordingsResponse422) & {
-  headers: Headers;
-};
-
-export type deleteRecordingsResponse = (deleteRecordingsResponseSuccess | deleteRecordingsResponseError)
-
-export const getDeleteRecordingsUrl = () => {
-
-
-
-
-  return `/api/recordings`
-}
-
-/**
- * Delete multiple recording folders in one call.
- * @summary Delete Recordings
- */
-export const deleteRecordings = async (deleteRequest: DeleteRequest, options?: RequestInit): Promise<deleteRecordingsResponse> => {
-
-  return fetchClient<deleteRecordingsResponse>(getDeleteRecordingsUrl(),
-  {
-    ...options,
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(deleteRequest)
-  }
-);}
-
-
-
-
-export const getDeleteRecordingsMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext> => {
-
-const mutationKey = ['deleteRecordings'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRecordings>>, {data: DeleteRequest}> = (props) => {
-          const {data} = props ?? {};
-
-          return  deleteRecordings(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteRecordingsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRecordings>>>
-    export type DeleteRecordingsMutationBody = DeleteRequest
-    export type DeleteRecordingsMutationError = HTTPValidationError
-
-    /**
- * @summary Delete Recordings
- */
-export const useDeleteRecordings = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteRecordings>>,
-        TError,
-        {data: DeleteRequest},
-        TContext
-      > => {
-      return useMutation(getDeleteRecordingsMutationOptions(options), queryClient);
-    }
-    export type bulkUpdateRecordingMetaResponse200 = {
+export type bulkUpdateRecordingMetaResponse200 = {
   data: BulkUpdateMetaResponse
   status: 200
 }
@@ -337,6 +263,95 @@ export const useBulkUpdateRecordingMeta = <TError = HTTPValidationError,
         TContext
       > => {
       return useMutation(getBulkUpdateRecordingMetaMutationOptions(options), queryClient);
+    }
+    export type deleteRecordingsResponse200 = {
+  data: DeleteResponse
+  status: 200
+}
+
+export type deleteRecordingsResponse422 = {
+  data: HTTPValidationError
+  status: 422
+}
+
+export type deleteRecordingsResponseSuccess = (deleteRecordingsResponse200) & {
+  headers: Headers;
+};
+export type deleteRecordingsResponseError = (deleteRecordingsResponse422) & {
+  headers: Headers;
+};
+
+export type deleteRecordingsResponse = (deleteRecordingsResponseSuccess | deleteRecordingsResponseError)
+
+export const getDeleteRecordingsUrl = () => {
+
+
+
+
+  return `/api/recordings`
+}
+
+/**
+ * Delete multiple recording folders in one call.
+ * @summary Delete Recordings
+ */
+export const deleteRecordings = async (deleteRequest: DeleteRequest, options?: RequestInit): Promise<deleteRecordingsResponse> => {
+
+  return fetchClient<deleteRecordingsResponse>(getDeleteRecordingsUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deleteRequest)
+  }
+);}
+
+
+
+
+export const getDeleteRecordingsMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext> => {
+
+const mutationKey = ['deleteRecordings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRecordings>>, {data: DeleteRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteRecordings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRecordingsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRecordings>>>
+    export type DeleteRecordingsMutationBody = DeleteRequest
+    export type DeleteRecordingsMutationError = HTTPValidationError
+
+    /**
+ * @summary Delete Recordings
+ */
+export const useDeleteRecordings = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRecordings>>, TError,{data: DeleteRequest}, TContext>, request?: SecondParameter<typeof fetchClient>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRecordings>>,
+        TError,
+        {data: DeleteRequest},
+        TContext
+      > => {
+      return useMutation(getDeleteRecordingsMutationOptions(options), queryClient);
     }
     export type getRecordingTaskNamesResponse200 = {
   data: TaskNamesResponse
