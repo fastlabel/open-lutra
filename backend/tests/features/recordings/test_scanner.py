@@ -9,6 +9,7 @@ import shutil
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -18,9 +19,11 @@ import pytest
 from app.features.recordings import scanner
 from app.features.recordings.scanner import (
     collect_recent_task_names,
+    filter_by_start_time,
     read_metadata_summary,
     scan_output_dir,
 )
+from app.features.recordings.schemas import FileEntry
 
 
 @pytest.fixture(autouse=True)
@@ -378,6 +381,76 @@ class TestScanOutputDir:
         assert entries[0].recording_config_name is None
         assert entries[0].tags == []
         assert entries[0].metadata == {}
+
+
+JST = timezone(timedelta(hours=9))
+# 2026-11-04 00:00:00 JST
+DAY_START_NS = 1_793_718_000_000_000_000
+HOUR_NS = 3_600 * 1_000_000_000
+
+
+def _entry(name: str, recording_start_ns: int | None) -> FileEntry:
+    return FileEntry(
+        name=name,
+        path=name,
+        size=1,
+        modified_at=0.0,
+        topic_count=None,
+        recording_start_ns=recording_start_ns,
+        duration_ns=None,
+        message_count=None,
+        has_quality_report=False,
+        validation_overall_status=None,
+        upload_status=None,
+        task_name=None,
+        recording_config_name=None,
+        tags=[],
+        metadata={},
+    )
+
+
+class TestFilterByStartTime:
+    """Tests for filter_by_start_time."""
+
+    def test_no_bounds_returns_all_including_unknown_start(self) -> None:
+        """Without bounds the list is returned unchanged, entries lacking a start time included."""
+        entries = [_entry("a", DAY_START_NS), _entry("no_meta", None)]
+
+        assert filter_by_start_time(entries, started_after=None, started_before=None) == entries
+
+    def test_half_open_interval(self) -> None:
+        """The lower bound is inclusive and the upper bound exclusive, so AM / PM buckets split cleanly."""
+        entries = [
+            _entry("before", DAY_START_NS - 1),
+            _entry("midnight", DAY_START_NS),
+            _entry("morning", DAY_START_NS + 9 * HOUR_NS),
+            _entry("noon", DAY_START_NS + 12 * HOUR_NS),
+        ]
+        midnight = datetime(2026, 11, 4, tzinfo=JST)
+        noon = datetime(2026, 11, 4, 12, tzinfo=JST)
+
+        am = filter_by_start_time(entries, started_after=midnight, started_before=noon)
+        pm = filter_by_start_time(entries, started_after=noon, started_before=midnight + timedelta(days=1))
+
+        assert [e.name for e in am] == ["midnight", "morning"]
+        assert [e.name for e in pm] == ["noon"]
+
+    def test_single_bound_and_unknown_start_dropped(self) -> None:
+        """Either bound may be given alone; entries without a start time are excluded once filtering applies."""
+        entries = [_entry("old", DAY_START_NS - HOUR_NS), _entry("new", DAY_START_NS), _entry("no_meta", None)]
+        midnight = datetime(2026, 11, 4, tzinfo=JST)
+
+        assert [e.name for e in filter_by_start_time(entries, started_after=midnight, started_before=None)] == ["new"]
+        assert [e.name for e in filter_by_start_time(entries, started_after=None, started_before=midnight)] == ["old"]
+
+    def test_offset_is_honored_with_sub_second_precision(self) -> None:
+        """The same instant written in another offset matches, and microseconds are compared exactly."""
+        entries = [_entry("exact", DAY_START_NS + 1_000), _entry("earlier", DAY_START_NS + 999)]
+        same_instant_utc = datetime(2026, 11, 3, 15, 0, 0, 1, tzinfo=timezone.utc)
+
+        result = filter_by_start_time(entries, started_after=same_instant_utc, started_before=None)
+
+        assert [e.name for e in result] == ["exact"]
 
 
 def _make_recording_with_task(folder: Path, task_name: str | None, *, mtime: float | None = None) -> Path:

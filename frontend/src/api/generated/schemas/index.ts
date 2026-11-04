@@ -24,6 +24,7 @@ export * from './filesResponse.ts';
 export * from './gapInfo.ts';
 export * from './getJointsParams.ts';
 export * from './getQualityParams.ts';
+export * from './getRecordingsParams.ts';
 export * from './getTimelineMessagesParams.ts';
 export * from './getTimelineParams.ts';
 export * from './getTopicMessageParams.ts';

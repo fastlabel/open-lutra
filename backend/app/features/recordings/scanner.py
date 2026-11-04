@@ -9,6 +9,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Import the constant directly (not via the package __init__) to avoid eagerly
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 # (distinct from RECORDING_META_FILENAME / recording_meta.json, this app's own metadata file).
 MCAP_METADATA_FILENAME = "metadata.yaml"
 QUALITY_REPORT_FILENAME = "quality_report.json"
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 @dataclass(frozen=True)
@@ -122,6 +125,36 @@ def scan_output_dir(output_dir: Path) -> list[FileEntry]:
     # Sort by recording_start_ns primarily, mtime as fallback. Descending (newest first).
     entries.sort(key=_sort_key_recording_desc, reverse=True)
     return entries
+
+
+def filter_by_start_time(
+    entries: list[FileEntry],
+    *,
+    started_after: datetime | None,
+    started_before: datetime | None,
+) -> list[FileEntry]:
+    """Keep entries whose recording start falls in `[started_after, started_before)`.
+
+    Entries without a recording start time are dropped whenever either bound is
+    given, since they cannot be placed in the interval. Order is preserved.
+    """
+    if started_after is None and started_before is None:
+        return entries
+    after_ns = _to_ns(started_after) if started_after is not None else None
+    before_ns = _to_ns(started_before) if started_before is not None else None
+    return [
+        entry
+        for entry in entries
+        if entry.recording_start_ns is not None
+        and (after_ns is None or entry.recording_start_ns >= after_ns)
+        and (before_ns is None or entry.recording_start_ns < before_ns)
+    ]
+
+
+def _to_ns(moment: datetime) -> int:
+    """Convert a timezone-aware datetime to UNIX nanoseconds without float rounding."""
+    delta = moment - _EPOCH
+    return ((delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds) * 1_000
 
 
 def _scan_folders(

@@ -107,8 +107,48 @@
           "recordings"
         ],
         "summary": "List Recordings",
-        "description": "List recording folders directly under the output directory.",
+        "description": "List recording folders directly under the output directory, optionally filtered by start time.",
         "operationId": "getRecordings",
+        "parameters": [
+          {
+            "name": "started_after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive lower bound on the recording start time (RFC 3339 with UTC offset)",
+              "title": "Started After"
+            },
+            "description": "Inclusive lower bound on the recording start time (RFC 3339 with UTC offset)"
+          },
+          {
+            "name": "started_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive upper bound on the recording start time (RFC 3339 with UTC offset)",
+              "title": "Started Before"
+            },
+            "description": "Exclusive upper bound on the recording start time (RFC 3339 with UTC offset)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -116,36 +156,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FilesResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "recordings"
-        ],
-        "summary": "Delete Recordings",
-        "description": "Delete multiple recording folders in one call.",
-        "operationId": "deleteRecordings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteResponse"
                 }
               }
             }
@@ -170,14 +180,14 @@
         "description": "Set metadata values and add / remove tags on multiple recording folders in one call.\n\nEvery folder is resolved before anything is written, so a missing folder fails the whole request.",
         "operationId": "bulkUpdateRecordingMeta",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BulkUpdateMetaRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -186,6 +196,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BulkUpdateMetaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "Delete Recordings",
+        "description": "Delete multiple recording folders in one call.",
+        "operationId": "deleteRecordings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
                 }
               }
             }

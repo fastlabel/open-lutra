@@ -195,7 +195,7 @@ export function useBulkUpdateRecordingMeta() {
 
 /** Fetch the list of recording folders directly under the output directory. */
 export function useFiles() {
-  return useGetRecordings<FilesResponse>({
+  return useGetRecordings<FilesResponse>(undefined, {
     query: {
       select: (resp) => resp.data as FilesResponse,
     },

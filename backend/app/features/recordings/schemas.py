@@ -1,6 +1,33 @@
 """Request/response schemas for recording directory operation APIs."""
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
+
+
+class RecordingsQuery(BaseModel):
+    """Query parameters for GET /api/recordings.
+
+    Filters on the recording start time over the half-open interval
+    `[started_after, started_before)`, so adjacent buckets (e.g. AM / PM of a
+    day) neither overlap nor leave gaps. Bounds must carry a UTC offset because
+    day boundaries depend on the caller's timezone.
+    """
+
+    started_after: AwareDatetime | None = Field(
+        None, description="Inclusive lower bound on the recording start time (RFC 3339 with UTC offset)"
+    )
+    started_before: AwareDatetime | None = Field(
+        None, description="Exclusive upper bound on the recording start time (RFC 3339 with UTC offset)"
+    )
+
+    @model_validator(mode="after")
+    def _require_ordered_bounds(self) -> "RecordingsQuery":
+        if (
+            self.started_after is not None
+            and self.started_before is not None
+            and self.started_after >= self.started_before
+        ):
+            raise ValueError("started_after must be earlier than started_before")
+        return self
 
 
 class RenameRequest(BaseModel):
@@ -25,9 +52,7 @@ class UpdateMetaRequest(BaseModel):
 
     task_name: str | None = Field(default=None, description="Task name")
     tags: list[str] | None = Field(default=None, description="List of tags")
-    metadata: dict[str, str] | None = Field(
-        default=None, description="Pre-registered metadata (key -> value)"
-    )
+    metadata: dict[str, str] | None = Field(default=None, description="Pre-registered metadata (key -> value)")
 
 
 class BulkUpdateMetaRequest(BaseModel):
