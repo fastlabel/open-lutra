@@ -61,7 +61,7 @@ class TestMjpegPipeCommand:
     def test_gpu_decode_nvenc(self) -> None:
         assert mjpeg_pipe_command(Path("/rec/cam.mp4"), 30, NVENC_GPU_DECODE) == [
             "ffmpeg", "-y",
-            "-xerror", "-hwaccel", "cuda",
+            "-hwaccel", "cuda",
             "-f", "image2pipe", "-c:v", "mjpeg", "-r", "30", "-i", "pipe:0",
             *_NVENC_ARGS, "-pix_fmt", "yuv420p", "-r", "30",
             "-loglevel", "warning",
