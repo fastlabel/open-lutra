@@ -22,5 +22,5 @@ services:
               capabilities: [gpu]
     # Map form, so it merges with the base file's list-form environment.
     environment:
-      # `video` is what NVENC/NVDEC need; without it the GPU is visible but cannot encode.
+      # `video` is what NVENC needs; without it the GPU is visible but cannot encode.
       NVIDIA_DRIVER_CAPABILITIES: compute,video,utility

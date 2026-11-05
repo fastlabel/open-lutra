@@ -24,7 +24,7 @@ from app.features.lerobot_export.validation import validate_recordings
 from app.features.lerobot_export.writer import LeRobotV30Writer
 from app.features.recordings.meta import read_recording_meta
 from app.infra.mcap import find_mcap_files
-from app.infra.video import EncodeStep, VideoEncodeError, VideoEncoder, export_ladder, run_with_fallback
+from app.infra.video import VideoEncodeError, VideoEncoder, encoder_ladder, run_with_fallback
 
 if TYPE_CHECKING:
     from app.features.lerobot_export.models import ExportConfig
@@ -68,11 +68,11 @@ def run_export(
         VideoEncodeError: If video encoding fails on the last encoder tried.
     """
 
-    def attempt(step: EncodeStep) -> ExportResult:
-        return _run_export_once(source_dirs, config, output_dir, on_progress, step)
+    def attempt(candidate: VideoEncoder) -> ExportResult:
+        return _run_export_once(source_dirs, config, output_dir, on_progress, candidate)
 
     return run_with_fallback(
-        export_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=_log_fallback
+        encoder_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=_log_fallback
     )
 
 
@@ -80,8 +80,8 @@ def _is_encoder_failure(error: Exception) -> bool:
     return isinstance(error, VideoEncodeError)
 
 
-def _log_fallback(failed: EncodeStep, next_step: EncodeStep, error: Exception) -> None:
-    logger.warning("LeRobot export with %s failed; re-running with %s: %s", failed, next_step, error)
+def _log_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+    logger.warning("LeRobot export with %s failed; re-running with %s: %s", failed, next_encoder, error)
 
 
 def _run_export_once(
@@ -89,7 +89,7 @@ def _run_export_once(
     config: ExportConfig,
     output_dir: Path,
     on_progress: ProgressCallback | None,
-    encode_step: EncodeStep,
+    encoder: VideoEncoder,
 ) -> ExportResult:
     """One export attempt with a fixed encoder; a failure leaves no output behind."""
 
@@ -120,7 +120,7 @@ def _run_export_once(
     # never leaves a partial dataset that blocks the name / lists as complete.
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     work_dir = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", suffix=".tmp", dir=output_dir.parent))
-    writer = LeRobotV30Writer(work_dir, fps, config.robot_type, spec, encode_step=encode_step)
+    writer = LeRobotV30Writer(work_dir, fps, config.robot_type, spec, encoder=encoder)
     writer.open()
     try:
         for index, (recording_dir, mcap_path) in enumerate(usable):

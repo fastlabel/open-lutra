@@ -40,12 +40,10 @@ def test_first_step_succeeds() -> None:
 
 
 def test_falls_back_until_a_step_succeeds() -> None:
-    recorder = _Recorder(
-        {"gpu-decode": VideoEncodeError("nvdec"), "nvenc": VideoEncodeError("session limit"), "cpu": "ok-cpu"}
-    )
-    assert _run(recorder, ["gpu-decode", "nvenc", "cpu"]) == "ok-cpu"
-    assert recorder.attempted == ["gpu-decode", "nvenc", "cpu"]
-    assert recorder.fallbacks == [("gpu-decode", "nvenc", "nvdec"), ("nvenc", "cpu", "session limit")]
+    recorder = _Recorder({"a": VideoEncodeError("a failed"), "b": VideoEncodeError("b failed"), "c": "ok-c"})
+    assert _run(recorder, ["a", "b", "c"]) == "ok-c"
+    assert recorder.attempted == ["a", "b", "c"]
+    assert recorder.fallbacks == [("a", "b", "a failed"), ("b", "c", "b failed")]
 
 
 def test_last_step_failure_is_reraised() -> None:

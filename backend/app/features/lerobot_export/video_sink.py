@@ -7,7 +7,7 @@ processes stay open for the whole export and only one frame per camera is held
 in memory at a time.
 
 Encodes h264 / yuv420p to match the codec recorded in `info.json`, with the
-encoder of the given `EncodeStep` (see `app.infra.video`).
+given encoder (see `app.infra.video`).
 
 ffmpeg subprocess I/O is excluded from coverage.
 """
@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from app.infra.video import LIBX264, EncodeStep, VideoEncodeError, rawvideo_rgb24_command
+from app.infra.video import VideoEncodeError, VideoEncoder, rawvideo_rgb24_command
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -39,9 +39,9 @@ class VideoSink:  # pragma: no cover
         output_paths: dict[str, Path],
         image_shapes: dict[str, tuple[int, int, int]],
         fps: int,
-        step: EncodeStep = LIBX264,
+        encoder: VideoEncoder = "libx264",
     ) -> None:
-        self._step = step
+        self._encoder = encoder
         self._procs: dict[str, subprocess.Popen[bytes]] = {}
         self._stderr_threads: dict[str, threading.Thread] = {}
         self._stderr_chunks: dict[str, list[bytes]] = {}
@@ -75,7 +75,7 @@ class VideoSink:  # pragma: no cover
             self._stderr_threads[camera].join(timeout=5)
             stderr = b"".join(self._stderr_chunks[camera]).decode("utf-8", errors="replace")
             raise VideoEncodeError(
-                f"Video encoding failed ({self._step}):\n{camera}: ffmpeg exited {proc.returncode}: {stderr}"
+                f"Video encoding failed ({self._encoder}):\n{camera}: ffmpeg exited {proc.returncode}: {stderr}"
             ) from e
 
     def close(self) -> None:
@@ -107,7 +107,7 @@ class VideoSink:  # pragma: no cover
                 stderr = b"".join(self._stderr_chunks[camera]).decode("utf-8", errors="replace")
                 errors.append(f"{camera}: ffmpeg exited {proc.returncode}: {stderr}")
         if errors:
-            raise VideoEncodeError(f"Video encoding failed ({self._step}):\n" + "\n".join(errors))
+            raise VideoEncodeError(f"Video encoding failed ({self._encoder}):\n" + "\n".join(errors))
 
     def kill(self) -> None:
         """Terminate all encoders immediately without waiting (failure cleanup).
@@ -122,7 +122,7 @@ class VideoSink:  # pragma: no cover
                 proc.kill()
 
     def _spawn(self, output_path: Path, width: int, height: int, fps: int) -> subprocess.Popen[bytes]:
-        cmd = rawvideo_rgb24_command(output_path, width, height, fps, self._step)
+        cmd = rawvideo_rgb24_command(output_path, width, height, fps, self._encoder)
         return subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     def _start_stderr_drain(self, camera: str) -> None:

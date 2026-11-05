@@ -25,13 +25,13 @@ import pandas as pd
 
 from app.features.lerobot_export.stats import ImageStats, StatsAccumulator, VectorStats
 from app.features.lerobot_export.video_sink import VideoSink
-from app.infra.video import LIBX264, EncodeStep
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from app.features.lerobot_export.converter import Frame
     from app.features.lerobot_export.models import FeatureSpec
+    from app.infra.video import VideoEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -69,14 +69,14 @@ class LeRobotV30Writer:
         spec: FeatureSpec,
         *,
         sink_factory: SinkFactory | None = None,
-        encode_step: EncodeStep = LIBX264,
+        encoder: VideoEncoder = "libx264",
     ) -> None:
         self._root = root
         self._fps = fps
         self._robot_type = robot_type
         self._spec = spec
         self._sink_factory = sink_factory
-        self._encode_step = encode_step
+        self._encoder = encoder
         self._video_keys = [f"observation.images.{cam}" for cam in spec.camera_names]
 
         # Per-frame buffers (numeric only; small).
@@ -128,7 +128,7 @@ class LeRobotV30Writer:
         if self._sink_factory is not None:
             self._sink = self._sink_factory(output_paths, self._spec.image_shapes, self._fps)
         else:
-            self._sink = VideoSink(output_paths, self._spec.image_shapes, self._fps, step=self._encode_step)
+            self._sink = VideoSink(output_paths, self._spec.image_shapes, self._fps, encoder=self._encoder)
 
     def add_frame(self, frame: Frame) -> None:
         """Append one synchronized frame: encode its images and buffer its vectors."""

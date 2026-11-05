@@ -292,11 +292,11 @@ Match `LOCAL_UPLOAD_DIR` in `.env` to the container-side path of the bind-mount.
 
 ## GPU Encoding (NVIDIA)
 
-Preview MP4s and LeRobot export videos are encoded on the CPU (libx264) by default. On an x86_64 Linux host with an NVIDIA GPU, they can be encoded on the GPU instead (JPEG decoding via NVDEC, H.264 encoding via NVENC). The output format (H.264 / yuv420p) is the same either way. The same backend image serves both modes; nothing is rebuilt.
+Preview MP4s and LeRobot export videos are encoded on the CPU (libx264) by default. On an x86_64 Linux host with an NVIDIA GPU, they can be encoded with NVENC instead (JPEG decoding stays on the CPU). The output format (H.264 / yuv420p) and file size are about the same either way; on a GeForce RTX 5050 Laptop GPU, previews of a 60 s, three-camera recording took 19 s instead of 64 s. The same backend image serves both modes; nothing is rebuilt.
 
 ### Host prerequisites
 
-- An NVIDIA GPU with NVENC, and the NVIDIA driver. The backend's ffmpeg 4.4 needs a driver that supports its NVENC API; R470 or newer is expected (`nvidia-smi` shows the version)
+- An NVIDIA GPU with NVENC, and the NVIDIA driver. The backend's ffmpeg 4.4 needs a driver that supports its NVENC API (R470 or newer; verified with 580). `nvidia-smi` shows the version
 - The [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), registered with Docker (`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`)
 
 Jetson, Intel/AMD GPUs and macOS GPUs are not supported (Docker Desktop on macOS cannot pass a GPU into containers).
@@ -314,7 +314,7 @@ VIDEO_ENCODER=nvenc
 make prod-restart   # or `make up` / `make restart` in development
 ```
 
-With `VIDEO_ENCODER=nvenc`, every `make` target applies `docker-compose.gpu.yml`, which exposes the GPU to the backend (including the `video` driver capability that NVENC/NVDEC need), and the backend encodes on the GPU. `make help` prints the value it read. To turn it off, delete the line (or set `VIDEO_ENCODER=libx264`) and run `make prod-restart` again.
+With `VIDEO_ENCODER=nvenc`, every `make` target applies `docker-compose.gpu.yml`, which exposes the GPU to the backend (including the `video` driver capability that NVENC needs), and the backend encodes on the GPU. `make help` prints the value it read. To turn it off, delete the line (or set `VIDEO_ENCODER=libx264`) and run `make prod-restart` again.
 
 Without `make`, add the override yourself:
 
@@ -329,7 +329,7 @@ The backend probes NVENC on the first video job after it starts. `make prod-logs
 - `NVENC probe succeeded; encoding video on the GPU`: GPU encoding is active
 - `VIDEO_ENCODER=nvenc but NVENC is unusable in this container; encoding on the CPU ...`: the GPU is not usable from the container (override not applied, missing `video` capability, or a driver too old). Videos are still produced, on the CPU
 
-If the GPU fails for a single video (for example, the GPU's limit on concurrent encoder sessions is reached, or the decoder cannot read a camera's JPEG format), that video falls back to the CPU and a `... failed; retrying with ...` warning is logged. The job still succeeds.
+If the GPU fails for a single video (for example, the GPU's limit on concurrent encoder sessions is reached), that video falls back to the CPU and a `... failed; retrying with ...` warning is logged. The job still succeeds.
 
 If `VIDEO_ENCODER=nvenc` is set on a host without the NVIDIA Container Toolkit, `docker compose up` fails with an error about the `nvidia` device driver. Install the toolkit, or remove the setting.
 

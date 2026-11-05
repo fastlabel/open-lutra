@@ -188,8 +188,8 @@ Shared layer through which media (preview MP4s) and lerobot_export (dataset vide
 
 - **`VIDEO_ENCODER` setting**: `libx264` (CPU, default) or `nvenc` (NVIDIA GPU). See [GPU encoding](SETUP.md#gpu-encoding-nvidia) for how a host opts in
 - **`effective_encoder()`**: Resolves the setting once per process. `nvenc` is kept only if a one-frame NVENC probe succeeds; otherwise a single warning is logged and the process encodes on the CPU
-- **Command builders** (`mjpeg_pipe_command` / `rawvideo_rgb24_command`): Build the ffmpeg command line for one `EncodeStep` (decode on CPU or GPU, encode with libx264 or NVENC). The libx264 steps produce exactly the commands used before GPU support existed
-- **Fallback ladders** (`preview_ladder` / `export_ladder` + `run_with_fallback`): With `nvenc`, previews try GPU decode + NVENC → CPU decode + NVENC → libx264 per camera, and LeRobot export retries the whole export with libx264. Only ffmpeg failures move down the ladder; other errors (e.g. a corrupted MCAP) are raised as-is
+- **Command builders** (`mjpeg_pipe_command` / `rawvideo_rgb24_command`): Build the ffmpeg command line for one encoder (libx264 or NVENC). JPEG decoding always runs on the CPU. The libx264 commands are exactly the ones used before GPU support existed
+- **Fallback ladder** (`encoder_ladder` + `run_with_fallback`): With `nvenc`, previews retry a failed camera with libx264, and LeRobot export re-runs the whole export with libx264. Only ffmpeg failures fall back; other errors (e.g. a corrupted MCAP) are raised as-is
 
 #### 8. JobQueue (background job execution platform)
 

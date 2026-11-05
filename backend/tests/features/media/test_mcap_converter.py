@@ -13,7 +13,6 @@ import pytest
 from app.features.media.mcap_converter import _is_encoder_failure, _JointTopicData, _log_fallback, _sort_topic_data
 from app.features.media.models import MediaError
 from app.infra.mcap import CorruptedMCAPError
-from app.infra.video import NVENC, NVENC_GPU_DECODE
 
 
 def test_sort_topic_data_empty() -> None:
@@ -37,10 +36,9 @@ def test_corrupted_mcap_is_not_retried() -> None:
     assert _is_encoder_failure(CorruptedMCAPError("MCAP file is unreadable")) is False
 
 
-def test_fallback_is_logged_with_both_steps_and_the_reason(caplog: pytest.LogCaptureFixture) -> None:
+def test_fallback_is_logged_with_both_encoders_and_the_reason(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
-        _log_fallback("cam.mp4", NVENC_GPU_DECODE, NVENC, MediaError("ffmpeg failed (code=1): nvdec"))
+        _log_fallback("cam.mp4", "nvenc", "libx264", MediaError("ffmpeg failed (code=1): OpenEncodeSessionEx failed"))
     assert caplog.messages == [
-        "Encoding cam.mp4 with gpu-decode + nvenc failed; retrying with cpu-decode + nvenc: "
-        "ffmpeg failed (code=1): nvdec"
+        "Encoding cam.mp4 with nvenc failed; retrying with libx264: ffmpeg failed (code=1): OpenEncodeSessionEx failed"
     ]

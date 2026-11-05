@@ -7,7 +7,7 @@ to telemetry.json.
 MP4 generation streams MCAP per camera to minimize memory usage
 (only one frame held at a time, constant memory regardless of recording length).
 Each camera runs down the encoder's fallback ladder (`app.infra.video`), so a
-GPU decode/encode failure is retried on the CPU instead of failing the job.
+GPU encode failure is retried on the CPU instead of failing the job.
 
 Functions that depend on MCAP I/O or ffmpeg subprocesses are marked
 pragma: no cover.
@@ -38,7 +38,7 @@ from app.infra.mcap import (
     is_image_message,
     resolve_timestamp_ns,
 )
-from app.infra.video import EncodeStep, VideoEncoder, mjpeg_pipe_command, preview_ladder, run_with_fallback
+from app.infra.video import VideoEncoder, encoder_ladder, mjpeg_pipe_command, run_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def convert_mcap(  # pragma: no cover
         on_progress: Progress callback (step, current, total).
             step: "classify" / "mp4" / "telemetry"
         encoder: Encoder to try first; GPU failures fall back to the CPU
-            per camera (see `app.infra.video.preview_ladder`).
+            per camera (see `app.infra.video.encoder_ladder`).
 
     Returns:
         List of generated file paths.
@@ -232,15 +232,15 @@ def _classify_topics(mcap_path: Path) -> tuple[dict[str, str], dict[str, str]]: 
 
 
 def _is_encoder_failure(error: Exception) -> bool:
-    """Whether a camera's encode failed in ffmpeg (worth retrying on the next ladder step).
+    """Whether a camera's encode failed in ffmpeg (worth retrying with the next encoder).
 
     Other errors (e.g. a corrupted MCAP) would fail the same way with any encoder.
     """
     return isinstance(error, MediaError)
 
 
-def _log_fallback(output_name: str, failed: EncodeStep, next_step: EncodeStep, error: Exception) -> None:
-    logger.warning("Encoding %s with %s failed; retrying with %s: %s", output_name, failed, next_step, error)
+def _log_fallback(output_name: str, failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+    logger.warning("Encoding %s with %s failed; retrying with %s: %s", output_name, failed, next_encoder, error)
 
 
 def _encode_camera(
@@ -253,13 +253,13 @@ def _encode_camera(
 ) -> None:  # pragma: no cover
     """Encode one camera, moving down the encoder's fallback ladder on ffmpeg failures."""
 
-    def attempt(step: EncodeStep) -> None:
-        _stream_generate_mp4(mcap_path, topic, frame_timestamps, fps, output_path, step)
+    def attempt(candidate: VideoEncoder) -> None:
+        _stream_generate_mp4(mcap_path, topic, frame_timestamps, fps, output_path, candidate)
 
-    def on_fallback(failed: EncodeStep, next_step: EncodeStep, error: Exception) -> None:
-        _log_fallback(output_path.name, failed, next_step, error)
+    def on_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+        _log_fallback(output_path.name, failed, next_encoder, error)
 
-    run_with_fallback(preview_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=on_fallback)
+    run_with_fallback(encoder_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=on_fallback)
 
 
 def _stream_generate_mp4(
@@ -268,7 +268,7 @@ def _stream_generate_mp4(
     frame_timestamps: list[int],
     fps: int,
     output_path: Path,
-    step: EncodeStep,
+    encoder: VideoEncoder,
 ) -> None:  # pragma: no cover
     """Stream the given topic from MCAP and generate an MP4.
 
@@ -283,7 +283,7 @@ def _stream_generate_mp4(
             is removed.
     """
     proc = subprocess.Popen(
-        mjpeg_pipe_command(output_path, fps, step),
+        mjpeg_pipe_command(output_path, fps, encoder),
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
