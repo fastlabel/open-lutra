@@ -1,11 +1,19 @@
 """Tests for the pure helpers in mcap_converter.
 
 The MCAP-reading / ffmpeg-piping functions are marked ``pragma: no cover``; this
-covers the pure timestamp-sorting helper (and forces the module to import so its
-module-level definitions are measured).
+covers the pure helpers (timestamp sorting, the encoder-failure predicate and the
+fallback log line) and forces the module to import so its
+module-level definitions are measured.
 """
 
-from app.features.media.mcap_converter import _JointTopicData, _sort_topic_data
+import logging
+
+import pytest
+
+from app.features.media.mcap_converter import _is_encoder_failure, _JointTopicData, _log_fallback, _sort_topic_data
+from app.features.media.models import MediaError
+from app.infra.mcap import CorruptedMCAPError
+from app.infra.video import NVENC, NVENC_GPU_DECODE
 
 
 def test_sort_topic_data_empty() -> None:
@@ -18,3 +26,21 @@ def test_sort_topic_data_orders_by_timestamp() -> None:
     timestamps, positions = _sort_topic_data(data)
     assert timestamps == [10, 20, 30]
     assert positions == [[1.0], [2.0], [3.0]]
+
+
+def test_encoder_failures_are_retried() -> None:
+    assert _is_encoder_failure(MediaError("ffmpeg failed (code=1): No NVENC capable devices found")) is True
+
+
+def test_corrupted_mcap_is_not_retried() -> None:
+    """A different encoder would hit the same unreadable MCAP, so it is not retried."""
+    assert _is_encoder_failure(CorruptedMCAPError("MCAP file is unreadable")) is False
+
+
+def test_fallback_is_logged_with_both_steps_and_the_reason(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        _log_fallback("cam.mp4", NVENC_GPU_DECODE, NVENC, MediaError("ffmpeg failed (code=1): nvdec"))
+    assert caplog.messages == [
+        "Encoding cam.mp4 with gpu-decode + nvenc failed; retrying with cpu-decode + nvenc: "
+        "ffmpeg failed (code=1): nvdec"
+    ]

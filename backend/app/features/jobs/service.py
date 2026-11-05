@@ -689,8 +689,11 @@ def _run_convert_mcap(  # pragma: no cover
     """Thin wrapper around `convert_mcap()` for `asyncio.to_thread`."""
     from app.features.media.mcap_converter import convert_mcap
     from app.features.media.video_generator import VIDEO_FPS
+    from app.infra.video import effective_encoder
+    from app.settings import get_settings
 
-    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress)
+    encoder = effective_encoder(get_settings().video_encoder)
+    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress, encoder=encoder)
 
 
 def _run_export_dataset(  # pragma: no cover
@@ -703,9 +706,12 @@ def _run_export_dataset(  # pragma: no cover
     The mapping is read from the active recording config's `lerobot_export` section.
     """
     from app.features.lerobot_export import load_active_config, run_export
+    from app.infra.video import effective_encoder
+    from app.settings import get_settings
 
     config = load_active_config()
-    run_export(source_paths, config, output_dir, on_progress=on_progress)
+    encoder = effective_encoder(get_settings().video_encoder)
+    run_export(source_paths, config, output_dir, on_progress=on_progress, encoder=encoder)
 
 
 _job_queue: JobQueue | None = None

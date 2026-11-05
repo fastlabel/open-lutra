@@ -10,15 +10,21 @@ import pytest
 from app.features.lerobot_export import converter, service, writer
 from app.features.lerobot_export.models import ExportConfig, SourceConfig
 from app.features.lerobot_export.validation import StructureMismatchError
+from app.infra.video import LIBX264, NVENC, EncodeStep, VideoEncodeError
 
 from ._fakes import image_message, joint_message
 
 MS = 1_000_000
 
+# Encode step of every FakeSink created in the current test, in order.
+steps_used: list[EncodeStep] = []
+
 
 class FakeSink:
-    def __init__(self, output_paths: dict, image_shapes: dict, fps: int) -> None:
+    def __init__(self, output_paths: dict, image_shapes: dict, fps: int, step: EncodeStep = LIBX264) -> None:
         self.output_paths = output_paths
+        self.step = step
+        steps_used.append(step)
 
     def write(self, camera: str, image: np.ndarray) -> None:
         pass
@@ -86,6 +92,7 @@ def _make_recording(
 
 @pytest.fixture(autouse=True)
 def _patch_sink(monkeypatch: pytest.MonkeyPatch) -> None:
+    steps_used.clear()
     monkeypatch.setattr(writer, "VideoSink", FakeSink)
 
 
@@ -186,3 +193,59 @@ def test_run_export_skips_empty_recording_but_succeeds(tmp_path: Path, monkeypat
     assert result.total_episodes == 1
     assert result.skipped == ["rec2"]
     assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 1
+
+
+class _NvencFailsSink(FakeSink):
+    """Sink whose GPU encoder dies on the first frame, like an exhausted NVENC session."""
+
+    def write(self, camera: str, image: np.ndarray) -> None:
+        if self.step == NVENC:
+            raise VideoEncodeError(f"{camera}: ffmpeg exited 1: OpenEncodeSessionEx failed")
+
+
+def test_run_export_uses_the_configured_encoder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    rec = _make_recording(tmp_path, "rec1")
+
+    service.run_export([rec], _config(), tmp_path / "out", encoder="nvenc")
+
+    assert steps_used == [NVENC]
+
+
+def test_run_export_defaults_to_libx264(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    rec = _make_recording(tmp_path, "rec1")
+
+    service.run_export([rec], _config(), tmp_path / "out")
+
+    assert steps_used == [LIBX264]
+
+
+def test_run_export_reruns_on_cpu_when_gpu_encoding_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    monkeypatch.setattr(writer, "VideoSink", _NvencFailsSink)
+    rec = _make_recording(tmp_path, "rec1")
+    out = tmp_path / "_lerobot_exports" / "ds"
+
+    result = service.run_export([rec], _config(), out, encoder="nvenc")
+
+    assert steps_used == [NVENC, LIBX264]
+    assert result.total_frames == 2
+    assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 1
+    # The failed GPU attempt left no temp dir behind.
+    assert list((tmp_path / "_lerobot_exports").iterdir()) == [out]
+    assert "LeRobot export with cpu-decode + nvenc failed; re-running with cpu-decode + libx264" in caplog.text
+
+
+def test_run_export_does_not_retry_non_encoder_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sizes = iter([2, 4])
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _p, _t: _messages(size=next(sizes)))
+    rec1 = _make_recording(tmp_path, "rec1")
+    rec2 = _make_recording(tmp_path, "rec2")
+
+    with pytest.raises(ValueError, match="shape mismatch"):
+        service.run_export([rec1, rec2], _config(), tmp_path / "out", encoder="nvenc")
+
+    assert steps_used == [NVENC]

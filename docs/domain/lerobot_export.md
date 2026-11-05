@@ -6,6 +6,7 @@ Converts selected recordings into a [LeRobot v3.0](https://huggingface.co/docs/l
 
 - **Self-implemented v3.0 writer**: parquet via `pyarrow`/`pandas` + per-camera H.264 MP4 via ffmpeg, **without** depending on the heavyweight `lerobot`/torch package.
 - **One recording = one episode**: selecting N recordings yields an N-episode dataset.
+- **Encoder follows `VIDEO_ENCODER`**: videos are encoded with libx264 by default, or with NVIDIA NVENC on GPU hosts (see [GPU encoding](../SETUP.md#gpu-encoding-nvidia)). The output is H.264 / yuv420p either way, so `info.json` is unchanged. If the GPU encoder fails, the whole export is re-run once with libx264, because frames are streamed into long-lived encoders and cannot be replayed mid-way.
 
 ## Mapping configuration
 

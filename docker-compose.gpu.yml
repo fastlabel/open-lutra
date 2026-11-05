@@ -1,0 +1,26 @@
+# NVIDIA GPU override - exposes the host's NVIDIA GPU(s) to the backend for video encoding
+#
+# The Makefile applies this file automatically when `.env` sets VIDEO_ENCODER=nvenc,
+# so operators only change that one line (see docs/SETUP.md, GPU encoding).
+# Requires the NVIDIA driver and the NVIDIA Container Toolkit on the host; without
+# them, `docker compose up` fails because the GPU device cannot be provided.
+#
+# This file deliberately does not set VIDEO_ENCODER: `environment:` here would
+# override `.env` (env_file), letting the two disagree.
+#
+# Without make:
+#   docker compose -f docker-compose.yml [-f docker-compose.prod.yml] -f docker-compose.gpu.yml up -d
+
+services:
+  backend:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Map form, so it merges with the base file's list-form environment.
+    environment:
+      # `video` is what NVENC/NVDEC need; without it the GPU is visible but cannot encode.
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility

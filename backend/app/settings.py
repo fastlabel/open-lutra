@@ -13,6 +13,8 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.infra.video import VideoEncoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -167,6 +169,11 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = False
+
+    # Video encoder for preview MP4s and LeRobot export videos. "nvenc" needs an
+    # NVIDIA GPU exposed to the container (docs/SETUP.md, GPU encoding); when it
+    # is unusable the backend falls back to libx264 with a warning.
+    video_encoder: VideoEncoder = "libx264"
 
     # Upload destination selector. One destination is active per machine; see
     # docs/domain/upload.md for the extension recipe. When unset, the upload
