@@ -16,7 +16,9 @@
 # (last assignment wins; `export`, inline comments and quotes are tolerated) so the
 # GPU exposure and the backend setting cannot come from different sources.
 _ENV_VIDEO_ENCODER := $(shell sed -n -E 's/^[[:space:]]*(export[[:space:]]+)?VIDEO_ENCODER[[:space:]]*=//p' .env 2>/dev/null | sed -E 's/[[:space:]]+\#.*$$//' | tr -d "\"' \t\r" | tail -n 1)
-GPU_COMPOSE_FILES := $(if $(filter nvenc,$(_ENV_VIDEO_ENCODER)),-f docker-compose.yml -f docker-compose.gpu.yml)
+# Naming files with -f turns off Compose's automatic docker-compose.override.yml, so
+# keep a local one in play when the GPU file is added.
+GPU_COMPOSE_FILES := $(if $(filter nvenc,$(_ENV_VIDEO_ENCODER)),-f docker-compose.yml $(if $(wildcard docker-compose.override.yml),-f docker-compose.override.yml) -f docker-compose.gpu.yml)
 DEV_COMPOSE := docker compose $(GPU_COMPOSE_FILES)
 PROD_COMPOSE := docker compose -f docker-compose.yml -f docker-compose.prod.yml $(if $(GPU_COMPOSE_FILES),-f docker-compose.gpu.yml)
 

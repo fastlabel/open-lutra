@@ -21,6 +21,11 @@ VideoEncoder = Literal["libx264", "nvenc"]
 _NVENC_OUTPUT_ARGS = ["-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr", "-cq", "23", "-b:v", "0"]
 _LIBX264_OUTPUT_ARGS = ["-c:v", "libx264"]
 
+# GPU JPEG decoding: ffmpeg otherwise logs a frame the GPU decoder rejects and
+# carries on (exit 0, the gap filled by duplicated frames). `-xerror` makes that
+# a failure, so the camera falls back to CPU decoding instead.
+_GPU_DECODE_ARGS = ["-xerror", "-hwaccel", "cuda"]
+
 
 @dataclass(frozen=True)
 class EncodeStep:
@@ -57,7 +62,7 @@ def mjpeg_pipe_command(output_path: Path, fps: int, step: EncodeStep) -> list[st
     return [
         "ffmpeg",
         "-y",
-        *(["-hwaccel", "cuda"] if step.gpu_decode else []),
+        *(_GPU_DECODE_ARGS if step.gpu_decode else []),
         "-f",
         "image2pipe",
         "-c:v",

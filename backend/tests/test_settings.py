@@ -302,6 +302,17 @@ metadata_fields:
         s = Settings(_env_file=None)  # type: ignore[call-arg]
         assert s.video_encoder == "nvenc"
 
+    @pytest.mark.parametrize("blank", ["", "  "])
+    def test_video_encoder_blank_means_default(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, blank: str
+    ) -> None:
+        """A blank VIDEO_ENCODER line (as left by an env template) falls back to libx264."""
+        monkeypatch.setenv("RECORDING_CONFIG", "config/simulator.yaml")
+        monkeypatch.setenv("OUTPUT_DIR", str(tmp_path))
+        monkeypatch.setenv("VIDEO_ENCODER", blank)
+        s = Settings(_env_file=None)  # type: ignore[call-arg]
+        assert s.video_encoder == "libx264"
+
     def test_video_encoder_invalid_rejected(self, tmp_path: Path) -> None:
         """An unknown encoder fails validation, naming the setting and the accepted values."""
         with pytest.raises(ValidationError, match=r"video_encoder[\s\S]*'libx264' or 'nvenc'"):

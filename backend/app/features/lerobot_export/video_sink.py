@@ -65,8 +65,13 @@ class VideoSink:  # pragma: no cover
         try:
             proc.stdin.write(np.ascontiguousarray(image, dtype=np.uint8).tobytes())
         except BrokenPipeError as e:
-            # The pipe broke because ffmpeg exited, so its stderr reaches EOF promptly.
-            proc.wait(timeout=5)
+            # The pipe broke because ffmpeg is exiting; if it lingers (e.g. GPU
+            # teardown), kill it so this still surfaces as an encoder failure.
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
             self._stderr_threads[camera].join(timeout=5)
             stderr = b"".join(self._stderr_chunks[camera]).decode("utf-8", errors="replace")
             raise VideoEncodeError(

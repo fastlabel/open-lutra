@@ -324,12 +324,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compos
 
 ### Checking which encoder is used
 
-The backend probes NVENC on the first video job after it starts. `make prod-logs` shows one of:
+Before a video job, the backend probes NVENC with a one-frame encode. A success is remembered until the backend restarts; after a failure the probe runs again before the next job, so a GPU that was only briefly unavailable is picked up without a restart. `make prod-logs` shows one of:
 
 - `NVENC probe succeeded; encoding video on the GPU`: GPU encoding is active
-- `VIDEO_ENCODER=nvenc but NVENC is unusable in this container; encoding on the CPU ...`: the GPU is not usable from the container (override not applied, missing `video` capability, or a driver too old). Videos are still produced, on the CPU
+- `VIDEO_ENCODER=nvenc but NVENC is unusable in this container; encoding on the CPU ...`: the GPU is not usable from the container (override not applied, missing `video` capability, or a driver too old). Videos are still produced, on the CPU. The warning is logged once per run of failed probes
 
-If the GPU fails for a single video (for example, the GPU's limit on concurrent encoder sessions is reached, or the decoder cannot read a camera's JPEG format), that video falls back to the CPU and a `... failed; retrying with ...` warning is logged. The job still succeeds.
+If the GPU fails for a single video (for example, the GPU's limit on concurrent encoder sessions is reached, or the GPU decoder rejects a camera's JPEG frames), that video falls back to the CPU and a `... failed; retrying with ...` warning is logged. The job still succeeds.
 
 If `VIDEO_ENCODER=nvenc` is set on a host without the NVIDIA Container Toolkit, `docker compose up` fails with an error about the `nvidia` device driver. Install the toolkit, or remove the setting.
 
