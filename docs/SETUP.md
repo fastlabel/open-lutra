@@ -292,7 +292,7 @@ Match `LOCAL_UPLOAD_DIR` in `.env` to the container-side path of the bind-mount.
 
 ## GPU Encoding (NVIDIA)
 
-Preview MP4s and LeRobot export videos are encoded on the CPU (libx264) by default. On an x86_64 Linux host with an NVIDIA GPU, they can be encoded with NVENC instead (JPEG decoding stays on the CPU). The output format (H.264 / yuv420p) and file size are about the same either way; on a GeForce RTX 5050 Laptop GPU, previews of a 60 s, three-camera recording took 19 s instead of 64 s. The same backend image serves both modes; nothing is rebuilt.
+Preview MP4s and LeRobot export videos are encoded on the CPU (libx264) by default. On an x86_64 Linux host with an NVIDIA GPU, they can be encoded with NVENC instead (JPEG decoding stays on the CPU). The output format (H.264 / yuv420p) and file size are about the same either way; on a GeForce RTX 5050 Laptop GPU, previews of a 60 s, three-camera recording took 22 s instead of 64 s, and its LeRobot export 54 s instead of 99 s. The same backend image serves both modes; nothing is rebuilt.
 
 ### Host prerequisites
 
