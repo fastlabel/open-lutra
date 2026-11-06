@@ -3,7 +3,8 @@
 import pytest
 
 from app.infra.mcap import CorruptedMCAPError
-from app.infra.video import VideoEncodeError, encode_with_fallback, run_with_fallback
+from app.infra.video import VideoEncodeError, encode_with_fallback
+from app.infra.video.fallback import run_with_fallback
 
 
 class _Recorder:

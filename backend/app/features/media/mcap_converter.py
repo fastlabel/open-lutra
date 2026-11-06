@@ -315,7 +315,7 @@ def _stream_generate_mp4(
             if not _advance():
                 logger.warning("No image messages: %s (%s)", output_path.name, topic)
                 proc.stdin.close()
-                proc.wait(timeout=10)
+                _wait_for_ffmpeg(proc, 10, output_path.name)
                 stderr_thread.join(timeout=5)
                 if output_path.exists():
                     output_path.unlink()
@@ -339,11 +339,7 @@ def _stream_generate_mp4(
 
         with contextlib.suppress(BrokenPipeError):
             proc.stdin.close()
-        try:
-            proc.wait(timeout=120)
-        except subprocess.TimeoutExpired as e:
-            # A stalled encoder (e.g. a GPU hang) is an ffmpeg failure, so the ladder falls back.
-            raise VideoEncodeError(f"ffmpeg did not finish within 120 s: {output_path.name}") from e
+        _wait_for_ffmpeg(proc, 120, output_path.name)
         stderr_thread.join(timeout=5)
     except Exception:
         proc.kill()
@@ -361,6 +357,18 @@ def _stream_generate_mp4(
         raise VideoEncodeError(
             f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}"
         )
+
+
+def _wait_for_ffmpeg(proc: subprocess.Popen[bytes], timeout_sec: int, output_name: str) -> None:
+    """Wait for ffmpeg to exit after its input is closed.
+
+    A stalled encoder (e.g. a GPU hang) is an ffmpeg failure, so it raises
+    VideoEncodeError and the camera falls back to the next encoder.
+    """
+    try:
+        proc.wait(timeout=timeout_sec)
+    except subprocess.TimeoutExpired as e:
+        raise VideoEncodeError(f"ffmpeg did not finish within {timeout_sec} s: {output_name}") from e
 
 
 @dataclass

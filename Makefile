@@ -115,14 +115,14 @@ stream:
 
 minio-up:
 	@echo "=== Starting MinIO ==="
-	docker compose --profile s3 up -d minio minio-init
+	$(DEV_COMPOSE) --profile s3 up -d minio minio-init
 	@echo "=== MinIO started ==="
 	@echo "  S3 API:  http://localhost:9000"
 	@echo "  Console: http://localhost:9001  (user: minioadmin / pass: minioadmin)"
 	@echo "  Bucket:  $${S3_BUCKET:-lutra-recordings}"
 
 minio-down:
-	docker compose --profile s3 down
+	$(DEV_COMPOSE) --profile s3 down
 
 # ===== Dev tools =====
 
