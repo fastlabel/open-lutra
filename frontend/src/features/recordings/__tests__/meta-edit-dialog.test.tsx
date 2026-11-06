@@ -49,6 +49,7 @@ function makeConfig(): ConfigResponse {
     default_topics: [],
     stamp_quality: false,
     upload_enabled: false,
+    collection_stats_enabled: false,
     metadata_fields: FIELDS,
   };
 }

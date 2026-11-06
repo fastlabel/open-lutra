@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   useConfig,
+  useFiles,
   useIsRecording,
   useMemory,
   useRecordingStatus,
@@ -188,5 +189,39 @@ describe("useValidation", () => {
     // enabled=false, so status stays pending and data is undefined.
     expect(result.current.data).toBeUndefined();
     expect(result.current.fetchStatus).toBe("idle");
+  });
+});
+
+describe("useFiles", () => {
+  const before = { started_after: "2026-11-06T00:00:00+09:00", started_before: "2026-11-07T00:00:00+09:00" };
+  const after = { started_after: "2026-11-07T00:00:00+09:00", started_before: "2026-11-08T00:00:00+09:00" };
+  const files = { output_dir: "/out", entries: [] };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function renderWithChangingParams(options?: { keepPreviousWhileLoading?: boolean }) {
+    // The second range never resolves, so the hook stays in its loading state after the switch.
+    vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {}));
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(["/api/recordings", before], { data: files, status: 200 });
+    const hook = renderHook(({ params }) => useFiles(params, options), {
+      wrapper,
+      initialProps: { params: before },
+    });
+    hook.rerender({ params: after });
+    return hook;
+  }
+
+  it("keeps the previous list while a changed filter loads when asked to", () => {
+    const { result } = renderWithChangingParams({ keepPreviousWhileLoading: true });
+    expect(result.current.data).toEqual(files);
+    expect(result.current.isPlaceholderData).toBe(true);
+  });
+
+  it("does not keep the previous list by default", () => {
+    const { result } = renderWithChangingParams();
+    expect(result.current.data).toBeUndefined();
   });
 });

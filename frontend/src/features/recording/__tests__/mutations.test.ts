@@ -378,6 +378,23 @@ describe("stopRecordingMutation", () => {
     );
   });
 
+  it("onSuccess: invalidates the recordings query prefix", async () => {
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    stopRecordingMutation.mutate(undefined);
+    await flushMutation();
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["recordings"] });
+  });
+
+  it("onSuccess (status!==200): does not invalidate the recordings queries", async () => {
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    mockStopRecordingApi.mockResolvedValueOnce({ status: 500, data: { duration_sec: 0, output_path: "" } });
+    stopRecordingMutation.mutate(undefined);
+    await flushMutation();
+
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ["recordings"] });
+  });
+
   it("onSuccess (status!==200): does not save finishedRecording", async () => {
     mockStopRecordingApi.mockResolvedValueOnce({ status: 500, data: { duration_sec: 0, output_path: "" } });
     stopRecordingMutation.mutate(undefined);
