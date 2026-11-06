@@ -2,8 +2,8 @@
 
 Operators can check how much they have collected today without leaving the
 recording page. The recording bar shows a chip with the day's **OK** episode
-count and total duration. A red dot appears when any take failed. Clicking the
-chip opens the breakdown:
+count and total duration. A red dot appears when any take failed or hit a
+validation error. Clicking the chip opens the breakdown:
 
 ```
 [Today  10 episodes · 32m 10s  (o) v]
@@ -61,8 +61,10 @@ recordings list still shows each recording's own duration.
   when its automatic validation completes, with no reload. If the validation
   job itself fails (for example the quality report could not be generated), no
   result is written and the recording stays under No result. Opening the
-  **Validation** tab on the recording's detail page starts validation again. Deleting a recording
-  removes it from the summary.
+  recording's detail page runs a missing quality analysis again; once it has
+  finished, opening the **Validation** tab starts validation. A recording that
+  cannot be analyzed at all stays under No result. Deleting a recording removes
+  it from the summary.
 - The recording in progress is not counted; it is added when it stops.
 
 ## What "today" means

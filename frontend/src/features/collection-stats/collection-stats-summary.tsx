@@ -17,6 +17,8 @@ import { summarize } from "./summarize";
 import { BreakdownRow } from "./ui/breakdown-row";
 import { useTodaysRecordings } from "./use-todays-recordings";
 
+const FAILURE_LABEL = "Some takes failed or hit a validation error";
+
 export function CollectionStatsSummary() {
   // --- Server state ---
   const { data: config } = useConfig();
@@ -39,7 +41,7 @@ function TodaySummary() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          title="Episodes that passed validation today (click for details)"
+          title="OK episodes today (validation pass / warn). Click for details"
           className="flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-[13px] text-foreground hover:bg-muted"
         >
           <CalendarCheck size={14} className="text-emerald-400" />
@@ -48,7 +50,10 @@ function TodaySummary() {
             {formatEpisodes(summary.usable.count)} · {okDuration}
           </span>
           {summary.failed + summary.errors > 0 && (
-            <span className="h-2 w-2 rounded-full bg-red-400" title="Some takes failed" />
+            <>
+              <span className="h-2 w-2 rounded-full bg-red-400" title={FAILURE_LABEL} />
+              <span className="sr-only">{FAILURE_LABEL}</span>
+            </>
           )}
           <ChevronDown size={13} className="text-muted-foreground" />
         </button>

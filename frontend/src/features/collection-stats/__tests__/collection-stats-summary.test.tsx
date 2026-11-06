@@ -109,7 +109,7 @@ describe("CollectionStatsSummary", () => {
     expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)), KEEP_PREVIOUS);
   });
 
-  it("shows OK episodes and their duration on the chip, flagging failed takes with a dot", () => {
+  it("shows OK episodes and their duration on the chip, flagging failed takes with a dot that is also read out", () => {
     useFilesMock.mockReturnValue(
       files([
         makeEntry({ validation_overall_status: "pass", duration_ns: 60 * SEC }),
@@ -120,19 +120,19 @@ describe("CollectionStatsSummary", () => {
     );
     render(<CollectionStatsSummary />);
     expect(chip()).toHaveTextContent("Today2 episodes · 1m 30s");
-    expect(screen.getByTitle("Some takes failed")).toBeInTheDocument();
+    expect(chip()).toHaveAccessibleName(/Some takes failed or hit a validation error/);
   });
 
   it("flags a validation error with the dot as well", () => {
     useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: "error" })]));
     render(<CollectionStatsSummary />);
-    expect(screen.getByTitle("Some takes failed")).toBeInTheDocument();
+    expect(chip()).toHaveAccessibleName(/Some takes failed or hit a validation error/);
   });
 
   it("shows no dot when nothing failed", () => {
     useFilesMock.mockReturnValue(files([makeEntry(), makeEntry({ validation_overall_status: null })]));
     render(<CollectionStatsSummary />);
-    expect(screen.queryByTitle("Some takes failed")).not.toBeInTheDocument();
+    expect(chip()).not.toHaveAccessibleName(/Some takes failed/);
   });
 
   it("breaks the day down by validation result in the popover", () => {
