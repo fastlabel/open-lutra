@@ -3,7 +3,7 @@
  * Do not edit manually.
  * OpenLUTRA
  * ROS2 topic recorder for teleoperation robots (ROS2-standard topics)
- * OpenAPI spec version: 0.5.1
+ * OpenAPI spec version: 0.6.0
  */
 
 export type StreamLivePositionsParams = {
