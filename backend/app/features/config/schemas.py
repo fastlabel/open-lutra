@@ -45,3 +45,4 @@ class ConfigResponse(BaseModel):
     stamp_quality: bool
     upload_enabled: bool
     metadata_fields: list[MetadataFieldResponse]
+    collection_stats_enabled: bool

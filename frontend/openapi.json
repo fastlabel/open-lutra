@@ -1780,6 +1780,10 @@
             },
             "type": "array",
             "title": "Metadata Fields"
+          },
+          "collection_stats_enabled": {
+            "type": "boolean",
+            "title": "Collection Stats Enabled"
           }
         },
         "type": "object",
@@ -1789,7 +1793,8 @@
           "default_topics",
           "stamp_quality",
           "upload_enabled",
-          "metadata_fields"
+          "metadata_fields",
+          "collection_stats_enabled"
         ],
         "title": "ConfigResponse",
         "description": "Response for GET /api/config."

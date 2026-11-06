@@ -110,6 +110,10 @@ Set the task name (for example `pick-and-place`) from the inline editor in the h
 
 Attach fixed attributes — operator ID, target object, and so on — to each recording by choosing them once from the **Metadata** panel in the recording bar. Like the task name, the selection sticks across recordings until changed. The available fields are defined in the recording config's `metadata_fields:` section. See [docs/domain/metadata.md](docs/domain/metadata.md).
 
+### Today's collection
+
+When the recording config sets `collection_stats.enabled: true` (off by default), the recording bar shows how many usable episodes, and how much usable duration, were collected today. See [docs/domain/collection_stats.md](docs/domain/collection_stats.md).
+
 ### Recording workflow
 
 1. **Select topics** — check the topics you want to record in the left panel (ROS2 topics are auto-discovered).
@@ -129,7 +133,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide (dev environments, testing, lint) |
 | [backend/README.md](backend/README.md) | Backend container layout (what a restart picks up, what needs a rebuild) |
 | [frontend/README.md](frontend/README.md) | Frontend container layout (what a restart picks up, what needs a rebuild) |
-| [docs/domain/](docs/domain/index.md) | Domain notes (DDS gaps, quality analysis, validators, metadata, upload, LeRobot export, SSE) |
+| [docs/domain/](docs/domain/index.md) | Domain notes (DDS gaps, quality analysis, validators, metadata, collection summary, upload, LeRobot export, SSE) |
 | [examples/](examples/) | Reference snippets (e.g. plugging in custom ROS2 message types, deploying with AWS IoT Greengrass) |
 
 ## Release status

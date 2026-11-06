@@ -89,6 +89,9 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
     if (useRecordingStore.getState().soundEnabled) sounds.playStop();
     toast.success("Recording completed");
     addLog("info", `Recording stopped (${d.duration_sec.toFixed(1)}s) → ${d.output_path}`);
+    // Refetch every active recordings query, including start-time-filtered ones (today's collection
+    // summary), whose keys the unfiltered fetchQuery below does not cover.
+    queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() });
     // Fetch a fresh scan and populate the cache. invalidateQueries only refetches queries that have an
     // active observer, but the recording screen mounts none — so the banner cannot read the cache
     // directly (it may be empty or stale). fetchQuery guarantees a fresh list and refreshes any list view.

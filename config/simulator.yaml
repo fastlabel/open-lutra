@@ -96,6 +96,11 @@ metadata_fields:
       - value: cup
       - value: bottle
 
+# Today's collection summary in the recording bar. Hidden unless enabled here;
+# see docs/domain/collection_stats.md.
+collection_stats:
+  enabled: false
+
 # LeRobot dataset export mapping (used by the "Export to LeRobot" action on
 # /recordings). Declares how this robot's MCAP topics map to LeRobot v3.0
 # features. Omit this whole section to disable export for the robot.
