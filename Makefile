@@ -95,7 +95,7 @@ restart:
 
 # e.g. when SIM_MODE changes
 restart-sim:
-	docker compose up -d --build simulator
+	$(DEV_COMPOSE) up -d --build simulator
 	@echo "=== Simulator restarted (SIM_MODE=$${SIM_MODE:-normal}) ==="
 
 logs:

@@ -278,8 +278,8 @@ def _stream_generate_mp4(
 
     Raises:
         VideoEncodeError: If ffmpeg fails, including when it exits before reading
-            every frame (e.g. the GPU encoder could not start). The partial MP4
-            is removed.
+            every frame (e.g. the GPU encoder could not start) or does not finish
+            after its input is closed. The partial MP4 is removed.
     """
     proc = subprocess.Popen(
         mjpeg_pipe_command(output_path, fps, encoder),
@@ -347,7 +347,11 @@ def _stream_generate_mp4(
 
         with contextlib.suppress(BrokenPipeError):
             proc.stdin.close()
-        proc.wait(timeout=120)
+        try:
+            proc.wait(timeout=120)
+        except subprocess.TimeoutExpired as e:
+            # A stalled encoder (e.g. a GPU hang) is an ffmpeg failure, so the ladder falls back.
+            raise VideoEncodeError(f"ffmpeg did not finish within 120 s: {output_path.name}") from e
         stderr_thread.join(timeout=5)
     except Exception:
         proc.kill()
