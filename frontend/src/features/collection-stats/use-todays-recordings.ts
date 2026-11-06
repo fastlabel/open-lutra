@@ -5,5 +5,6 @@ import { localDayRange } from "./day-range";
 import { useLocalDay } from "./use-local-day";
 
 export function useTodaysRecordings() {
-  return useFiles(localDayRange(useLocalDay()));
+  // Keep the previous day's list while the new day's range loads, so the chip does not disappear at midnight.
+  return useFiles(localDayRange(useLocalDay()), { keepPreviousWhileLoading: true });
 }

@@ -61,7 +61,7 @@ recordings list still shows each recording's own duration.
   when its automatic validation completes, with no reload. If the validation
   job itself fails (for example the quality report could not be generated), no
   result is written and the recording stays under No result. Opening the
-  recording's detail page starts validation again. Deleting a recording
+  **Validation** tab on the recording's detail page starts validation again. Deleting a recording
   removes it from the summary.
 - The recording in progress is not counted; it is added when it stops.
 

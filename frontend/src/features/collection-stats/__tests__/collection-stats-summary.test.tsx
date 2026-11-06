@@ -6,17 +6,24 @@ import { localDayRange } from "../day-range";
 
 const { useConfigMock, useFilesMock } = vi.hoisted(() => ({
   useConfigMock: vi.fn<() => { data: ConfigResponse | undefined }>(() => ({ data: undefined })),
-  useFilesMock: vi.fn<(params?: GetRecordingsParams) => { data: FilesResponse | undefined }>(() => ({
-    data: undefined,
-  })),
+  useFilesMock: vi.fn<
+    (
+      params?: GetRecordingsParams,
+      options?: { keepPreviousWhileLoading?: boolean },
+    ) => {
+      data: FilesResponse | undefined;
+    }
+  >(() => ({ data: undefined })),
 }));
 
 vi.mock("@/hooks/use-api", () => ({
   useConfig: () => useConfigMock(),
-  useFiles: (params?: GetRecordingsParams) => useFilesMock(params),
+  useFiles: (params?: GetRecordingsParams, options?: { keepPreviousWhileLoading?: boolean }) =>
+    useFilesMock(params, options),
 }));
 
 const SEC = 1_000_000_000;
+const KEEP_PREVIOUS = { keepPreviousWhileLoading: true };
 
 function makeConfig(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
   return {
@@ -95,11 +102,11 @@ describe("CollectionStatsSummary", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("requests today's local-day range", () => {
+  it("requests today's local-day range, keeping the previous list while a new day loads", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 6, 14, 0));
     render(<CollectionStatsSummary />);
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
+    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)), KEEP_PREVIOUS);
   });
 
   it("shows OK episodes and their duration on the chip, flagging failed takes with a dot", () => {
@@ -176,11 +183,11 @@ describe("CollectionStatsSummary", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 6, 23, 59, 30));
     render(<CollectionStatsSummary />);
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
+    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)), KEEP_PREVIOUS);
 
     act(() => {
       vi.advanceTimersByTime(60_000);
     });
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 7)));
+    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 7)), KEEP_PREVIOUS);
   });
 });

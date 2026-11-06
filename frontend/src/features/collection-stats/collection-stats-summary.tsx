@@ -64,7 +64,7 @@ function TodaySummary() {
           />
           <BreakdownRow label="Failed" count={summary.failed} dotClass="bg-red-400" />
           {summary.errors > 0 && (
-            <BreakdownRow label="Validation error" count={summary.errors} dotClass="bg-amber-400" />
+            <BreakdownRow label="Validation error" count={summary.errors} dotClass="bg-purple-400" />
           )}
           <BreakdownRow label="No result" count={summary.pending} dotClass="bg-muted-foreground" />
           <div className="border-t border-border pt-2">

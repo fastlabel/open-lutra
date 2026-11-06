@@ -194,12 +194,15 @@ export function useBulkUpdateRecordingMeta() {
 
 // --- On-demand queries (used by specific screens / actions) ---
 
-/** Fetch the list of recording folders directly under the output directory, optionally filtered by start time. */
-export function useFiles(params?: GetRecordingsParams) {
+/** Fetch the list of recording folders directly under the output directory, optionally filtered by start time.
+ *
+ * `keepPreviousWhileLoading` keeps the previous list visible while a changed filter loads. It is opt-in: only a
+ * caller whose filter changes can decide whether the previous rows may stand in for the new ones.
+ */
+export function useFiles(params?: GetRecordingsParams, { keepPreviousWhileLoading = false } = {}) {
   return useGetRecordings<FilesResponse>(params, {
     query: {
-      // Keep showing the previous list while a changed filter (e.g. the next day's range) loads.
-      placeholderData: keepPreviousData,
+      placeholderData: keepPreviousWhileLoading ? keepPreviousData : undefined,
       select: (resp) => resp.data as FilesResponse,
     },
   });
