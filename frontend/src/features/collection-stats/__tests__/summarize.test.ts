@@ -42,10 +42,9 @@ describe("summarize", () => {
     expect(summary.pending).toBe(1);
   });
 
-  it("counts an unrecognized status as pending", () => {
+  it("counts an unrecognized status as a validation error, as the validation panel does", () => {
     const summary = summarize([makeEntry({ validation_overall_status: "something-new" })]);
-    expect(summary.usable.count).toBe(0);
-    expect(summary.pending).toBe(1);
+    expect(summary).toMatchObject({ errors: 1, pending: 0, usable: { count: 0, durationNs: 0 } });
   });
 
   it("counts error separately from fail", () => {

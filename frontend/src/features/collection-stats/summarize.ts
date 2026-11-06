@@ -1,8 +1,9 @@
 /** Aggregate a day's recordings into the operator-facing collection summary.
  *
  * Only validated-usable recordings (`pass` / `warn`) feed the headline, so adding volume requires takes that
- * pass validation. `null` (validation not finished) and any unrecognized status count as pending, so a new
- * backend status can never inflate the usable figures.
+ * pass validation. `null` (no validation result) counts as pending. A result whose status this UI does not
+ * recognize counts as a validation error, matching the validation panel, so a new backend status can never
+ * inflate the usable figures.
  */
 
 import type { FileEntry } from "@/api/generated/schemas";
@@ -34,11 +35,11 @@ export function summarize(entries: FileEntry[]): CollectionSummary {
       case "fail":
         summary.failed += 1;
         break;
-      case "error":
-        summary.errors += 1;
+      case null:
+        summary.pending += 1;
         break;
       default:
-        summary.pending += 1;
+        summary.errors += 1;
     }
   }
   return summary;

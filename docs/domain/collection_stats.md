@@ -47,11 +47,16 @@ recordings list still shows each recording's own duration.
 |---|---|
 | `pass`, `warn` | **OK**: the chip's count and duration |
 | `fail` | Failed (also lights the red dot) |
-| `error` | Validation error: a validator crashed, see [custom validators](custom_validators.md). Also lights the red dot; the row is listed only when non-zero |
+| `error`, or a status the UI does not recognize | Validation error: a validator crashed, see [custom validators](custom_validators.md). Also lights the red dot; the row is listed only when non-zero |
 | none | No result: validation is still running, or never produced a result |
 
 - Only OK recordings feed the chip, so adding volume requires takes that pass
-  validation. Unknown statuses count as No result, never as OK.
+  validation. Unknown statuses count as Validation error, never as OK, the same
+  way the recording's detail page shows them.
+- With no validators at all (no `validators:` entries and no
+  [custom validators](custom_validators.md)), every recording passes and counts
+  as OK, so the summary reflects quality only as far as the validators check
+  it.
 - A freshly stopped recording appears as No result and moves to OK (or Failed)
   when its automatic validation completes, with no reload. If the validation
   job itself fails (for example the quality report could not be generated), no
