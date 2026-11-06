@@ -14,6 +14,11 @@ from typing import Literal
 
 VideoEncoder = Literal["libx264", "nvenc"]
 
+
+class VideoEncodeError(RuntimeError):
+    """An ffmpeg encode failed (non-zero exit, or ffmpeg stopped reading its input)."""
+
+
 # NVENC rate control: constant-quality VBR with NVENC's balanced preset p4.
 # CQ 28 keeps file size close to libx264's default output (CRF 23) at equal or
 # better SSIM; slower presets, B-frames, lookahead and AQ did not shrink files further.

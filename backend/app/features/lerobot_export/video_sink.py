@@ -39,7 +39,7 @@ class VideoSink:  # pragma: no cover
         output_paths: dict[str, Path],
         image_shapes: dict[str, tuple[int, int, int]],
         fps: int,
-        encoder: VideoEncoder = "libx264",
+        encoder: VideoEncoder,
     ) -> None:
         self._encoder = encoder
         self._procs: dict[str, subprocess.Popen[bytes]] = {}

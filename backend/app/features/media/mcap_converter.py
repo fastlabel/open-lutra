@@ -26,7 +26,6 @@ from typing import Any
 from app.features.media.models import (
     JointStateMapping,
     JointTopicEntry,
-    MediaError,
     MissingTopicError,
     build_joint_state_mapping,
     plan_video_files,
@@ -38,7 +37,7 @@ from app.infra.mcap import (
     is_image_message,
     resolve_timestamp_ns,
 )
-from app.infra.video import VideoEncoder, encoder_ladder, mjpeg_pipe_command, run_with_fallback
+from app.infra.video import VideoEncodeError, VideoEncoder, encoder_ladder, mjpeg_pipe_command, run_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +235,7 @@ def _is_encoder_failure(error: Exception) -> bool:
 
     Other errors (e.g. a corrupted MCAP) would fail the same way with any encoder.
     """
-    return isinstance(error, MediaError)
+    return isinstance(error, VideoEncodeError)
 
 
 def _log_fallback(output_name: str, failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
@@ -278,7 +277,7 @@ def _stream_generate_mp4(
     timestamp sequence.
 
     Raises:
-        MediaError: If ffmpeg fails, including when it exits before reading
+        VideoEncodeError: If ffmpeg fails, including when it exits before reading
             every frame (e.g. the GPU encoder could not start). The partial MP4
             is removed.
     """
@@ -291,7 +290,7 @@ def _stream_generate_mp4(
 
     try:
         if proc.stdin is None:
-            raise MediaError("Cannot obtain stdin of the ffmpeg process")
+            raise VideoEncodeError("Cannot obtain stdin of the ffmpeg process")
 
         # Drain stderr in a separate thread to avoid deadlocks from pipe buffer overflow
         stderr_chunks: list[bytes] = []
@@ -363,7 +362,9 @@ def _stream_generate_mp4(
     if proc.returncode != 0:
         if output_path.exists():
             output_path.unlink()
-        raise MediaError(f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}")
+        raise VideoEncodeError(
+            f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}"
+        )
 
 
 @dataclass

@@ -7,14 +7,14 @@ down a CPU fallback ladder. Features should import only what they need via
 """
 
 from app.infra.video.commands import (
+    VideoEncodeError,
     VideoEncoder,
     encoder_ladder,
     mjpeg_pipe_command,
-    nvenc_probe_command,
     rawvideo_rgb24_command,
 )
-from app.infra.video.fallback import VideoEncodeError, run_with_fallback
-from app.infra.video.probe import effective_encoder, nvenc_usable, resolve_encoder
+from app.infra.video.fallback import run_with_fallback
+from app.infra.video.probe import effective_encoder
 
 __all__ = [
     "VideoEncodeError",
@@ -22,9 +22,6 @@ __all__ = [
     "effective_encoder",
     "encoder_ladder",
     "mjpeg_pipe_command",
-    "nvenc_probe_command",
-    "nvenc_usable",
     "rawvideo_rgb24_command",
-    "resolve_encoder",
     "run_with_fallback",
 ]

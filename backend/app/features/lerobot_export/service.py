@@ -50,7 +50,7 @@ def run_export(
     output_dir: Path,
     on_progress: ProgressCallback | None = None,
     *,
-    encoder: VideoEncoder = "libx264",
+    encoder: VideoEncoder,
 ) -> ExportResult:
     """Convert the given recording directories into one LeRobot v3.0 dataset.
 

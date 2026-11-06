@@ -8,10 +8,6 @@ StepT = TypeVar("StepT")
 ResultT = TypeVar("ResultT")
 
 
-class VideoEncodeError(RuntimeError):
-    """An ffmpeg encode failed (non-zero exit, or ffmpeg stopped reading its input)."""
-
-
 def run_with_fallback(
     steps: Sequence[StepT],
     attempt: Callable[[StepT], ResultT],

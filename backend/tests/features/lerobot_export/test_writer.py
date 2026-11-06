@@ -59,7 +59,9 @@ def written(tmp_path: Path) -> tuple[Path, FakeSink]:
         sinks.append(sink)
         return sink
 
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=factory)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=factory
+    )
     with writer:
         writer.add_frame(_frame(1.0))
         writer.add_frame(_frame(3.0))
@@ -147,7 +149,9 @@ def test_stats_json(written: tuple[Path, FakeSink]) -> None:
 
 
 def test_add_frame_before_open(tmp_path: Path) -> None:
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=FakeSink
+    )
     with pytest.raises(RuntimeError, match="must be opened"):
         writer.add_frame(_frame(1.0))
 
@@ -155,7 +159,9 @@ def test_add_frame_before_open(tmp_path: Path) -> None:
 def test_add_frame_rejects_image_shape_mismatch(tmp_path: Path) -> None:
     # spec expects cam at (2, 2, 3); a recording captured at a different resolution
     # must fail loudly rather than silently corrupting the MP4.
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=FakeSink
+    )
     writer.open()
     mismatched = Frame(
         camera_images={"cam": np.full((3, 4, 3), 0, dtype=np.uint8)},
@@ -169,7 +175,9 @@ def test_add_frame_rejects_image_shape_mismatch(tmp_path: Path) -> None:
 
 def test_add_frame_rejects_action_dim_mismatch(tmp_path: Path) -> None:
     # spec action_dim is 2; a 3-length action would write a ragged parquet column.
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=FakeSink
+    )
     writer.open()
     bad = Frame(
         camera_images={"cam": np.zeros((2, 2, 3), dtype=np.uint8)},
@@ -183,7 +191,9 @@ def test_add_frame_rejects_action_dim_mismatch(tmp_path: Path) -> None:
 
 def test_add_frame_rejects_observation_dim_mismatch(tmp_path: Path) -> None:
     # spec observation "state" dim is 2; a 1-length vector must be rejected.
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=FakeSink
+    )
     writer.open()
     bad = Frame(
         camera_images={"cam": np.zeros((2, 2, 3), dtype=np.uint8)},
@@ -196,7 +206,9 @@ def test_add_frame_rejects_observation_dim_mismatch(tmp_path: Path) -> None:
 
 
 def test_warn_if_oversized(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    writer = LeRobotV30Writer(tmp_path, fps=10, robot_type="demo", spec=_spec(), sink_factory=FakeSink)
+    writer = LeRobotV30Writer(
+        tmp_path, fps=10, robot_type="demo", spec=_spec(), encoder="libx264", sink_factory=FakeSink
+    )
     probe = tmp_path / "probe.bin"
     probe.write_bytes(b"x" * 2048)
     writer._warn_if_oversized(probe, limit_mb=0, label="data")  # forces the warning branch

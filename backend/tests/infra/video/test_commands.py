@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from app.infra.video import (
+from app.infra.video.commands import (
     encoder_ladder,
     mjpeg_pipe_command,
     nvenc_probe_command,

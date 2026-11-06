@@ -2,7 +2,8 @@
 
 import pytest
 
-from app.infra.video import VideoEncoder, resolve_encoder
+from app.infra.video import VideoEncoder
+from app.infra.video.probe import resolve_encoder
 
 
 @pytest.mark.parametrize(

@@ -68,8 +68,8 @@ class LeRobotV30Writer:
         robot_type: str,
         spec: FeatureSpec,
         *,
+        encoder: VideoEncoder,
         sink_factory: SinkFactory | None = None,
-        encoder: VideoEncoder = "libx264",
     ) -> None:
         self._root = root
         self._fps = fps
