@@ -4,18 +4,11 @@
  * own UTC offset, so a day that crosses a daylight-saving change still maps to the right instants.
  */
 
-import type { GetRecordingsParams } from "@/api/generated/schemas";
-
-export function localDayRange(now: Date): GetRecordingsParams & { started_after: string; started_before: string } {
+export function localDayRange(now: Date) {
   return {
     started_after: toLocalRfc3339(startOfLocalDay(now, 0)),
     started_before: toLocalRfc3339(startOfLocalDay(now, 1)),
   };
-}
-
-/** Milliseconds from `now` until the next local midnight. */
-export function msUntilNextLocalMidnight(now: Date): number {
-  return startOfLocalDay(now, 1).getTime() - now.getTime();
 }
 
 /** Format a Date as RFC 3339 in local time with its UTC offset (e.g. `2026-11-06T00:00:00+09:00`). */

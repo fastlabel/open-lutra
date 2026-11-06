@@ -93,8 +93,9 @@ export const stopRecordingMutation = new MutationObserver(queryClient, {
     // summary), whose keys the unfiltered fetchQuery below does not cover.
     queryClient.invalidateQueries({ queryKey: getGetRecordingsQueryKey() });
     // Fetch a fresh scan and populate the cache. invalidateQueries only refetches queries that have an
-    // active observer, but the recording screen mounts none — so the banner cannot read the cache
-    // directly (it may be empty or stale). fetchQuery guarantees a fresh list and refreshes any list view.
+    // active observer, and the recording screen observes at most the start-time-filtered list (today's
+    // collection summary), never the unfiltered one — so the banner cannot read the cache directly (it may
+    // be empty or stale). fetchQuery guarantees a fresh list and refreshes any list view.
     const files = (await queryClient.fetchQuery(getGetRecordingsQueryOptions())).data as FilesResponse;
     // output_path is absolute, but FileEntry.path is relative to output_dir; match on the folder name
     // (the unique recording id). split always returns at least one element, so pop returns a string.

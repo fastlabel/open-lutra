@@ -112,7 +112,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 
 ### Today's collection
 
-When the recording config sets `collection_stats.enabled: true` (off by default), the recording bar shows how many usable episodes, and how much usable duration, were collected today. See [docs/domain/collection_stats.md](docs/domain/collection_stats.md).
+When the recording config sets `collection_stats.enabled: true` (off by default), the recording bar shows how many OK (validation `pass` / `warn`) episodes, and how much OK duration, were collected today. See [docs/domain/collection_stats.md](docs/domain/collection_stats.md).
 
 ### Recording workflow
 

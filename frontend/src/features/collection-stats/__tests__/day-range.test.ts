@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { localDayRange, msUntilNextLocalMidnight, toLocalRfc3339 } from "../day-range";
+import { localDayRange, toLocalRfc3339 } from "../day-range";
 
 const RFC3339_MIDNIGHT = /^\d{4}-\d{2}-\d{2}T00:00:00[+-]\d{2}:\d{2}$/;
 
@@ -46,16 +46,5 @@ describe("toLocalRfc3339", () => {
   ])("formats a getTimezoneOffset of %i as %s", (tzOffset, expected) => {
     vi.spyOn(Date.prototype, "getTimezoneOffset").mockReturnValue(tzOffset);
     expect(toLocalRfc3339(new Date(2026, 0, 2, 3, 4, 5))).toBe(`2026-01-02T03:04:05${expected}`);
-  });
-});
-
-describe("msUntilNextLocalMidnight", () => {
-  it("returns the time left until the next local midnight", () => {
-    expect(msUntilNextLocalMidnight(new Date(2026, 10, 6, 23, 59, 30))).toBe(30_000);
-  });
-
-  it("returns a full day at exactly midnight", () => {
-    const midnight = new Date(2026, 10, 6);
-    expect(msUntilNextLocalMidnight(midnight)).toBe(new Date(2026, 10, 7).getTime() - midnight.getTime());
   });
 });

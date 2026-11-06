@@ -12,7 +12,7 @@
  *
  * Lifecycle order: initialization → continuous polling → mutations → on-demand queries.
  */
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getGetQualityQueryKey,
   getGetTimelineQueryKey,
@@ -198,6 +198,8 @@ export function useBulkUpdateRecordingMeta() {
 export function useFiles(params?: GetRecordingsParams) {
   return useGetRecordings<FilesResponse>(params, {
     query: {
+      // Keep showing the previous list while a changed filter (e.g. the next day's range) loads.
+      placeholderData: keepPreviousData,
       select: (resp) => resp.data as FilesResponse,
     },
   });

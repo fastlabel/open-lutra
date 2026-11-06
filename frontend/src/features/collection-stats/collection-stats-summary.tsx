@@ -1,7 +1,8 @@
 /** Today's collection chip for the recording bar, with a popover that breaks the day down by validation result.
  *
  * The chip shows only OK episodes (validation `pass` / `warn`) and their duration; a red dot flags failed or
- * errored takes. The popover lists OK / failed / validation error / checking (no result yet) and the total.
+ * errored takes. The popover lists OK / failed / validation error / no result and the total. "No result" covers both
+ * validation still running and validation that never produced a result (for example a failed validation job).
  *
  * Hidden entirely unless the recording config enables `collection_stats` (exposed as
  * `collection_stats_enabled` on `/api/config`). The recordings query lives in the inner component, so a
@@ -10,12 +11,11 @@
 
 import { CalendarCheck, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useConfig, useFiles } from "@/hooks/use-api";
-import { localDayRange } from "./day-range";
+import { useConfig } from "@/hooks/use-api";
 import { formatCollectedDuration, formatEpisodes } from "./format";
 import { summarize } from "./summarize";
 import { BreakdownRow } from "./ui/breakdown-row";
-import { useLocalDay } from "./use-local-day";
+import { useTodaysRecordings } from "./use-todays-recordings";
 
 export function CollectionStatsSummary() {
   // --- Server state ---
@@ -27,8 +27,7 @@ export function CollectionStatsSummary() {
 
 function TodaySummary() {
   // --- Server state ---
-  const today = useLocalDay();
-  const { data } = useFiles(localDayRange(today));
+  const { data } = useTodaysRecordings();
 
   if (!data) return null;
 
@@ -67,7 +66,7 @@ function TodaySummary() {
           {summary.errors > 0 && (
             <BreakdownRow label="Validation error" count={summary.errors} dotClass="bg-amber-400" />
           )}
-          <BreakdownRow label="Checking" count={summary.pending} dotClass="bg-muted-foreground" />
+          <BreakdownRow label="No result" count={summary.pending} dotClass="bg-muted-foreground" />
           <div className="border-t border-border pt-2">
             <BreakdownRow label="Total recorded" count={summary.total} />
           </div>

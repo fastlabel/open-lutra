@@ -11,7 +11,7 @@ chip opens the breakdown:
    | Today's collection             |
    | * OK (pass / warn)   10 32m 10s|
    | * Failed              1        |
-   | * Checking            1        |
+   | * No result           1        |
    | ------------------------------ |
    |   Total recorded     12        |
    +--------------------------------+
@@ -32,7 +32,8 @@ collection_stats:
 ```
 
 The value is served to the UI as `collection_stats_enabled` on
-`GET /api/config`; restart the backend after changing it. When it is `false`
+`GET /api/config`. A page that is already open keeps the value it loaded, so
+reload the recording page after changing it. When it is `false`
 the summary is not rendered anywhere and the recording page issues no extra
 request. Operators have no UI control to turn it on.
 
@@ -47,12 +48,15 @@ recordings list still shows each recording's own duration.
 | `pass`, `warn` | **OK**: the chip's count and duration |
 | `fail` | Failed (also lights the red dot) |
 | `error` | Validation error: a validator crashed, see [custom validators](custom_validators.md). Also lights the red dot; the row is listed only when non-zero |
-| none yet | Checking: validation has not finished |
+| none | No result: validation is still running, or never produced a result |
 
 - Only OK recordings feed the chip, so adding volume requires takes that pass
-  validation. Unknown statuses count as Checking, never as OK.
-- A freshly stopped recording appears as Checking and moves to OK (or Failed)
-  when its automatic validation completes, with no reload. Deleting a recording
+  validation. Unknown statuses count as No result, never as OK.
+- A freshly stopped recording appears as No result and moves to OK (or Failed)
+  when its automatic validation completes, with no reload. If the validation
+  job itself fails (for example the quality report could not be generated), no
+  result is written and the recording stays under No result. Opening the
+  recording's detail page starts validation again. Deleting a recording
   removes it from the summary.
 - The recording in progress is not counted; it is added when it stops.
 
@@ -61,8 +65,8 @@ recordings list still shows each recording's own duration.
 Today is the operator's **local calendar day** in the browser's time zone, from
 local midnight to the next local midnight, matched against each recording's
 start time. A recording that starts at 23:50 and ends after midnight belongs to
-the day it started. The summary rolls over to the new day at midnight on its
-own.
+the day it started. The summary rolls over to the new day on its own within a
+minute of midnight, or of waking the machine if it slept through it.
 
 The summary fetches only that day through the `started_after` /
 `started_before` filter of `GET /api/recordings` (half-open interval, bounds as

@@ -1,20 +1,23 @@
-/** Current time that advances once per local midnight, so day-scoped views roll over without a reload. */
+/** Current time that changes only when the local date does, so day-scoped views roll over without a reload. */
 
 import { useEffect, useState } from "react";
-import { msUntilNextLocalMidnight } from "./day-range";
 
-/** Fire slightly after midnight so the new Date is unambiguously on the next day. */
-const ROLLOVER_MARGIN_MS = 1000;
+/** How often the local date is re-checked. The rollover lands at most this long after midnight or a wake-up. */
+const DAY_CHECK_INTERVAL_MS = 60_000;
 
 export function useLocalDay(): Date {
   const [now, setNow] = useState(() => new Date());
 
   // --- Side effects ---
-  // Re-armed on every rollover; the delay is recomputed each day, so 23 h / 25 h DST days stay correct.
+  // Polls rather than scheduling one timeout to midnight: timers do not advance while the machine sleeps, so a
+  // single long timeout can fire hours late. Within the same date the previous value is kept, so nothing re-renders.
   useEffect(() => {
-    const timer = setTimeout(() => setNow(new Date()), msUntilNextLocalMidnight(now) + ROLLOVER_MARGIN_MS);
-    return () => clearTimeout(timer);
-  }, [now]);
+    const timer = setInterval(() => {
+      const next = new Date();
+      setNow((prev) => (prev.toDateString() === next.toDateString() ? prev : next));
+    }, DAY_CHECK_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   return now;
 }

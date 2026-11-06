@@ -378,7 +378,7 @@ describe("stopRecordingMutation", () => {
     );
   });
 
-  it("onSuccess: invalidates every recordings query, including start-time-filtered ones", async () => {
+  it("onSuccess: invalidates the recordings query prefix", async () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
     stopRecordingMutation.mutate(undefined);
     await flushMutation();

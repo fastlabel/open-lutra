@@ -144,7 +144,7 @@ describe("CollectionStatsSummary", () => {
     expect(row("OK (pass / warn)")).toHaveTextContent("1m 30s");
     expect(row("Failed")).toHaveTextContent("1");
     expect(row("Validation error")).toHaveTextContent("1");
-    expect(row("Checking")).toHaveTextContent("1");
+    expect(row("No result")).toHaveTextContent("1");
     expect(row("Total recorded")).toHaveTextContent("5");
   });
 
@@ -162,7 +162,7 @@ describe("CollectionStatsSummary", () => {
     expect(row("Total recorded")).toHaveTextContent("0");
   });
 
-  it("moves a recording from checking to OK when its validation completes", () => {
+  it("moves a recording from no result to OK when its validation completes", () => {
     useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: null })]));
     const { rerender } = render(<CollectionStatsSummary />);
     expect(chip()).toHaveTextContent("0 episodes · 0s");
