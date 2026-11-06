@@ -24,7 +24,7 @@ from app.features.lerobot_export.validation import validate_recordings
 from app.features.lerobot_export.writer import LeRobotV30Writer
 from app.features.recordings.meta import read_recording_meta
 from app.infra.mcap import find_mcap_files
-from app.infra.video import VideoEncodeError, VideoEncoder, encoder_ladder, run_with_fallback
+from app.infra.video import VideoEncoder, encode_with_fallback
 
 if TYPE_CHECKING:
     from app.features.lerobot_export.models import ExportConfig
@@ -71,13 +71,7 @@ def run_export(
     def attempt(candidate: VideoEncoder) -> ExportResult:
         return _run_export_once(source_dirs, config, output_dir, on_progress, candidate)
 
-    return run_with_fallback(
-        encoder_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=_log_fallback
-    )
-
-
-def _is_encoder_failure(error: Exception) -> bool:
-    return isinstance(error, VideoEncodeError)
+    return encode_with_fallback(encoder, attempt, on_fallback=_log_fallback)
 
 
 def _log_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:

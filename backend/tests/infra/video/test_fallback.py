@@ -2,7 +2,8 @@
 
 import pytest
 
-from app.infra.video import VideoEncodeError, run_with_fallback
+from app.infra.mcap import CorruptedMCAPError
+from app.infra.video import VideoEncodeError, encode_with_fallback, run_with_fallback
 
 
 class _Recorder:
@@ -69,3 +70,17 @@ def test_single_step_runs_once() -> None:
 def test_empty_ladder_is_rejected() -> None:
     with pytest.raises(ValueError, match="At least one step"):
         _run(_Recorder({}), [])
+
+
+def test_encode_with_fallback_retries_gpu_failure_on_cpu() -> None:
+    recorder = _Recorder({"nvenc": VideoEncodeError("No NVENC capable devices found"), "libx264": "ok-cpu"})
+    assert encode_with_fallback("nvenc", recorder.attempt, on_fallback=recorder.on_fallback) == "ok-cpu"
+    assert recorder.fallbacks == [("nvenc", "libx264", "No NVENC capable devices found")]
+
+
+def test_encode_with_fallback_does_not_retry_non_ffmpeg_errors() -> None:
+    """A different encoder would hit the same unreadable MCAP, so it is not retried."""
+    recorder = _Recorder({"nvenc": CorruptedMCAPError("MCAP file is unreadable"), "libx264": "ok-cpu"})
+    with pytest.raises(CorruptedMCAPError):
+        encode_with_fallback("nvenc", recorder.attempt, on_fallback=recorder.on_fallback)
+    assert recorder.attempted == ["nvenc"]

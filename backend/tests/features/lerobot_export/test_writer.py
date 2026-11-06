@@ -15,8 +15,9 @@ from app.features.lerobot_export.writer import LeRobotV30Writer
 class FakeSink:
     """Records frames per camera instead of encoding video."""
 
-    def __init__(self, output_paths: dict, image_shapes: dict, fps: int) -> None:
+    def __init__(self, output_paths: dict, image_shapes: dict, fps: int, encoder: str) -> None:
         self.output_paths = output_paths
+        self.encoder = encoder
         self.writes: dict[str, int] = dict.fromkeys(output_paths, 0)
         self.closed = False
         self.killed = False
@@ -54,8 +55,8 @@ def _frame(value: float, task: str = "pick") -> Frame:
 def written(tmp_path: Path) -> tuple[Path, FakeSink]:
     sinks: list[FakeSink] = []
 
-    def factory(paths: dict, shapes: dict, fps: int) -> FakeSink:
-        sink = FakeSink(paths, shapes, fps)
+    def factory(paths: dict, shapes: dict, fps: int, encoder: str) -> FakeSink:
+        sink = FakeSink(paths, shapes, fps, encoder)
         sinks.append(sink)
         return sink
 

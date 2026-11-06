@@ -37,7 +37,7 @@ from app.infra.mcap import (
     is_image_message,
     resolve_timestamp_ns,
 )
-from app.infra.video import VideoEncodeError, VideoEncoder, encoder_ladder, mjpeg_pipe_command, run_with_fallback
+from app.infra.video import VideoEncodeError, VideoEncoder, encode_with_fallback, mjpeg_pipe_command
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def convert_mcap(  # pragma: no cover
         on_progress: Progress callback (step, current, total).
             step: "classify" / "mp4" / "telemetry"
         encoder: Encoder to try first; GPU failures fall back to the CPU
-            per camera (see `app.infra.video.encoder_ladder`).
+            per camera (see `app.infra.video.encode_with_fallback`).
 
     Returns:
         List of generated file paths.
@@ -230,14 +230,6 @@ def _classify_topics(mcap_path: Path) -> tuple[dict[str, str], dict[str, str]]: 
 # ---------------------------------------------------------------------------
 
 
-def _is_encoder_failure(error: Exception) -> bool:
-    """Whether a camera's encode failed in ffmpeg (worth retrying with the next encoder).
-
-    Other errors (e.g. a corrupted MCAP) would fail the same way with any encoder.
-    """
-    return isinstance(error, VideoEncodeError)
-
-
 def _log_fallback(output_name: str, failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
     logger.warning("Encoding %s with %s failed; retrying with %s: %s", output_name, failed, next_encoder, error)
 
@@ -258,7 +250,7 @@ def _encode_camera(
     def on_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
         _log_fallback(output_path.name, failed, next_encoder, error)
 
-    run_with_fallback(encoder_ladder(encoder), attempt, should_retry=_is_encoder_failure, on_fallback=on_fallback)
+    encode_with_fallback(encoder, attempt, on_fallback=on_fallback)
 
 
 def _stream_generate_mp4(

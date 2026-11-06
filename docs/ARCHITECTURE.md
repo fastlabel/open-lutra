@@ -168,7 +168,7 @@ Located in `backend/app/features/analysis/`. Provides data for the horizontal-ba
 
 Located in `backend/app/features/media/`. Generates data for the Preview panel (video + Joint Position Graph) of the recording detail page.
 
-- **mcap_converter**: `convert_mcap()` generates per-camera MP4s from MCAP (streams writes to an ffmpeg subprocess, piping one frame at a time so memory use stays constant regardless of recording length). This is the actual `GenerateMediaJob`. The ffmpeg command and the encoder (CPU libx264 or NVIDIA NVENC) come from the shared video encoding layer (see 7 below); each camera moves down the encoder's fallback ladder on an ffmpeg failure, so a GPU problem never fails the job
+- **mcap_converter**: `convert_mcap()` generates per-camera MP4s from MCAP (streams writes to an ffmpeg subprocess, piping one frame at a time so memory use stays constant regardless of recording length). This is the actual `GenerateMediaJob`. The ffmpeg command and the encoder (CPU libx264 or NVIDIA NVENC) come from the shared video encoding layer, which also falls back to the CPU per camera on a GPU failure (see 7 below)
 - **video_generator**: Enumerates already-generated MP4 files (GET /api/media/video) and defines the fixed FPS constant
 - **joint_reader**: Reads + caches Joint time-series (for the Joint Position Graph). Auto-detects whether `decoded.position` exists or is nested (`decoded.joint_state.position`), supporting custom message types (including composite types that also expose `neck_joint_state`)
 - **Decimation support**: `decimation=20` or so is sufficient for previews (200Hz × 50s = 10,000 → 500 points)
@@ -189,7 +189,7 @@ Shared layer through which media (preview MP4s) and lerobot_export (dataset vide
 - **`VIDEO_ENCODER` setting**: `libx264` (CPU, default) or `nvenc` (NVIDIA GPU). See [GPU encoding](SETUP.md#gpu-encoding-nvidia) for how a host opts in
 - **`effective_encoder()`**: Resolves the setting once per process. `nvenc` is kept only if a one-frame NVENC probe succeeds; otherwise a single warning is logged and the process encodes on the CPU
 - **Command builders** (`mjpeg_pipe_command` / `rawvideo_rgb24_command`): Build the ffmpeg command line for one encoder (libx264 or NVENC). JPEG decoding always runs on the CPU. The libx264 commands use libx264's defaults (CRF 23)
-- **Fallback ladder** (`encoder_ladder` + `run_with_fallback`): With `nvenc`, previews retry a failed camera with libx264, and LeRobot export re-runs the whole export with libx264. Only ffmpeg failures fall back; other errors (e.g. a corrupted MCAP) are raised as-is
+- **Fallback ladder** (`encode_with_fallback`): With `nvenc`, previews retry a failed camera with libx264, and LeRobot export re-runs the whole export once with libx264 (frames are streamed into long-lived encoders and cannot be replayed mid-way). Only ffmpeg failures fall back; other errors (e.g. a corrupted MCAP) are raised as-is
 
 #### 8. JobQueue (background job execution platform)
 

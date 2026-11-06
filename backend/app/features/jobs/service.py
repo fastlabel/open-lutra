@@ -35,6 +35,7 @@ from app.features.jobs.models import (
     ValidationJob,
 )
 from app.features.jobs.schemas import JobChangeEvent, JobEvent, JobSchema, QueueSnapshotData, QueueSnapshotEvent
+from app.infra.video import VideoEncoder, effective_encoder
 
 logger = logging.getLogger(__name__)
 
@@ -689,11 +690,8 @@ def _run_convert_mcap(  # pragma: no cover
     """Thin wrapper around `convert_mcap()` for `asyncio.to_thread`."""
     from app.features.media.mcap_converter import convert_mcap
     from app.features.media.video_generator import VIDEO_FPS
-    from app.infra.video import effective_encoder
-    from app.settings import get_settings
 
-    encoder = effective_encoder(get_settings().video_encoder)
-    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress, encoder=encoder)
+    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress, encoder=_configured_encoder())
 
 
 def _run_export_dataset(  # pragma: no cover
@@ -706,12 +704,16 @@ def _run_export_dataset(  # pragma: no cover
     The mapping is read from the active recording config's `lerobot_export` section.
     """
     from app.features.lerobot_export import load_active_config, run_export
-    from app.infra.video import effective_encoder
-    from app.settings import get_settings
 
     config = load_active_config()
-    encoder = effective_encoder(get_settings().video_encoder)
-    run_export(source_paths, config, output_dir, on_progress=on_progress, encoder=encoder)
+    run_export(source_paths, config, output_dir, on_progress=on_progress, encoder=_configured_encoder())
+
+
+def _configured_encoder() -> VideoEncoder:  # pragma: no cover
+    """The `VIDEO_ENCODER` setting resolved against the NVENC probe (cached per process)."""
+    from app.settings import get_settings
+
+    return effective_encoder(get_settings().video_encoder)
 
 
 _job_queue: JobQueue | None = None
