@@ -1,13 +1,23 @@
 # Today's collection summary
 
 Operators can check how much they have collected today without leaving the
-recording page: the recording bar shows the day's **usable** episode count and
-total duration, followed by the total count and a breakdown of the rest.
+recording page. The recording bar shows a chip with the day's **OK** episode
+count and total duration. A red dot appears when any take failed. Clicking the
+chip opens the breakdown:
 
 ```
-Today  10 usable · 32m 10s
-12 total · 1 failed · 1 pending
+[Today  10 episodes · 32m 10s  (o) v]
+   +--------------------------------+
+   | Today's collection             |
+   | * OK (pass / warn)   10 32m 10s|
+   | * Failed              1        |
+   | * Checking            1        |
+   | ------------------------------ |
+   |   Total recorded     12        |
+   +--------------------------------+
 ```
+
+Durations read as `16s`, `32m 10s`, or `1h 05m`.
 
 ## Off by default
 
@@ -32,18 +42,18 @@ recordings list still shows each recording's own duration.
 
 ## What is counted
 
-| Overall validation status | Counted as |
+| Overall validation status | Shown as |
 |---|---|
-| `pass`, `warn` | **usable** — the headline count and duration |
-| `fail` | failed |
-| `error` | validation error (a validator crashed; see [custom validators](custom_validators.md)) |
-| none yet | pending — validation has not finished |
+| `pass`, `warn` | **OK**: the chip's count and duration |
+| `fail` | Failed (also lights the red dot) |
+| `error` | Validation error: a validator crashed, see [custom validators](custom_validators.md). Also lights the red dot; the row is listed only when non-zero |
+| none yet | Checking: validation has not finished |
 
-- Only usable recordings feed the headline, so adding volume requires takes
-  that pass validation. Unknown statuses count as pending, never as usable.
-- A freshly stopped recording appears as pending and moves to usable (or
-  failed) when its automatic validation completes — no reload needed. Deleting
-  a recording removes it from the summary.
+- Only OK recordings feed the chip, so adding volume requires takes that pass
+  validation. Unknown statuses count as Checking, never as OK.
+- A freshly stopped recording appears as Checking and moves to OK (or Failed)
+  when its automatic validation completes, with no reload. Deleting a recording
+  removes it from the summary.
 - The recording in progress is not counted; it is added when it stops.
 
 ## What "today" means

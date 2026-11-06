@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigResponse, FileEntry, FilesResponse, GetRecordingsParams } from "@/api/generated/schemas";
 import { CollectionStatsSummary } from "../collection-stats-summary";
@@ -56,6 +56,14 @@ function files(entries: FileEntry[]): { data: FilesResponse } {
   return { data: { output_dir: "/out", entries } };
 }
 
+const chip = () => screen.getByRole("button", { name: /Today/ });
+
+function openBreakdown() {
+  fireEvent.click(chip());
+}
+
+const row = (label: string) => screen.getByTestId(`breakdown-${label}`);
+
 beforeEach(() => {
   useConfigMock.mockReturnValue({ data: makeConfig() });
   useFilesMock.mockReturnValue(files([]));
@@ -94,7 +102,33 @@ describe("CollectionStatsSummary", () => {
     expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
   });
 
-  it("shows usable volume as the headline and the breakdown of the rest", () => {
+  it("shows OK episodes and their duration on the chip, flagging failed takes with a dot", () => {
+    useFilesMock.mockReturnValue(
+      files([
+        makeEntry({ validation_overall_status: "pass", duration_ns: 60 * SEC }),
+        makeEntry({ validation_overall_status: "warn", duration_ns: 30 * SEC }),
+        makeEntry({ validation_overall_status: "fail" }),
+        makeEntry({ validation_overall_status: null }),
+      ]),
+    );
+    render(<CollectionStatsSummary />);
+    expect(chip()).toHaveTextContent("Today2 episodes · 1m 30s");
+    expect(screen.getByTitle("Some takes failed")).toBeInTheDocument();
+  });
+
+  it("flags a validation error with the dot as well", () => {
+    useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: "error" })]));
+    render(<CollectionStatsSummary />);
+    expect(screen.getByTitle("Some takes failed")).toBeInTheDocument();
+  });
+
+  it("shows no dot when nothing failed", () => {
+    useFilesMock.mockReturnValue(files([makeEntry(), makeEntry({ validation_overall_status: null })]));
+    render(<CollectionStatsSummary />);
+    expect(screen.queryByTitle("Some takes failed")).not.toBeInTheDocument();
+  });
+
+  it("breaks the day down by validation result in the popover", () => {
     useFilesMock.mockReturnValue(
       files([
         makeEntry({ validation_overall_status: "pass", duration_ns: 60 * SEC }),
@@ -105,28 +139,37 @@ describe("CollectionStatsSummary", () => {
       ]),
     );
     render(<CollectionStatsSummary />);
-    const status = screen.getByRole("status", { name: "Today's collection" });
-    expect(status).toHaveTextContent("2 usable · 1m 30s");
-    expect(status).toHaveTextContent("5 total · 1 failed · 1 validation errors · 1 pending");
+    openBreakdown();
+    expect(row("OK (pass / warn)")).toHaveTextContent("2");
+    expect(row("OK (pass / warn)")).toHaveTextContent("1m 30s");
+    expect(row("Failed")).toHaveTextContent("1");
+    expect(row("Validation error")).toHaveTextContent("1");
+    expect(row("Checking")).toHaveTextContent("1");
+    expect(row("Total recorded")).toHaveTextContent("5");
   });
 
-  it("shows zeros and omits empty breakdown items on a day without recordings", () => {
+  it("omits the validation error row when there are none", () => {
+    useFilesMock.mockReturnValue(files([makeEntry()]));
     render(<CollectionStatsSummary />);
-    const status = screen.getByRole("status", { name: "Today's collection" });
-    expect(status).toHaveTextContent("0 usable · 0.0s");
-    expect(status).toHaveTextContent(/0 total$/);
+    openBreakdown();
+    expect(screen.queryByTestId("breakdown-Validation error")).not.toBeInTheDocument();
   });
 
-  it("moves a recording from pending to usable when its validation completes", () => {
+  it("shows zeros on a day without recordings", () => {
+    render(<CollectionStatsSummary />);
+    expect(chip()).toHaveTextContent("0 episodes · 0s");
+    openBreakdown();
+    expect(row("Total recorded")).toHaveTextContent("0");
+  });
+
+  it("moves a recording from checking to OK when its validation completes", () => {
     useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: null })]));
     const { rerender } = render(<CollectionStatsSummary />);
-    expect(screen.getByRole("status")).toHaveTextContent("0 usable");
-    expect(screen.getByRole("status")).toHaveTextContent("1 pending");
+    expect(chip()).toHaveTextContent("0 episodes · 0s");
 
     useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: "pass" })]));
     rerender(<CollectionStatsSummary />);
-    expect(screen.getByRole("status")).toHaveTextContent("1 usable · 30.0s");
-    expect(screen.getByRole("status")).not.toHaveTextContent("pending");
+    expect(chip()).toHaveTextContent("1 episode · 30s");
   });
 
   it("requests the new day's range when the date rolls over", () => {
