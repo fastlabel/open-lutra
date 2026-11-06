@@ -3,6 +3,10 @@
 Probes the first recording for feature shapes, then streams every recording's
 frames through the converter into a single LeRobot v3.0 dataset. Each recording
 contributes exactly one episode.
+
+Video encoding follows the configured encoder; when the GPU encoder fails, the
+whole export is re-run on the CPU (frames are streamed into long-lived encoders
+and cannot be replayed mid-way).
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ from app.features.lerobot_export.validation import validate_recordings
 from app.features.lerobot_export.writer import LeRobotV30Writer
 from app.features.recordings.meta import read_recording_meta
 from app.infra.mcap import find_mcap_files
+from app.infra.video import VideoEncoder, encode_with_fallback
 
 if TYPE_CHECKING:
     from app.features.lerobot_export.models import ExportConfig
@@ -44,6 +49,8 @@ def run_export(
     config: ExportConfig,
     output_dir: Path,
     on_progress: ProgressCallback | None = None,
+    *,
+    encoder: VideoEncoder,
 ) -> ExportResult:
     """Convert the given recording directories into one LeRobot v3.0 dataset.
 
@@ -52,11 +59,45 @@ def run_export(
         config: Mapping configuration.
         output_dir: Destination dataset root (created if absent).
         on_progress: Optional callback (step, current, total).
+        encoder: Video encoder to try first; on a GPU encoder failure the export
+            is re-run once with libx264.
 
     Raises:
         ValueError: If no recordings are usable or the config references topics
             absent from the first recording.
+        VideoEncodeError: If video encoding fails on the last encoder tried.
     """
+
+    def attempt(candidate: VideoEncoder) -> ExportResult:
+        progress = on_progress
+        if on_progress is not None and candidate != encoder:
+            progress = _fallback_progress(on_progress)
+        return _run_export_once(source_dirs, config, output_dir, progress, candidate)
+
+    return encode_with_fallback(encoder, attempt, on_fallback=_log_fallback)
+
+
+def _fallback_progress(on_progress: ProgressCallback) -> ProgressCallback:
+    """Report a fallback re-run's steps as `cpu_retry_<step>`, so the job shows why progress restarted."""
+
+    def report(step: str, current: int, total: int) -> None:
+        on_progress(f"cpu_retry_{step}", current, total)
+
+    return report
+
+
+def _log_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+    logger.warning("LeRobot export with %s failed; re-running with %s: %s", failed, next_encoder, error)
+
+
+def _run_export_once(
+    source_dirs: list[Path],
+    config: ExportConfig,
+    output_dir: Path,
+    on_progress: ProgressCallback | None,
+    encoder: VideoEncoder,
+) -> ExportResult:
+    """One export attempt with a fixed encoder; a failure leaves no output behind."""
 
     def progress(step: str, current: int, total: int) -> None:
         if on_progress is not None:
@@ -85,7 +126,7 @@ def run_export(
     # never leaves a partial dataset that blocks the name / lists as complete.
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     work_dir = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", suffix=".tmp", dir=output_dir.parent))
-    writer = LeRobotV30Writer(work_dir, fps, config.robot_type, spec)
+    writer = LeRobotV30Writer(work_dir, fps, config.robot_type, spec, encoder=encoder)
     writer.open()
     try:
         for index, (recording_dir, mcap_path) in enumerate(usable):

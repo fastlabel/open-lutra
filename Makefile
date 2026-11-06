@@ -10,6 +10,18 @@
 	generate setup clean \
 	prod-up prod-down prod-restart prod-logs prod-pull
 
+# GPU encoding: `.env`'s VIDEO_ENCODER is the only switch (see docs/SETUP.md, GPU encoding).
+# With VIDEO_ENCODER=nvenc every compose call below also applies docker-compose.gpu.yml,
+# which exposes the NVIDIA GPU to the backend. The value is read from `.env` only
+# (last assignment wins; `export`, inline comments and quotes are tolerated) so the
+# GPU exposure and the backend setting cannot come from different sources.
+_ENV_VIDEO_ENCODER := $(shell sed -n -E 's/^[[:space:]]*(export[[:space:]]+)?VIDEO_ENCODER[[:space:]]*=//p' .env 2>/dev/null | sed -E 's/[[:space:]]+\#.*$$//' | tr -d "\"' \t\r" | tail -n 1)
+# Naming files with -f turns off Compose's automatic docker-compose.override.yml, so
+# keep a local one in play when the GPU file is added.
+GPU_COMPOSE_FILES := $(if $(filter nvenc,$(_ENV_VIDEO_ENCODER)),-f docker-compose.yml $(if $(wildcard docker-compose.override.yml),-f docker-compose.override.yml) -f docker-compose.gpu.yml)
+DEV_COMPOSE := docker compose $(GPU_COMPOSE_FILES)
+PROD_COMPOSE := docker compose -f docker-compose.yml -f docker-compose.prod.yml $(if $(GPU_COMPOSE_FILES),-f docker-compose.gpu.yml)
+
 help:
 	@echo "OpenLUTRA"
 	@echo ""
@@ -49,12 +61,15 @@ help:
 	@echo "  make prod-up     - Start production (host network)"
 	@echo "  make prod-down   - Stop production"
 	@echo "  make prod-logs   - Show production logs"
+	@echo ""
+	@echo "GPU encoding: set VIDEO_ENCODER=nvenc in .env; every target above then exposes the"
+	@echo "NVIDIA GPU (docker-compose.gpu.yml). Currently: VIDEO_ENCODER=$(or $(_ENV_VIDEO_ENCODER),libx264 (default))"
 
 # ===== Docker (development) =====
 
 up:
 	@echo "=== Starting development environment ==="
-	docker compose --profile sim up -d
+	$(DEV_COMPOSE) --profile sim up -d
 	@echo "=== Started ==="
 	@echo "  Frontend:  http://localhost:5173"
 	@echo "  Backend:   http://localhost:8000"
@@ -62,36 +77,36 @@ up:
 
 dev-up:
 	@echo "=== Starting development environment in dev mode (VITE_DEV_MODE=true) ==="
-	VITE_DEV_MODE=true docker compose --profile sim up -d
+	VITE_DEV_MODE=true $(DEV_COMPOSE) --profile sim up -d
 	@echo "=== Started ==="
 	@echo "  Frontend:  http://localhost:5173 (dev mode)"
 	@echo "  Backend:   http://localhost:8000"
 	@echo "  Simulator: publishing robot dummy data"
 
 down:
-	docker compose --profile sim down
+	$(DEV_COMPOSE) --profile sim down
 
 restart:
-	docker compose --profile sim down
-	docker compose --profile sim up -d
+	$(DEV_COMPOSE) --profile sim down
+	$(DEV_COMPOSE) --profile sim up -d
 	@echo "=== Restarted ==="
 	@echo "  Frontend:  http://localhost:5173"
 	@echo "  Backend:   http://localhost:8000"
 
 # e.g. when SIM_MODE changes
 restart-sim:
-	docker compose up -d --build simulator
+	$(DEV_COMPOSE) up -d --build simulator
 	@echo "=== Simulator restarted (SIM_MODE=$${SIM_MODE:-normal}) ==="
 
 logs:
-	docker compose --profile sim logs -f
+	$(DEV_COMPOSE) --profile sim logs -f
 
 ps:
-	docker compose --profile sim ps
+	$(DEV_COMPOSE) --profile sim ps
 
 build:
 	@echo "=== Building Docker images ==="
-	docker compose build
+	$(DEV_COMPOSE) build
 
 stream:
 	@curl -s -N http://localhost:8000/api/topics/stream
@@ -100,14 +115,14 @@ stream:
 
 minio-up:
 	@echo "=== Starting MinIO ==="
-	docker compose --profile s3 up -d minio minio-init
+	$(DEV_COMPOSE) --profile s3 up -d minio minio-init
 	@echo "=== MinIO started ==="
 	@echo "  S3 API:  http://localhost:9000"
 	@echo "  Console: http://localhost:9001  (user: minioadmin / pass: minioadmin)"
 	@echo "  Bucket:  $${S3_BUCKET:-lutra-recordings}"
 
 minio-down:
-	docker compose --profile s3 down
+	$(DEV_COMPOSE) --profile s3 down
 
 # ===== Dev tools =====
 
@@ -196,25 +211,25 @@ clean:
 # Talks to real ROS2 via the host network.
 prod-up:
 	@echo "=== Starting production environment (host network) ==="
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+	$(PROD_COMPOSE) up -d
 	@echo "=== Started ==="
 	@echo "  Backend: http://localhost:8000"
 
 prod-pull:
 	@echo "=== git pull + rebuild ==="
 	git pull
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+	$(PROD_COMPOSE) build
+	$(PROD_COMPOSE) up -d
 	@echo "=== Done ==="
 
 prod-restart:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+	$(PROD_COMPOSE) down
+	$(PROD_COMPOSE) up -d
 	@echo "=== Restarted ==="
 	@echo "  Backend: http://localhost:8000"
 
 prod-down:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+	$(PROD_COMPOSE) down
 
 prod-logs:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+	$(PROD_COMPOSE) logs -f

@@ -10,8 +10,10 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.infra.video import VideoEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +170,12 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = False
 
+    # Video encoder for preview MP4s and LeRobot export videos. "nvenc" needs an
+    # NVIDIA GPU exposed to the container (docs/SETUP.md, GPU encoding); when it
+    # is unusable the backend falls back to libx264 with a warning. A blank value
+    # (`VIDEO_ENCODER=`) means the default, matching how the Makefile reads it.
+    video_encoder: VideoEncoder = "libx264"
+
     # Upload destination selector. One destination is active per machine; see
     # docs/domain/upload.md for the extension recipe. When unset, the upload
     # feature is disabled (the /api/upload/start endpoint refuses to enqueue
@@ -254,6 +262,14 @@ class Settings(BaseSettings):
     def metadata_fields(self) -> list[MetadataField]:
         """Master-defined metadata fields offered before recording."""
         return self.recording.metadata_fields
+
+    @field_validator("video_encoder", mode="before")
+    @classmethod
+    def _blank_video_encoder_is_default(cls, value: object) -> object:
+        """Treat a blank `VIDEO_ENCODER=` line as unset rather than refusing to start."""
+        if isinstance(value, str) and not value.strip():
+            return "libx264"
+        return value
 
 
 def get_settings() -> Settings:
