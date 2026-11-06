@@ -48,6 +48,10 @@ _STEP_LABELS: dict[str, str] = {
     "probe": "Probing features",
     "convert": "Converting recordings",
     "finalize": "Finalizing dataset",
+    # LeRobot export re-run on the CPU after a GPU encoder failure
+    "cpu_retry_probe": "GPU encoding failed, retrying on the CPU: probing features",
+    "cpu_retry_convert": "GPU encoding failed, retrying on the CPU: converting recordings",
+    "cpu_retry_finalize": "GPU encoding failed, retrying on the CPU: finalizing dataset",
 }
 
 # Event types used internally by JobQueue (must match the Literal in JobChangeEvent.event)

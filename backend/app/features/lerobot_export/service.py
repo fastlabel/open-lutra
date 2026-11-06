@@ -69,9 +69,21 @@ def run_export(
     """
 
     def attempt(candidate: VideoEncoder) -> ExportResult:
-        return _run_export_once(source_dirs, config, output_dir, on_progress, candidate)
+        progress = on_progress
+        if on_progress is not None and candidate != encoder:
+            progress = _fallback_progress(on_progress)
+        return _run_export_once(source_dirs, config, output_dir, progress, candidate)
 
     return encode_with_fallback(encoder, attempt, on_fallback=_log_fallback)
+
+
+def _fallback_progress(on_progress: ProgressCallback) -> ProgressCallback:
+    """Report a fallback re-run's steps as `cpu_retry_<step>`, so the job shows why progress restarted."""
+
+    def report(step: str, current: int, total: int) -> None:
+        on_progress(f"cpu_retry_{step}", current, total)
+
+    return report
 
 
 def _log_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:

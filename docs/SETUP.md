@@ -331,6 +331,8 @@ The backend probes NVENC on the first video job after it starts. `make prod-logs
 
 If the GPU fails for a single video (for example, the GPU's limit on concurrent encoder sessions is reached), that video falls back to the CPU and a `... failed; retrying with ...` warning is logged. The job still succeeds.
 
+A LeRobot export opens one encoder session per camera at the same time. On a GPU whose concurrent-session limit is lower than the number of cameras, every export therefore fails on the GPU and is re-run on the CPU; the Jobs panel shows `GPU encoding failed, retrying on the CPU`.
+
 If `VIDEO_ENCODER=nvenc` is set on a host without the NVIDIA Container Toolkit, `docker compose up` fails with an error about the `nvidia` device driver. Install the toolkit, or remove the setting.
 
 ---

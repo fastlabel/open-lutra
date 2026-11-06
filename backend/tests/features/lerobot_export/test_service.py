@@ -241,6 +241,22 @@ def test_run_export_reruns_on_cpu_when_gpu_encoding_fails(
     assert "LeRobot export with nvenc failed; re-running with libx264" in caplog.text
 
 
+def test_cpu_rerun_reports_its_progress_as_a_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    monkeypatch.setattr(writer, "VideoSink", _NvencFailsSink)
+    rec = _make_recording(tmp_path, "rec1")
+    steps: list[str] = []
+
+    service.run_export(
+        [rec], _config(), tmp_path / "out", on_progress=lambda s, _c, _t: steps.append(s), encoder="nvenc"
+    )
+
+    rerun = steps[steps.index("cpu_retry_probe") :]
+    assert steps[0] == "probe"
+    assert rerun[-1] == "cpu_retry_finalize"
+    assert all(step.startswith("cpu_retry_") for step in rerun)
+
+
 def test_run_export_does_not_retry_non_encoder_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     sizes = iter([2, 4])
     monkeypatch.setattr(converter, "read_topic_messages", lambda _p, _t: _messages(size=next(sizes)))
