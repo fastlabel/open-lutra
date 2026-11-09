@@ -59,15 +59,19 @@ recordings list still shows each recording's own duration.
   [custom validators](custom_validators.md)), every recording passes and counts
   as OK, so the summary reflects quality only as far as the validators check
   it.
+- Only recordings with a start time are counted. The start time comes from
+  the `metadata.yaml` that `ros2 bag` writes when recording stops, so the
+  recording in progress, and a take whose recorder exited before writing it
+  (for example on a crash or power loss), appear in no row, not even Total
+  recorded.
 - A freshly stopped recording appears as No result and moves to OK (or Failed)
   once its automatic validation has completed. If the validation job itself
   fails (for example the quality report could not be generated), no
   result is written and the recording stays under No result. Opening the
   recording's detail page runs a missing quality analysis again; once it has
-  finished, opening the **Validation** tab starts validation. A recording that
-  cannot be analyzed at all stays under No result. Deleting a recording removes
-  it from the summary.
-- The recording in progress is not counted; it is added when it stops.
+  finished, opening the **Validation** tab starts validation. A recording whose
+  quality analysis cannot run at all stays under No result. Deleting a
+  recording removes it from the summary.
 
 ## What "today" means
 

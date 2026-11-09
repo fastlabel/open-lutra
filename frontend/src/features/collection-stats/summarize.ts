@@ -19,13 +19,12 @@ export interface CollectionSummary {
 export function summarize(entries: FileEntry[]): CollectionSummary {
   const summary: CollectionSummary = {
     usable: { count: 0, durationNs: 0 },
-    total: 0,
+    total: entries.length,
     failed: 0,
     errors: 0,
     pending: 0,
   };
   for (const entry of entries) {
-    summary.total += 1;
     switch (entry.validation_overall_status) {
       case "pass":
       case "warn":

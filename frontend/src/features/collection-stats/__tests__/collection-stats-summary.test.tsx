@@ -99,6 +99,19 @@ describe("CollectionStatsSummary", () => {
     expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
   });
 
+  it("keeps the day it was opened on when it re-renders after midnight", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 6, 23, 59, 30));
+    const { rerender } = render(<CollectionStatsSummary />);
+    openSummary();
+
+    vi.setSystemTime(new Date(2026, 10, 7, 0, 0, 30));
+    useFilesMock.mockReturnValue(files([makeEntry()]));
+    rerender(<CollectionStatsSummary />);
+    expect(row("Total recorded")).toHaveTextContent("1");
+    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
+  });
+
   it("shows a loading message while today's recordings load", () => {
     useFilesMock.mockReturnValue({ data: undefined, isError: false });
     render(<CollectionStatsSummary />);

@@ -9,6 +9,7 @@
  */
 
 import { CalendarCheck } from "lucide-react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,9 @@ export function CollectionStatsSummary() {
 /** Mounted only while the dialog is open, so the recordings request is issued on open, not with the recording bar. */
 function TodayBreakdown() {
   // --- Server state ---
-  const { data, isError } = useFiles(localDayRange(new Date()));
+  // "Today" is fixed when the dialog opens, so a re-render after midnight does not switch it to the next day.
+  const [range] = useState(() => localDayRange(new Date()));
+  const { data, isError } = useFiles(range);
 
   if (isError) return <p className="text-[13px] text-red-400">Could not load today's recordings.</p>;
   if (!data) return <p className="text-[13px] text-muted-foreground">Loading…</p>;

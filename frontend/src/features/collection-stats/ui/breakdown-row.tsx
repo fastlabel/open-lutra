@@ -1,4 +1,4 @@
-/** One row of the today's-collection popover: colored marker, label, episode count, and an optional duration. */
+/** One row of the today's-collection dialog: colored marker, label, episode count, and an optional duration. */
 export function BreakdownRow({
   label,
   count,
