@@ -22,7 +22,6 @@ export default mergeConfig(
           "src/features/collection-stats/day-range.ts",
           "src/features/collection-stats/format.ts",
           "src/features/collection-stats/summarize.ts",
-          "src/features/collection-stats/use-local-day.ts",
           "src/features/quality-timeline/video-label.ts",
           "src/features/recording/store.ts",
           "src/features/recordings/bulk-tags.ts",

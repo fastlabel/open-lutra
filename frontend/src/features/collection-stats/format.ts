@@ -7,7 +7,3 @@ export function formatCollectedDuration(sec: number): string {
   if (h === 0) return `${m}m ${String(total % 60).padStart(2, "0")}s`;
   return `${h}h ${String(m).padStart(2, "0")}m`;
 }
-
-export function formatEpisodes(count: number): string {
-  return `${count} ${count === 1 ? "episode" : "episodes"}`;
-}

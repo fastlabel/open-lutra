@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCollectedDuration, formatEpisodes } from "../format";
+import { formatCollectedDuration } from "../format";
 
 describe("formatCollectedDuration", () => {
   it.each([
@@ -14,15 +14,5 @@ describe("formatCollectedDuration", () => {
     [12 * 3600 + 30 * 60, "12h 30m"],
   ])("formats %f seconds as %s", (sec, expected) => {
     expect(formatCollectedDuration(sec)).toBe(expected);
-  });
-});
-
-describe("formatEpisodes", () => {
-  it.each([
-    [0, "0 episodes"],
-    [1, "1 episode"],
-    [2, "2 episodes"],
-  ])("formats %i as %s", (count, expected) => {
-    expect(formatEpisodes(count)).toBe(expected);
   });
 });

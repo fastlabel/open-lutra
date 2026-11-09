@@ -1,82 +1,80 @@
-/** Today's collection chip for the recording bar, with a popover that breaks the day down by validation result.
- *
- * The chip shows only OK episodes (validation `pass` / `warn`) and their duration; a red dot flags failed or
- * errored takes. The popover lists OK / failed / validation error / no result and the total. "No result" covers both
- * validation still running and validation that never produced a result (for example a failed validation job).
+/** "Recording summary" button for the recording bar, opening a dialog that breaks today's recordings down by
+ * validation result: OK (`pass` / `warn`, with their total duration), failed, validation error, no result, and the
+ * total. "No result" covers both validation still running and validation that never produced a result (for example
+ * a failed validation job).
  *
  * Hidden entirely unless the recording config enables `collection_stats` (exposed as
- * `collection_stats_enabled` on `/api/config`). The recordings query lives in the inner component, so a
- * disabled deployment issues no extra request.
+ * `collection_stats_enabled` on `/api/config`). Today's recordings are fetched only while the dialog is open, and
+ * again each time it opens.
  */
 
-import { CalendarCheck, ChevronDown } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useConfig } from "@/hooks/use-api";
-import { formatCollectedDuration, formatEpisodes } from "./format";
+import { CalendarCheck } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useConfig, useFiles } from "@/hooks/use-api";
+import { localDayRange } from "./day-range";
+import { formatCollectedDuration } from "./format";
 import { summarize } from "./summarize";
 import { BreakdownRow } from "./ui/breakdown-row";
-import { useTodaysRecordings } from "./use-todays-recordings";
-
-const FAILURE_LABEL = "Some takes failed or hit a validation error";
 
 export function CollectionStatsSummary() {
   // --- Server state ---
   const { data: config } = useConfig();
 
   if (!config?.collection_stats_enabled) return null;
-  return <TodaySummary />;
-}
-
-function TodaySummary() {
-  // --- Server state ---
-  const { data } = useTodaysRecordings();
-
-  if (!data) return null;
-
-  const summary = summarize(data.entries);
-  const okDuration = formatCollectedDuration(summary.usable.durationNs / 1e9);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <Dialog>
+      <DialogTrigger asChild>
         <button
           type="button"
-          title="OK episodes today (validation pass / warn). Click for details"
           className="flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-[13px] text-foreground hover:bg-muted"
         >
-          <CalendarCheck size={14} className="text-emerald-400" />
-          <span className="text-muted-foreground">Today</span>
-          <span className="font-semibold tabular-nums">
-            {formatEpisodes(summary.usable.count)} · {okDuration}
-          </span>
-          {summary.failed + summary.errors > 0 && (
-            <>
-              <span className="h-2 w-2 rounded-full bg-red-400" title={FAILURE_LABEL} />
-              <span className="sr-only">{FAILURE_LABEL}</span>
-            </>
-          )}
-          <ChevronDown size={13} className="text-muted-foreground" />
+          <CalendarCheck size={14} />
+          <span>Recording summary</span>
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-3">
-        <div className="flex flex-col gap-2 text-[13px]">
-          <span className="font-medium text-muted-foreground">Today's collection</span>
-          <BreakdownRow
-            label="OK (pass / warn)"
-            count={summary.usable.count}
-            duration={okDuration}
-            dotClass="bg-emerald-400"
-          />
-          <BreakdownRow label="Failed" count={summary.failed} dotClass="bg-red-400" />
-          {summary.errors > 0 && (
-            <BreakdownRow label="Validation error" count={summary.errors} dotClass="bg-purple-400" />
-          )}
-          <BreakdownRow label="No result" count={summary.pending} dotClass="bg-muted-foreground" />
-          <div className="border-t border-border pt-2">
-            <BreakdownRow label="Total recorded" count={summary.total} />
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Today's collection</DialogTitle>
+          <DialogDescription>Recordings started today, by validation result.</DialogDescription>
+        </DialogHeader>
+        <TodayBreakdown />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Mounted only while the dialog is open, so the recordings request is issued on open, not with the recording bar. */
+function TodayBreakdown() {
+  // --- Server state ---
+  const { data, isError } = useFiles(localDayRange(new Date()));
+
+  if (isError) return <p className="text-[13px] text-red-400">Could not load today's recordings.</p>;
+  if (!data) return <p className="text-[13px] text-muted-foreground">Loading…</p>;
+
+  const summary = summarize(data.entries);
+
+  return (
+    <div className="mt-2 flex flex-col gap-2 text-[13px]">
+      <BreakdownRow
+        label="OK (pass / warn)"
+        count={summary.usable.count}
+        duration={formatCollectedDuration(summary.usable.durationNs / 1e9)}
+        dotClass="bg-emerald-400"
+      />
+      <BreakdownRow label="Failed" count={summary.failed} dotClass="bg-red-400" />
+      {summary.errors > 0 && <BreakdownRow label="Validation error" count={summary.errors} dotClass="bg-purple-400" />}
+      <BreakdownRow label="No result" count={summary.pending} dotClass="bg-muted-foreground" />
+      <div className="border-t border-border pt-2">
+        <BreakdownRow label="Total recorded" count={summary.total} />
+      </div>
+    </div>
   );
 }

@@ -1,12 +1,11 @@
 # Today's collection summary
 
 Operators can check how much they have collected today without leaving the
-recording page. The recording bar shows a chip with the day's **OK** episode
-count and total duration. A red dot appears when any take failed or hit a
-validation error. Clicking the chip opens the breakdown:
+recording page. The recording bar has a **Recording summary** button; clicking
+it opens a dialog that breaks today's recordings down by validation result:
 
 ```
-[Today  10 episodes · 32m 10s  (o) v]
+[Recording summary]
    +--------------------------------+
    | Today's collection             |
    | * OK (pass / warn)   10 32m 10s|
@@ -18,6 +17,10 @@ validation error. Clicking the chip opens the breakdown:
 ```
 
 Durations read as `16s`, `32m 10s`, or `1h 05m`.
+
+The summary is on demand: today's recordings are fetched when the dialog
+opens, and again each time it is reopened. Nothing is fetched while the dialog
+is closed.
 
 ## Off by default
 
@@ -34,8 +37,7 @@ collection_stats:
 The value is served to the UI as `collection_stats_enabled` on
 `GET /api/config`. A page that is already open keeps the value it loaded, so
 reload the recording page after changing it. When it is `false`
-the summary is not rendered anywhere and the recording page issues no extra
-request. Operators have no UI control to turn it on.
+the button is not rendered. Operators have no UI control to turn it on.
 
 This is a **display switch, not a security control**: the app has no
 authentication, anyone with shell access to the host can edit the YAML, and the
@@ -45,21 +47,21 @@ recordings list still shows each recording's own duration.
 
 | Overall validation status | Shown as |
 |---|---|
-| `pass`, `warn` | **OK**: the chip's count and duration |
-| `fail` | Failed (also lights the red dot) |
-| `error`, or a status the UI does not recognize | Validation error: a validator crashed, see [custom validators](custom_validators.md). Also lights the red dot; the row is listed only when non-zero |
+| `pass`, `warn` | **OK**: counted with their total duration |
+| `fail` | Failed |
+| `error`, or a status the UI does not recognize | Validation error: a validator crashed, see [custom validators](custom_validators.md). The row is listed only when non-zero |
 | none | No result: validation is still running, or never produced a result |
 
-- Only OK recordings feed the chip, so adding volume requires takes that pass
-  validation. Unknown statuses count as Validation error, never as OK, the same
-  way the recording's detail page shows them.
+- Only OK recordings count toward the collected duration, so adding volume
+  requires takes that pass validation. Unknown statuses count as Validation
+  error, never as OK, the same way the recording's detail page shows them.
 - With no validators at all (no `validators:` entries and no
   [custom validators](custom_validators.md)), every recording passes and counts
   as OK, so the summary reflects quality only as far as the validators check
   it.
 - A freshly stopped recording appears as No result and moves to OK (or Failed)
-  when its automatic validation completes, with no reload. If the validation
-  job itself fails (for example the quality report could not be generated), no
+  once its automatic validation has completed. If the validation job itself
+  fails (for example the quality report could not be generated), no
   result is written and the recording stays under No result. Opening the
   recording's detail page runs a missing quality analysis again; once it has
   finished, opening the **Validation** tab starts validation. A recording that
@@ -72,8 +74,8 @@ recordings list still shows each recording's own duration.
 Today is the operator's **local calendar day** in the browser's time zone, from
 local midnight to the next local midnight, matched against each recording's
 start time. A recording that starts at 23:50 and ends after midnight belongs to
-the day it started. The summary rolls over to the new day on its own within a
-minute of midnight, or of waking the machine if it slept through it.
+the day it started. The day is taken from the browser's clock when the dialog
+opens.
 
 The summary fetches only that day through the `started_after` /
 `started_before` filter of `GET /api/recordings` (half-open interval, bounds as

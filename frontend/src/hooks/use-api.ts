@@ -12,7 +12,7 @@
  *
  * Lifecycle order: initialization → continuous polling → mutations → on-demand queries.
  */
-import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getGetQualityQueryKey,
   getGetTimelineQueryKey,
@@ -194,15 +194,10 @@ export function useBulkUpdateRecordingMeta() {
 
 // --- On-demand queries (used by specific screens / actions) ---
 
-/** Fetch the list of recording folders directly under the output directory, optionally filtered by start time.
- *
- * `keepPreviousWhileLoading` keeps the previous list visible while a changed filter loads. It is opt-in: only a
- * caller whose filter changes can decide whether the previous rows may stand in for the new ones.
- */
-export function useFiles(params?: GetRecordingsParams, { keepPreviousWhileLoading = false } = {}) {
+/** Fetch the list of recording folders directly under the output directory, optionally filtered by start time. */
+export function useFiles(params?: GetRecordingsParams) {
   return useGetRecordings<FilesResponse>(params, {
     query: {
-      placeholderData: keepPreviousWhileLoading ? keepPreviousData : undefined,
       select: (resp) => resp.data as FilesResponse,
     },
   });

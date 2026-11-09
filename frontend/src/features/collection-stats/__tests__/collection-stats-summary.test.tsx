@@ -1,29 +1,22 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigResponse, FileEntry, FilesResponse, GetRecordingsParams } from "@/api/generated/schemas";
 import { CollectionStatsSummary } from "../collection-stats-summary";
 import { localDayRange } from "../day-range";
 
+type FilesResult = { data: FilesResponse | undefined; isError: boolean };
+
 const { useConfigMock, useFilesMock } = vi.hoisted(() => ({
   useConfigMock: vi.fn<() => { data: ConfigResponse | undefined }>(() => ({ data: undefined })),
-  useFilesMock: vi.fn<
-    (
-      params?: GetRecordingsParams,
-      options?: { keepPreviousWhileLoading?: boolean },
-    ) => {
-      data: FilesResponse | undefined;
-    }
-  >(() => ({ data: undefined })),
+  useFilesMock: vi.fn<(params?: GetRecordingsParams) => FilesResult>(() => ({ data: undefined, isError: false })),
 }));
 
 vi.mock("@/hooks/use-api", () => ({
   useConfig: () => useConfigMock(),
-  useFiles: (params?: GetRecordingsParams, options?: { keepPreviousWhileLoading?: boolean }) =>
-    useFilesMock(params, options),
+  useFiles: (params?: GetRecordingsParams) => useFilesMock(params),
 }));
 
 const SEC = 1_000_000_000;
-const KEEP_PREVIOUS = { keepPreviousWhileLoading: true };
 
 function makeConfig(overrides: Partial<ConfigResponse> = {}): ConfigResponse {
   return {
@@ -59,14 +52,12 @@ function makeEntry(overrides: Partial<FileEntry> = {}): FileEntry {
   };
 }
 
-function files(entries: FileEntry[]): { data: FilesResponse } {
-  return { data: { output_dir: "/out", entries } };
+function files(entries: FileEntry[]): FilesResult {
+  return { data: { output_dir: "/out", entries }, isError: false };
 }
 
-const chip = () => screen.getByRole("button", { name: /Today/ });
-
-function openBreakdown() {
-  fireEvent.click(chip());
+function openSummary() {
+  fireEvent.click(screen.getByRole("button", { name: "Recording summary" }));
 }
 
 const row = (label: string) => screen.getByTestId(`breakdown-${label}`);
@@ -82,60 +73,47 @@ afterEach(() => {
 });
 
 describe("CollectionStatsSummary", () => {
-  it("renders nothing and issues no recordings request when disabled", () => {
+  it("renders nothing when disabled", () => {
     useConfigMock.mockReturnValue({ data: makeConfig({ collection_stats_enabled: false }) });
     const { container } = render(<CollectionStatsSummary />);
     expect(container).toBeEmptyDOMElement();
-    expect(useFilesMock).not.toHaveBeenCalled();
   });
 
   it("renders nothing while the config is loading", () => {
     useConfigMock.mockReturnValue({ data: undefined });
     const { container } = render(<CollectionStatsSummary />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("issues no recordings request until the dialog is opened", () => {
+    render(<CollectionStatsSummary />);
+    expect(screen.getByRole("button", { name: "Recording summary" })).toBeInTheDocument();
     expect(useFilesMock).not.toHaveBeenCalled();
   });
 
-  it("renders nothing while today's recordings are loading", () => {
-    useFilesMock.mockReturnValue({ data: undefined });
-    const { container } = render(<CollectionStatsSummary />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("requests today's local-day range, keeping the previous list while a new day loads", () => {
-    vi.useFakeTimers();
+  it("requests today's local-day range when opened", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 10, 6, 14, 0));
     render(<CollectionStatsSummary />);
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)), KEEP_PREVIOUS);
+    openSummary();
+    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)));
   });
 
-  it("shows OK episodes and their duration on the chip, flagging failed takes with a dot that is also read out", () => {
-    useFilesMock.mockReturnValue(
-      files([
-        makeEntry({ validation_overall_status: "pass", duration_ns: 60 * SEC }),
-        makeEntry({ validation_overall_status: "warn", duration_ns: 30 * SEC }),
-        makeEntry({ validation_overall_status: "fail" }),
-        makeEntry({ validation_overall_status: null }),
-      ]),
-    );
+  it("shows a loading message while today's recordings load", () => {
+    useFilesMock.mockReturnValue({ data: undefined, isError: false });
     render(<CollectionStatsSummary />);
-    expect(chip()).toHaveTextContent("Today2 episodes · 1m 30s");
-    expect(chip()).toHaveAccessibleName(/Some takes failed or hit a validation error/);
+    openSummary();
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("flags a validation error with the dot as well", () => {
-    useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: "error" })]));
+  it("shows an error message when today's recordings cannot be loaded", () => {
+    useFilesMock.mockReturnValue({ data: undefined, isError: true });
     render(<CollectionStatsSummary />);
-    expect(chip()).toHaveAccessibleName(/Some takes failed or hit a validation error/);
+    openSummary();
+    expect(screen.getByText("Could not load today's recordings.")).toBeInTheDocument();
   });
 
-  it("shows no dot when nothing failed", () => {
-    useFilesMock.mockReturnValue(files([makeEntry(), makeEntry({ validation_overall_status: null })]));
-    render(<CollectionStatsSummary />);
-    expect(chip()).not.toHaveAccessibleName(/Some takes failed/);
-  });
-
-  it("breaks the day down by validation result in the popover", () => {
+  it("breaks the day down by validation result", () => {
     useFilesMock.mockReturnValue(
       files([
         makeEntry({ validation_overall_status: "pass", duration_ns: 60 * SEC }),
@@ -146,7 +124,8 @@ describe("CollectionStatsSummary", () => {
       ]),
     );
     render(<CollectionStatsSummary />);
-    openBreakdown();
+    openSummary();
+    expect(screen.getByRole("dialog", { name: "Today's collection" })).toBeInTheDocument();
     expect(row("OK (pass / warn)")).toHaveTextContent("2");
     expect(row("OK (pass / warn)")).toHaveTextContent("1m 30s");
     expect(row("Failed")).toHaveTextContent("1");
@@ -158,36 +137,15 @@ describe("CollectionStatsSummary", () => {
   it("omits the validation error row when there are none", () => {
     useFilesMock.mockReturnValue(files([makeEntry()]));
     render(<CollectionStatsSummary />);
-    openBreakdown();
+    openSummary();
     expect(screen.queryByTestId("breakdown-Validation error")).not.toBeInTheDocument();
   });
 
   it("shows zeros on a day without recordings", () => {
     render(<CollectionStatsSummary />);
-    expect(chip()).toHaveTextContent("0 episodes · 0s");
-    openBreakdown();
+    openSummary();
+    expect(row("OK (pass / warn)")).toHaveTextContent("0");
+    expect(row("OK (pass / warn)")).toHaveTextContent("0s");
     expect(row("Total recorded")).toHaveTextContent("0");
-  });
-
-  it("moves a recording from no result to OK when its validation completes", () => {
-    useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: null })]));
-    const { rerender } = render(<CollectionStatsSummary />);
-    expect(chip()).toHaveTextContent("0 episodes · 0s");
-
-    useFilesMock.mockReturnValue(files([makeEntry({ validation_overall_status: "pass" })]));
-    rerender(<CollectionStatsSummary />);
-    expect(chip()).toHaveTextContent("1 episode · 30s");
-  });
-
-  it("requests the new day's range when the date rolls over", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 10, 6, 23, 59, 30));
-    render(<CollectionStatsSummary />);
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 6)), KEEP_PREVIOUS);
-
-    act(() => {
-      vi.advanceTimersByTime(60_000);
-    });
-    expect(useFilesMock).toHaveBeenLastCalledWith(localDayRange(new Date(2026, 10, 7)), KEEP_PREVIOUS);
   });
 });
