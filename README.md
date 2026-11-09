@@ -112,7 +112,7 @@ Attach fixed attributes — operator ID, target object, and so on — to each re
 
 ### Today's collection
 
-When the recording config sets `collection_stats.enabled: true` (off by default), a **Recording summary** button in the recording bar opens a dialog showing how many OK episodes, and how much OK duration, were collected today. See [docs/domain/collection_stats.md](docs/domain/collection_stats.md).
+When the recording config sets `collection_stats.enabled: true` (off by default), a **Today's collection** button in the app header opens a dialog showing how many OK episodes, and how much OK duration, were collected today. See [docs/domain/collection_stats.md](docs/domain/collection_stats.md).
 
 ### Recording workflow
 

@@ -57,7 +57,7 @@ function files(entries: FileEntry[]): FilesResult {
 }
 
 function openSummary() {
-  fireEvent.click(screen.getByRole("button", { name: "Recording summary" }));
+  fireEvent.click(screen.getByRole("button", { name: "Today's collection" }));
 }
 
 const row = (label: string) => screen.getByTestId(`breakdown-${label}`);
@@ -87,7 +87,7 @@ describe("CollectionStatsSummary", () => {
 
   it("issues no recordings request until the dialog is opened", () => {
     render(<CollectionStatsSummary />);
-    expect(screen.getByRole("button", { name: "Recording summary" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Today's collection" })).toBeInTheDocument();
     expect(useFilesMock).not.toHaveBeenCalled();
   });
 

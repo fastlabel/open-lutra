@@ -96,7 +96,7 @@ metadata_fields:
       - value: cup
       - value: bottle
 
-# Today's collection summary in the recording bar. Hidden unless enabled here;
+# Today's collection summary in the app header. Hidden unless enabled here;
 # see docs/domain/collection_stats.md.
 collection_stats:
   enabled: false

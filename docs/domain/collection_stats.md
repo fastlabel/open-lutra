@@ -1,11 +1,12 @@
 # Today's collection summary
 
 Operators can check how much they have collected today without leaving the
-recording page. The recording bar has a **Recording summary** button; clicking
-it opens a dialog that breaks today's recordings down by validation result:
+recording page. The right edge of the app header has a **Today's collection**
+button, so it is reachable from every page; clicking it opens a dialog that
+breaks today's recordings down by validation result:
 
 ```
-[Recording summary]
+[Today's collection]
    +--------------------------------+
    | Today's collection             |
    | * OK (pass / warn)   10 32m 10s|
@@ -36,7 +37,7 @@ collection_stats:
 
 The value is served to the UI as `collection_stats_enabled` on
 `GET /api/config`. A page that is already open keeps the value it loaded, so
-reload the recording page after changing it. When it is `false`
+reload the page after changing it. When it is `false`
 the button is not rendered. Operators have no UI control to turn it on.
 
 This is a **display switch, not a security control**: the app has no

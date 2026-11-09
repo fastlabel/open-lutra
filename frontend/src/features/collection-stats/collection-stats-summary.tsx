@@ -1,4 +1,4 @@
-/** "Recording summary" button for the recording bar, opening a dialog that breaks today's recordings down by
+/** "Today's collection" button for the app header, opening a dialog that breaks today's recordings down by
  * validation result: OK (`pass` / `warn`, with their total duration), failed, validation error, no result, and the
  * total. "No result" covers both validation still running and validation that never produced a result (for example
  * a failed validation job).
@@ -35,10 +35,10 @@ export function CollectionStatsSummary() {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-[13px] text-foreground hover:bg-muted"
+          className="flex items-center gap-1.5 rounded px-1.5 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <CalendarCheck size={14} />
-          <span>Recording summary</span>
+          <span>Today's collection</span>
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
@@ -52,7 +52,7 @@ export function CollectionStatsSummary() {
   );
 }
 
-/** Mounted only while the dialog is open, so the recordings request is issued on open, not with the recording bar. */
+/** Mounted only while the dialog is open, so the recordings request is issued on open, not with the header. */
 function TodayBreakdown() {
   // --- Server state ---
   // "Today" is fixed when the dialog opens, so a re-render after midnight does not switch it to the next day.

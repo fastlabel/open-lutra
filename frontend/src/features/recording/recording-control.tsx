@@ -1,8 +1,7 @@
-/** Recording action bar: record button, delay/REC indicator, robot info, command copy, today's collection summary, and task name editor. */
+/** Recording action bar: record button, delay/REC indicator, robot info, command copy, metadata, and task name editor. */
 
 import { AlertTriangle, Bot, ChevronDown, ClipboardCopy, Volume2, VolumeX } from "lucide-react";
 import { useState } from "react";
-import { CollectionStatsSummary } from "@/features/collection-stats";
 import { RecordingMetadataPanel, TaskNameInlineEditor } from "@/features/settings";
 import { useConfig, useIsRecording } from "@/hooks/use-api";
 import { useTopicStats } from "@/hooks/use-topics-stream";
@@ -140,9 +139,8 @@ export function RecordingControl() {
         )}
       </div>
 
-      {/* Right: today's collection (when enabled by the recording config) + metadata + task name */}
+      {/* Right: metadata + task name */}
       <div className="flex items-center gap-3">
-        <CollectionStatsSummary />
         <RecordingMetadataPanel />
         <TaskNameInlineEditor />
       </div>
