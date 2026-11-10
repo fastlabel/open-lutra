@@ -1,4 +1,4 @@
-/** Root layout: places the Header on every page.
+/** Root layout: places the Header on every page, with today's collection summary (when enabled) on its right.
  *
  * The StatusBar (footer) is shown only in dev mode (for connection status, memory usage, and the DevTools toggle).
  */
@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/header";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CollectionStatsSummary } from "@/features/collection-stats";
 import { useJobsStream } from "@/hooks/use-jobs-stream";
 import { isDevMode } from "@/lib/dev-mode";
 import { queryClient } from "@/lib/query-client";
@@ -27,7 +28,7 @@ function RootLayoutInner() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen flex-col bg-background">
-        <Header />
+        <Header right={<CollectionStatsSummary />} />
         <div className="flex-1 overflow-hidden">
           <Outlet />
         </div>

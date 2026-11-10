@@ -1,4 +1,4 @@
-/** Recording action bar: record button, delay/REC indicator, robot info, command copy, and task name editor. */
+/** Recording action bar: record button, delay/REC indicator, robot info, command copy, metadata, and task name editor. */
 
 import { AlertTriangle, Bot, ChevronDown, ClipboardCopy, Volume2, VolumeX } from "lucide-react";
 import { useState } from "react";

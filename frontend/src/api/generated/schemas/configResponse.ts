@@ -17,4 +17,5 @@ export interface ConfigResponse {
   stamp_quality: boolean;
   upload_enabled: boolean;
   metadata_fields: MetadataFieldResponse[];
+  collection_stats_enabled: boolean;
 }

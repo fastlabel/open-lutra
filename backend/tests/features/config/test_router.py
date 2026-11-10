@@ -1,5 +1,6 @@
 """Tests for the configuration and system info API endpoints."""
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -33,6 +34,22 @@ class TestConfig:
         assert "default_topics" in data
         assert isinstance(data["default_topics"], list)
         assert isinstance(data["upload_enabled"], bool)
+
+    def test_collection_stats_disabled_by_default(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        config = tmp_path / "recording.yaml"
+        config.write_text("robot_name: Foo\n", encoding="utf-8")
+        monkeypatch.setenv("RECORDING_CONFIG", str(config))
+        assert client.get("/api/config").json()["collection_stats_enabled"] is False
+
+    def test_collection_stats_enabled(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        config = tmp_path / "recording.yaml"
+        config.write_text("collection_stats:\n  enabled: true\n", encoding="utf-8")
+        monkeypatch.setenv("RECORDING_CONFIG", str(config))
+        assert client.get("/api/config").json()["collection_stats_enabled"] is True
 
 
 class TestHealth:

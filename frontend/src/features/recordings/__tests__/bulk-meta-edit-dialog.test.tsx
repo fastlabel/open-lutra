@@ -32,6 +32,7 @@ function makeConfig(fields: ConfigResponse["metadata_fields"] = FIELDS): ConfigR
     default_topics: [],
     stamp_quality: false,
     upload_enabled: false,
+    collection_stats_enabled: false,
     metadata_fields: fields,
   };
 }

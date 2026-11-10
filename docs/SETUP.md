@@ -147,6 +147,7 @@ Recording-specific configuration is managed in YAML files under the `config/` di
 | `expected_hz_patterns` | Expected Hz per topic pattern (`fnmatch`; the first match wins, including dynamically discovered topics). With `hz` the baseline is fixed; without it, it is dynamically learned — see [Baseline Hz](domain/quality_analysis.md#baseline-hz) |
 | `stamp_quality` | Whether the live-quality `loss_rate` is computed from `header.stamp` (real robots: `true`). See [DDS Communication and Gaps](domain/dds_gap.md) |
 | `metadata_fields` | Pre-registered metadata fields (operator ID, target object, …) offered before recording. See [Pre-registered metadata](domain/metadata.md) |
+| `collection_stats` | Whether the app header shows today's collection summary (`enabled`, default `false`). See [Today's collection summary](domain/collection_stats.md) |
 | `lerobot_export` | Topic mapping for LeRobot dataset export. See [LeRobot export](domain/lerobot_export.md) |
 
 ### Environment Variables (.env)
