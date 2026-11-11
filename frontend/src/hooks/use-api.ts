@@ -39,6 +39,7 @@ import {
 import type {
   ConfigResponse,
   FilesResponse,
+  GetRecordingsParams,
   LatestMessageResponse,
   LeRobotConfigResponse,
   MemoryInfo,
@@ -193,9 +194,9 @@ export function useBulkUpdateRecordingMeta() {
 
 // --- On-demand queries (used by specific screens / actions) ---
 
-/** Fetch the list of recording folders directly under the output directory. */
-export function useFiles() {
-  return useGetRecordings<FilesResponse>({
+/** Fetch the list of recording folders directly under the output directory, optionally filtered by start time. */
+export function useFiles(params?: GetRecordingsParams) {
+  return useGetRecordings<FilesResponse>(params, {
     query: {
       select: (resp) => resp.data as FilesResponse,
     },

@@ -34,6 +34,7 @@ class TestRecordingConfig:
         assert cfg.stamp_quality is False
         assert cfg.validators == []
         assert cfg.metadata_fields == []
+        assert cfg.collection_stats.enabled is False
 
     def test_recording_start_delay_sec_negative_rejected(self) -> None:
         """Negative start_delay_sec is rejected by the ge=0 constraint."""
@@ -281,6 +282,27 @@ metadata_fields:
         # Option label is optional in the master config (falls back to value at the API layer).
         assert target.options[1].value == "cup"
         assert target.options[1].label is None
+
+    def test_collection_stats_disabled_without_section(self, tmp_path: Path) -> None:
+        """A config without the collection_stats section keeps the summary off."""
+        yaml_path = tmp_path / "recording.yaml"
+        yaml_path.write_text("robot_name: Foo\n", encoding="utf-8")
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
+        assert s.collection_stats_enabled is False
+
+    def test_collection_stats_disabled_without_enabled_key(self, tmp_path: Path) -> None:
+        """An empty-ish section (no `enabled` key) also keeps the summary off."""
+        yaml_path = tmp_path / "recording.yaml"
+        yaml_path.write_text("collection_stats: {}\n", encoding="utf-8")
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
+        assert s.collection_stats_enabled is False
+
+    def test_collection_stats_enabled(self, tmp_path: Path) -> None:
+        """The deploying side turns the summary on through the YAML section."""
+        yaml_path = tmp_path / "recording.yaml"
+        yaml_path.write_text("collection_stats:\n  enabled: true\n", encoding="utf-8")
+        s = Settings(recording_config=str(yaml_path), output_dir=tmp_path)
+        assert s.collection_stats_enabled is True
 
     def test_recording_start_delay_sec_default(self, tmp_path: Path) -> None:
         """Defaults to 0.0 when not specified in YAML."""

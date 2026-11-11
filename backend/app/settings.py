@@ -88,6 +88,17 @@ class MetadataField(BaseModel):
         return self
 
 
+class CollectionStatsConfig(BaseModel):
+    """Deploy-time switch for the operator-facing "today's collection" summary.
+
+    Off by default: showing collected volume can push operators to chase
+    duration over quality, so the deploying side opts in per robot / project.
+    It only controls the display and is not a security boundary.
+    """
+
+    enabled: bool = False
+
+
 class RecordingConfig(BaseModel):
     """Structure of the YAML recording configuration file."""
 
@@ -111,6 +122,7 @@ class RecordingConfig(BaseModel):
     expected_hz_patterns: list[HzPattern] = Field(default_factory=list)
     validators: list[ValidatorEntry] = Field(default_factory=list)
     metadata_fields: list[MetadataField] = Field(default_factory=list)
+    collection_stats: CollectionStatsConfig = Field(default_factory=CollectionStatsConfig)
     stamp_quality: bool = Field(
         default=False,
         description="Compute live-quality loss_rate based on header.stamp (intended for real hardware)",
@@ -262,6 +274,11 @@ class Settings(BaseSettings):
     def metadata_fields(self) -> list[MetadataField]:
         """Master-defined metadata fields offered before recording."""
         return self.recording.metadata_fields
+
+    @property
+    def collection_stats_enabled(self) -> bool:
+        """Whether the recording page shows today's collection summary."""
+        return self.recording.collection_stats.enabled
 
     @field_validator("video_encoder", mode="before")
     @classmethod

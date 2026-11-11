@@ -28,6 +28,7 @@ async def get_config() -> ConfigResponse:
         stamp_quality=settings.stamp_quality,
         upload_enabled=is_upload_enabled(settings),
         metadata_fields=to_metadata_field_responses(settings.metadata_fields),
+        collection_stats_enabled=settings.collection_stats_enabled,
     )
 
 

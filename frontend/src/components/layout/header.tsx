@@ -1,11 +1,19 @@
-/** Header: brand and navigation. */
+/** Header: brand and navigation on the left, app-wide utilities on the right.
+ *
+ * The right-hand slot is filled by the root route, so this shared component does not depend on features.
+ */
 
 import { Link } from "@tanstack/react-router";
 import { FolderOpen } from "lucide-react";
+import type { ReactNode } from "react";
 
-export function Header() {
+type HeaderProps = {
+  right?: ReactNode;
+};
+
+export function Header({ right }: HeaderProps) {
   return (
-    <div className="flex h-11 items-center border-b border-border bg-background px-4 text-sm">
+    <div className="flex h-11 items-center justify-between border-b border-border bg-background px-4 text-sm">
       <div className="flex items-center gap-2.5">
         <Link to="/" className="no-underline">
           <span className="select-none bg-linear-to-r from-[#D4514A] to-[#B3262D] bg-clip-text text-sm font-bold tracking-[0.18em] text-transparent">
@@ -21,6 +29,7 @@ export function Header() {
           Recordings
         </Link>
       </div>
+      {right && <div className="flex items-center gap-2">{right}</div>}
     </div>
   );
 }

@@ -26,6 +26,7 @@ This repository's scope covers **MCAP recording, quality verification, and shipp
 | [Quality analysis](quality_analysis.md) | Metrics, score calculation, status determination |
 | [Custom validators](custom_validators.md) | How the per-recording auto-validation works, and how to add your own rules |
 | [Pre-registered metadata](metadata.md) | Master-defined fields (operator ID, target object, …) attached to every recording, their storage, and validation |
+| [Today's collection summary](collection_stats.md) | Opt-in header dialog summarizing today's OK episodes and duration: the config switch, what is counted, and the day window |
 | [Upload to a destination](upload.md) | Lifecycle, the destination abstraction, key-template syntax, and failure modes |
 | [LeRobot export](lerobot_export.md) | MCAP → LeRobot v3.0 dataset conversion: mapping config, validation, output layout |
 | [SSE stream](sse.md) | Spec for real-time data delivery (event list, connection example) |

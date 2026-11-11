@@ -2,18 +2,20 @@
 
 import logging
 import shutil
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.dependencies import require_dir, resolve_safe_path
 from app.features.recordings.meta import merge_recording_meta, update_recording_meta
-from app.features.recordings.scanner import collect_recent_task_names, scan_output_dir
+from app.features.recordings.scanner import collect_recent_task_names, filter_by_start_time, scan_output_dir
 from app.features.recordings.schemas import (
     BulkUpdateMetaRequest,
     BulkUpdateMetaResponse,
     DeleteRequest,
     DeleteResponse,
     FilesResponse,
+    RecordingsQuery,
     RenameRequest,
     RenameResponse,
     TaskNamesResponse,
@@ -28,15 +30,20 @@ router = APIRouter(prefix="/api/recordings", tags=["recordings"])
 
 
 @router.get("", response_model=FilesResponse, operation_id="getRecordings")
-def list_recordings() -> FilesResponse:  # pragma: no cover
-    """List recording folders directly under the output directory."""
+def list_recordings(query: Annotated[RecordingsQuery, Query()]) -> FilesResponse:  # pragma: no cover
+    """List recording folders directly under the output directory, optionally filtered by start time."""
     settings = get_settings()
     output_dir = settings.output_dir
 
     if not output_dir.is_dir():
         return FilesResponse(output_dir=str(output_dir), entries=[])
 
-    return FilesResponse(output_dir=str(output_dir), entries=scan_output_dir(output_dir))
+    entries = filter_by_start_time(
+        scan_output_dir(output_dir),
+        started_after=query.started_after,
+        started_before=query.started_before,
+    )
+    return FilesResponse(output_dir=str(output_dir), entries=entries)
 
 
 @router.get("/task-names", response_model=TaskNamesResponse, operation_id="getRecordingTaskNames")

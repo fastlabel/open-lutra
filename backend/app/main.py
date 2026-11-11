@@ -65,7 +65,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="OpenLUTRA",
         description="ROS2 topic recorder for teleoperation robots (ROS2-standard topics)",
-        version="0.5.1",
+        version="0.6.0",
         lifespan=lifespan,
     )
 
