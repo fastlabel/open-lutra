@@ -35,6 +35,7 @@ from app.features.jobs.models import (
     ValidationJob,
 )
 from app.features.jobs.schemas import JobChangeEvent, JobEvent, JobSchema, QueueSnapshotData, QueueSnapshotEvent
+from app.infra.video import VideoEncoder, effective_encoder
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,10 @@ _STEP_LABELS: dict[str, str] = {
     "probe": "Probing features",
     "convert": "Converting recordings",
     "finalize": "Finalizing dataset",
+    # LeRobot export re-run on the CPU after a GPU encoder failure
+    "cpu_retry_probe": "GPU encoding failed, retrying on the CPU: probing features",
+    "cpu_retry_convert": "GPU encoding failed, retrying on the CPU: converting recordings",
+    "cpu_retry_finalize": "GPU encoding failed, retrying on the CPU: finalizing dataset",
 }
 
 # Event types used internally by JobQueue (must match the Literal in JobChangeEvent.event)
@@ -690,7 +695,7 @@ def _run_convert_mcap(  # pragma: no cover
     from app.features.media.mcap_converter import convert_mcap
     from app.features.media.video_generator import VIDEO_FPS
 
-    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress)
+    convert_mcap(target, target, VIDEO_FPS, on_progress=on_progress, encoder=_configured_encoder())
 
 
 def _run_export_dataset(  # pragma: no cover
@@ -705,7 +710,14 @@ def _run_export_dataset(  # pragma: no cover
     from app.features.lerobot_export import load_active_config, run_export
 
     config = load_active_config()
-    run_export(source_paths, config, output_dir, on_progress=on_progress)
+    run_export(source_paths, config, output_dir, on_progress=on_progress, encoder=_configured_encoder())
+
+
+def _configured_encoder() -> VideoEncoder:  # pragma: no cover
+    """The `VIDEO_ENCODER` setting resolved against the NVENC probe (cached per process)."""
+    from app.settings import get_settings
+
+    return effective_encoder(get_settings().video_encoder)
 
 
 _job_queue: JobQueue | None = None

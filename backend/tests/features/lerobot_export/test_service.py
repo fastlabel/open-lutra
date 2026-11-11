@@ -10,15 +10,21 @@ import pytest
 from app.features.lerobot_export import converter, service, writer
 from app.features.lerobot_export.models import ExportConfig, SourceConfig
 from app.features.lerobot_export.validation import StructureMismatchError
+from app.infra.video import VideoEncodeError, VideoEncoder
 
 from ._fakes import image_message, joint_message
 
 MS = 1_000_000
 
+# Encoder of every FakeSink created in the current test, in order.
+encoders_used: list[VideoEncoder] = []
+
 
 class FakeSink:
-    def __init__(self, output_paths: dict, image_shapes: dict, fps: int) -> None:
+    def __init__(self, output_paths: dict, image_shapes: dict, fps: int, encoder: VideoEncoder = "libx264") -> None:
         self.output_paths = output_paths
+        self.encoder = encoder
+        encoders_used.append(encoder)
 
     def write(self, camera: str, image: np.ndarray) -> None:
         pass
@@ -86,6 +92,7 @@ def _make_recording(
 
 @pytest.fixture(autouse=True)
 def _patch_sink(monkeypatch: pytest.MonkeyPatch) -> None:
+    encoders_used.clear()
     monkeypatch.setattr(writer, "VideoSink", FakeSink)
 
 
@@ -95,7 +102,7 @@ def test_run_export_full(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     rec2 = _make_recording(tmp_path, "rec2")
     out = tmp_path / "_lerobot_exports" / "ds"
 
-    result = service.run_export([rec1, rec2], _config(), out)
+    result = service.run_export([rec1, rec2], _config(), out, encoder="libx264")
 
     assert result.total_episodes == 2  # one episode per recording
     assert result.total_frames == 4
@@ -111,7 +118,9 @@ def test_run_export_records_progress(tmp_path: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
     rec = _make_recording(tmp_path, "rec1")
     steps: list[str] = []
-    service.run_export([rec], _config(), tmp_path / "out", on_progress=lambda s, _c, _t: steps.append(s))
+    service.run_export(
+        [rec], _config(), tmp_path / "out", on_progress=lambda s, _c, _t: steps.append(s), encoder="libx264"
+    )
     assert steps[0] == "probe"
     assert "convert" in steps
     assert steps[-1] == "finalize"
@@ -121,7 +130,7 @@ def test_run_export_auto_fps(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
     rec = _make_recording(tmp_path, "rec1")
     out = tmp_path / "out"
-    service.run_export([rec], _config(fps=0), out)  # 0 -> auto-detect
+    service.run_export([rec], _config(fps=0), out, encoder="libx264")  # 0 -> auto-detect
     info = json.loads((out / "meta" / "info.json").read_text())
     assert info["fps"] == 10  # two image frames 100ms apart -> 10 fps
 
@@ -130,7 +139,7 @@ def test_run_export_skips_recording_without_mcap(tmp_path: Path, monkeypatch: py
     monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
     rec1 = _make_recording(tmp_path, "rec1")
     rec2 = _make_recording(tmp_path, "rec2", with_mcap=False)
-    result = service.run_export([rec1, rec2], _config(), tmp_path / "out")
+    result = service.run_export([rec1, rec2], _config(), tmp_path / "out", encoder="libx264")
     assert result.skipped == ["rec2"]
     assert result.total_episodes == 1
 
@@ -138,13 +147,13 @@ def test_run_export_skips_recording_without_mcap(tmp_path: Path, monkeypatch: py
 def test_run_export_no_usable_recordings(tmp_path: Path) -> None:
     rec = _make_recording(tmp_path, "rec1", with_mcap=False)
     with pytest.raises(ValueError, match="No recordings with an MCAP"):
-        service.run_export([rec], _config(), tmp_path / "out")
+        service.run_export([rec], _config(), tmp_path / "out", encoder="libx264")
 
 
 def test_run_export_rejects_structure_mismatch(tmp_path: Path) -> None:
     rec = _make_recording(tmp_path, "rec1", topics=["/img", "/state"])  # metadata.yaml lacks /cmd
     with pytest.raises(StructureMismatchError, match="/cmd"):
-        service.run_export([rec], _config(), tmp_path / "out")
+        service.run_export([rec], _config(), tmp_path / "out", encoder="libx264")
 
 
 def test_run_export_cleans_up_on_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -156,7 +165,7 @@ def test_run_export_cleans_up_on_failure(tmp_path: Path, monkeypatch: pytest.Mon
     out = tmp_path / "_lerobot_exports" / "ds"
 
     with pytest.raises(ValueError, match="shape mismatch"):
-        service.run_export([rec1, rec2], _config(), out)
+        service.run_export([rec1, rec2], _config(), out, encoder="libx264")
 
     # No partial dataset and no leftover temp dir -> the name stays reusable.
     assert not out.exists()
@@ -170,7 +179,7 @@ def test_run_export_fails_when_no_frames(tmp_path: Path, monkeypatch: pytest.Mon
     rec = _make_recording(tmp_path, "rec1")
     out = tmp_path / "_lerobot_exports" / "ds"
     with pytest.raises(ValueError, match="No frames were exported"):
-        service.run_export([rec], _config(), out)
+        service.run_export([rec], _config(), out, encoder="libx264")
     assert not out.exists()
     assert list((tmp_path / "_lerobot_exports").iterdir()) == []  # temp cleaned up
 
@@ -182,7 +191,79 @@ def test_run_export_skips_empty_recording_but_succeeds(tmp_path: Path, monkeypat
     rec1 = _make_recording(tmp_path, "rec1")
     rec2 = _make_recording(tmp_path, "rec2")
     out = tmp_path / "out"
-    result = service.run_export([rec1, rec2], _config(), out)
+    result = service.run_export([rec1, rec2], _config(), out, encoder="libx264")
     assert result.total_episodes == 1
     assert result.skipped == ["rec2"]
     assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 1
+
+
+class _NvencFailsSink(FakeSink):
+    """Sink whose GPU encoder dies on the first frame, like an exhausted NVENC session."""
+
+    def write(self, camera: str, image: np.ndarray) -> None:
+        if self.encoder == "nvenc":
+            raise VideoEncodeError(f"{camera}: ffmpeg exited 1: OpenEncodeSessionEx failed")
+
+
+def test_run_export_uses_the_configured_encoder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    rec = _make_recording(tmp_path, "rec1")
+
+    service.run_export([rec], _config(), tmp_path / "out", encoder="nvenc")
+
+    assert encoders_used == ["nvenc"]
+
+
+def test_run_export_defaults_to_libx264(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    rec = _make_recording(tmp_path, "rec1")
+
+    service.run_export([rec], _config(), tmp_path / "out", encoder="libx264")
+
+    assert encoders_used == ["libx264"]
+
+
+def test_run_export_reruns_on_cpu_when_gpu_encoding_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    monkeypatch.setattr(writer, "VideoSink", _NvencFailsSink)
+    rec = _make_recording(tmp_path, "rec1")
+    out = tmp_path / "_lerobot_exports" / "ds"
+
+    result = service.run_export([rec], _config(), out, encoder="nvenc")
+
+    assert encoders_used == ["nvenc", "libx264"]
+    assert result.total_frames == 2
+    assert json.loads((out / "meta" / "info.json").read_text())["total_episodes"] == 1
+    # The failed GPU attempt left no temp dir behind.
+    assert list((tmp_path / "_lerobot_exports").iterdir()) == [out]
+    assert "LeRobot export with nvenc failed; re-running with libx264" in caplog.text
+
+
+def test_cpu_rerun_reports_its_progress_as_a_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _path, _topics: _messages())
+    monkeypatch.setattr(writer, "VideoSink", _NvencFailsSink)
+    rec = _make_recording(tmp_path, "rec1")
+    steps: list[str] = []
+
+    service.run_export(
+        [rec], _config(), tmp_path / "out", on_progress=lambda s, _c, _t: steps.append(s), encoder="nvenc"
+    )
+
+    rerun = steps[steps.index("cpu_retry_probe") :]
+    assert steps[0] == "probe"
+    assert rerun[-1] == "cpu_retry_finalize"
+    assert all(step.startswith("cpu_retry_") for step in rerun)
+
+
+def test_run_export_does_not_retry_non_encoder_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sizes = iter([2, 4])
+    monkeypatch.setattr(converter, "read_topic_messages", lambda _p, _t: _messages(size=next(sizes)))
+    rec1 = _make_recording(tmp_path, "rec1")
+    rec2 = _make_recording(tmp_path, "rec2")
+
+    with pytest.raises(ValueError, match="shape mismatch"):
+        service.run_export([rec1, rec2], _config(), tmp_path / "out", encoder="nvenc")
+
+    assert encoders_used == ["nvenc"]

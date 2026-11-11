@@ -25,6 +25,7 @@ import pandas as pd
 
 from app.features.lerobot_export.stats import ImageStats, StatsAccumulator, VectorStats
 from app.features.lerobot_export.video_sink import VideoSink
+from app.infra.video import VideoEncoder
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -53,8 +54,8 @@ class FrameSink(Protocol):
     def kill(self) -> None: ...
 
 
-# Factory signature: (output_paths, image_shapes, fps) -> sink. Default is VideoSink.
-SinkFactory = Callable[[dict[str, Path], dict[str, tuple[int, int, int]], int], FrameSink]
+# Factory signature: (output_paths, image_shapes, fps, encoder) -> sink. Default is VideoSink.
+SinkFactory = Callable[[dict[str, Path], dict[str, tuple[int, int, int]], int, VideoEncoder], FrameSink]
 
 
 class LeRobotV30Writer:
@@ -67,6 +68,7 @@ class LeRobotV30Writer:
         robot_type: str,
         spec: FeatureSpec,
         *,
+        encoder: VideoEncoder,
         sink_factory: SinkFactory | None = None,
     ) -> None:
         self._root = root
@@ -74,6 +76,7 @@ class LeRobotV30Writer:
         self._robot_type = robot_type
         self._spec = spec
         self._sink_factory = sink_factory
+        self._encoder = encoder
         self._video_keys = [f"observation.images.{cam}" for cam in spec.camera_names]
 
         # Per-frame buffers (numeric only; small).
@@ -123,7 +126,7 @@ class LeRobotV30Writer:
             for cam, key in zip(self._spec.camera_names, self._video_keys, strict=True)
         }
         factory: SinkFactory = self._sink_factory or VideoSink
-        self._sink = factory(output_paths, self._spec.image_shapes, self._fps)
+        self._sink = factory(output_paths, self._spec.image_shapes, self._fps, self._encoder)
 
     def add_frame(self, frame: Frame) -> None:
         """Append one synchronized frame: encode its images and buffer its vectors."""

@@ -6,11 +6,14 @@ to telemetry.json.
 
 MP4 generation streams MCAP per camera to minimize memory usage
 (only one frame held at a time, constant memory regardless of recording length).
+Each camera runs down the encoder's fallback ladder (`app.infra.video`), so a
+GPU encode failure is retried on the CPU instead of failing the job.
 
-All functions depend on MCAP I/O and ffmpeg subprocesses, so they are marked
+Functions that depend on MCAP I/O or ffmpeg subprocesses are marked
 pragma: no cover.
 """
 
+import contextlib
 import json
 import logging
 import subprocess
@@ -23,7 +26,6 @@ from typing import Any
 from app.features.media.models import (
     JointStateMapping,
     JointTopicEntry,
-    MediaError,
     MissingTopicError,
     build_joint_state_mapping,
     plan_video_files,
@@ -35,6 +37,7 @@ from app.infra.mcap import (
     is_image_message,
     resolve_timestamp_ns,
 )
+from app.infra.video import VideoEncodeError, VideoEncoder, encode_with_fallback, mjpeg_pipe_command
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +52,8 @@ def convert_mcap(  # pragma: no cover
     output_dir: Path,
     fps: int,
     on_progress: Callable[[str, int, int], None] | None = None,
+    *,
+    encoder: VideoEncoder,
 ) -> list[str]:
     """Generate MP4 and telemetry.json from an MCAP directory.
 
@@ -61,6 +66,8 @@ def convert_mcap(  # pragma: no cover
         fps: Fixed FPS for the output video and telemetry.
         on_progress: Progress callback (step, current, total).
             step: "classify" / "mp4" / "telemetry"
+        encoder: Encoder to try first; GPU failures fall back to the CPU
+            per camera (see `app.infra.video.encode_with_fallback`).
 
     Returns:
         List of generated file paths.
@@ -102,12 +109,13 @@ def convert_mcap(  # pragma: no cover
             _progress("mp4", mp4_idx, total_mp4)
             output_path = output_dir / output_name
 
-            _stream_generate_mp4(
+            _encode_camera(
                 mcap_path=mcap_path,
                 topic=topic,
                 frame_timestamps=frame_timestamps,
                 fps=fps,
                 output_path=output_path,
+                encoder=encoder,
             )
             generated_files.append(output_name)
             logger.info("MP4 generation complete: %s (%d frames)", output_name, len(frame_timestamps))
@@ -222,12 +230,36 @@ def _classify_topics(mcap_path: Path) -> tuple[dict[str, str], dict[str, str]]: 
 # ---------------------------------------------------------------------------
 
 
+def _log_fallback(output_name: str, failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+    logger.warning("Encoding %s with %s failed; retrying with %s: %s", output_name, failed, next_encoder, error)
+
+
+def _encode_camera(
+    mcap_path: Path,
+    topic: str,
+    frame_timestamps: list[int],
+    fps: int,
+    output_path: Path,
+    encoder: VideoEncoder,
+) -> None:  # pragma: no cover
+    """Encode one camera, moving down the encoder's fallback ladder on ffmpeg failures."""
+
+    def attempt(candidate: VideoEncoder) -> None:
+        _stream_generate_mp4(mcap_path, topic, frame_timestamps, fps, output_path, candidate)
+
+    def on_fallback(failed: VideoEncoder, next_encoder: VideoEncoder, error: Exception) -> None:
+        _log_fallback(output_path.name, failed, next_encoder, error)
+
+    encode_with_fallback(encoder, attempt, on_fallback=on_fallback)
+
+
 def _stream_generate_mp4(
     mcap_path: Path,
     topic: str,
     frame_timestamps: list[int],
     fps: int,
     output_path: Path,
+    encoder: VideoEncoder,
 ) -> None:  # pragma: no cover
     """Stream the given topic from MCAP and generate an MP4.
 
@@ -235,31 +267,14 @@ def _stream_generate_mp4(
     is overwritten immediately.
     Assigns the nearest frame via forward-fill against the fixed-FPS
     timestamp sequence.
-    """
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-f",
-        "image2pipe",
-        "-c:v",
-        "mjpeg",
-        "-r",
-        str(fps),
-        "-i",
-        "pipe:0",
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        str(fps),
-        "-loglevel",
-        "warning",
-        str(output_path),
-    ]
 
+    Raises:
+        VideoEncodeError: If ffmpeg fails, including when it exits before reading
+            every frame (e.g. the GPU encoder could not start) or does not finish
+            after its input is closed. The partial MP4 is removed.
+    """
     proc = subprocess.Popen(
-        cmd,
+        mjpeg_pipe_command(output_path, fps, encoder),
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
@@ -267,7 +282,7 @@ def _stream_generate_mp4(
 
     try:
         if proc.stdin is None:
-            raise MediaError("Cannot obtain stdin of the ffmpeg process")
+            raise VideoEncodeError("Cannot obtain stdin of the ffmpeg process")
 
         # Drain stderr in a separate thread to avoid deadlocks from pipe buffer overflow
         stderr_chunks: list[bytes] = []
@@ -300,7 +315,7 @@ def _stream_generate_mp4(
             if not _advance():
                 logger.warning("No image messages: %s (%s)", output_path.name, topic)
                 proc.stdin.close()
-                proc.wait(timeout=10)
+                _wait_for_ffmpeg(proc, 10, output_path.name)
                 stderr_thread.join(timeout=5)
                 if output_path.exists():
                     output_path.unlink()
@@ -316,10 +331,15 @@ def _stream_generate_mp4(
                     current_data = pending_data
                     _advance()
 
-                proc.stdin.write(current_data)  # type: ignore[arg-type]
+                try:
+                    proc.stdin.write(current_data)  # type: ignore[arg-type]
+                except BrokenPipeError:
+                    # ffmpeg exited early; its exit code and stderr are reported below.
+                    break
 
-        proc.stdin.close()
-        proc.wait(timeout=120)
+        with contextlib.suppress(BrokenPipeError):
+            proc.stdin.close()
+        _wait_for_ffmpeg(proc, 120, output_path.name)
         stderr_thread.join(timeout=5)
     except Exception:
         proc.kill()
@@ -334,7 +354,21 @@ def _stream_generate_mp4(
     if proc.returncode != 0:
         if output_path.exists():
             output_path.unlink()
-        raise MediaError(f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}")
+        raise VideoEncodeError(
+            f"ffmpeg failed (code={proc.returncode}): {stderr_bytes.decode('utf-8', errors='replace')}"
+        )
+
+
+def _wait_for_ffmpeg(proc: subprocess.Popen[bytes], timeout_sec: int, output_name: str) -> None:
+    """Wait for ffmpeg to exit after its input is closed.
+
+    A stalled encoder (e.g. a GPU hang) is an ffmpeg failure, so it raises
+    VideoEncodeError and the camera falls back to the next encoder.
+    """
+    try:
+        proc.wait(timeout=timeout_sec)
+    except subprocess.TimeoutExpired as e:
+        raise VideoEncodeError(f"ffmpeg did not finish within {timeout_sec} s: {output_name}") from e
 
 
 @dataclass

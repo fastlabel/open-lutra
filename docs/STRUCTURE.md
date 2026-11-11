@@ -59,7 +59,8 @@ backend/app/
 │   └── config/          # System configuration, memory info
 ├── infra/           # Infrastructure layer
 │   ├── mcap/            # Shared MCAP I/O (reader, timestamp normalization, structure detection)
-│   └── ros2/            # ROS2-related (rclpy node, CLI wrapper, QoS overrides, pty record process)
+│   ├── ros2/            # ROS2-related (rclpy node, CLI wrapper, QoS overrides, pty record process)
+│   └── video/           # Shared ffmpeg encoding (command builders, NVENC probe, CPU fallback ladder)
 └── shared/          # Modules shared across multiple features (log manager, header.stamp utility)
 ```
 
