@@ -24,7 +24,7 @@ from app.features.recording.models import (
     StopResult,
 )
 from app.features.recordings.meta import RecordingMeta, write_recording_meta
-from app.infra.ros2 import QoSOverrideFile, ROS2Command, ROS2CommandError
+from app.infra.ros2 import QoSOverrideFile, ROS2Command, ROS2CommandError, describe_exit
 
 if TYPE_CHECKING:
     from app.infra.ros2.record_process import RecordProcess
@@ -168,6 +168,7 @@ class ROS2BagRecorder:
             if self._qos_file is not None:
                 self._qos_file.cleanup()
                 self._qos_file = None
+            logger.error("Recorder process exited during startup (%s, path=%s)", describe_exit(returncode), output_path)
             raise RecorderError(
                 f"Recorder process exited during startup (exit code={returncode}); "
                 f"no recording was started{_disk_space_suffix(self._output_dir)}. "
@@ -245,11 +246,18 @@ class ROS2BagRecorder:
 
         try:
             self._record.process.send_signal(signal.SIGINT)
-            self._record.process.wait(timeout=10)
+            returncode = self._record.process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            logger.warning("Recorder process did not exit; killing it")
+            logger.error("Recorder process did not exit within 10 s of SIGINT; killing it (path=%s)", output_path)
             self._record.process.kill()
-            self._record.process.wait()
+            returncode = self._record.process.wait()
+
+        if returncode == 0:
+            logger.info("Recorder process exited (%s, path=%s)", describe_exit(returncode), output_path)
+        else:
+            logger.error(
+                "Recorder process exited abnormally on stop (%s, path=%s)", describe_exit(returncode), output_path
+            )
 
         # Close the pty master after the process exits.
         # (Closing it while recording is active triggers EIO on the slave side.)
@@ -295,8 +303,8 @@ class ROS2BagRecorder:
         # Include free space so a crash caused by a full disk names the cause.
         disk_hint = _disk_space_suffix(self._output_dir)
         logger.error(
-            "Recorder process exited abnormally (exit code=%s, path=%s)%s",
-            returncode,
+            "Recorder process exited abnormally (%s, path=%s)%s",
+            describe_exit(returncode),
             self._output_path,
             disk_hint,
         )

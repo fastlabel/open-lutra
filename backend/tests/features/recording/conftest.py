@@ -31,6 +31,7 @@ def mock_ros2() -> MagicMock:
     mock_record = MagicMock()
     mock_record.process = MagicMock()
     mock_record.process.poll.return_value = None  # Default: process is running
+    mock_record.process.wait.return_value = 0  # Default: clean exit on stop
     mock_record.wait_for_subscriptions.return_value = []
     ros2.bag_record.return_value = mock_record
     return ros2
