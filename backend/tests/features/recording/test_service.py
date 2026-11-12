@@ -2,6 +2,7 @@
 
 import errno
 import json
+import logging
 import signal
 import subprocess
 from pathlib import Path
@@ -250,13 +251,51 @@ class TestStop:
         mock_process = mock_record.process
         mock_process.wait.side_effect = [
             subprocess.TimeoutExpired(cmd="ros2", timeout=10),
-            None,
+            -9,
         ]
 
         recorder.start(topics=["/topic"])
         recorder.stop()
 
         mock_process.kill.assert_called_once()
+
+    def test_stop_logs_clean_exit_as_info(self, recorder: ROS2BagRecorder, caplog: pytest.LogCaptureFixture) -> None:
+        """A clean exit on stop is logged at INFO with its exit code."""
+        recorder.start(topics=["/topic"])
+        with caplog.at_level(logging.INFO, logger="app.features.recording.service"):
+            recorder.stop()
+
+        assert any(r.levelno == logging.INFO and "exit code=0" in r.getMessage() for r in caplog.records)
+
+    def test_stop_logs_nonzero_exit_as_error(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A non-zero exit on stop is logged at ERROR."""
+        mock_ros2.bag_record.return_value.process.wait.return_value = 1
+        recorder.start(topics=["/topic"])
+        with caplog.at_level(logging.INFO, logger="app.features.recording.service"):
+            recorder.stop()
+
+        assert any(
+            r.levelno == logging.ERROR and "exited abnormally on stop (exit code=1" in r.getMessage()
+            for r in caplog.records
+        )
+
+    def test_stop_logs_timeout_kill_as_error(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A recorder killed after the SIGINT timeout is logged at ERROR, naming the signal."""
+        mock_ros2.bag_record.return_value.process.wait.side_effect = [
+            subprocess.TimeoutExpired(cmd="ros2", timeout=10),
+            -9,
+        ]
+        recorder.start(topics=["/topic"])
+        with caplog.at_level(logging.INFO, logger="app.features.recording.service"):
+            recorder.stop()
+
+        errors = [r.getMessage() for r in caplog.records if r.levelno == logging.ERROR]
+        assert any("did not exit within 10 s" in m for m in errors)
+        assert any("killed by SIGKILL" in m for m in errors)
 
     def test_stop_resets_state(self, recorder: ROS2BagRecorder) -> None:
         """is_recording becomes False after stop."""
@@ -434,6 +473,16 @@ class TestDiskFullErrors:
             recorder.start(topics=["/topic"])
         assert recorder.is_recording is False
         mock_record.cleanup.assert_called_once()
+
+    def test_startup_death_is_logged_as_error(
+        self, recorder: ROS2BagRecorder, mock_ros2: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A recorder killed by a signal during startup is logged at ERROR, naming the signal."""
+        mock_ros2.bag_record.return_value.process.poll.return_value = -11
+        with caplog.at_level(logging.ERROR, logger="app.features.recording.service"), pytest.raises(RecorderError):
+            recorder.start(topics=["/topic"])
+
+        assert any("exited during startup (killed by SIGSEGV" in r.getMessage() for r in caplog.records)
 
     def test_startup_death_message_includes_free_space(
         self, recorder: ROS2BagRecorder, mock_ros2: MagicMock

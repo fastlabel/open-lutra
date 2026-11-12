@@ -25,6 +25,8 @@ import subprocess
 import threading
 import time
 
+from app.infra.ros2.record_log import RecordOutputLogger
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,6 +49,7 @@ class RecordProcess:  # pragma: no cover
         # Ring buffer and lock for discovery waiting
         self._buffer = bytearray()
         self._buffer_lock = threading.Lock()
+        self._output_logger = RecordOutputLogger()
         self._stop_drain = threading.Event()
         self._drain_thread: threading.Thread | None = None
         self._start_drain()
@@ -111,6 +114,7 @@ class RecordProcess:  # pragma: no cover
         if self._drain_thread is not None:
             self._drain_thread.join(timeout=2.0)
             self._drain_thread = None
+        self._output_logger.flush()
         with contextlib.suppress(OSError):
             os.close(self._pty_fd)
 
@@ -143,6 +147,7 @@ class RecordProcess:  # pragma: no cover
             if not data:
                 time.sleep(0.02)
                 continue
+            self._output_logger.feed(data)
             with self._buffer_lock:
                 self._buffer.extend(data)
                 # Only the first few KB are needed for discovery monitoring, so

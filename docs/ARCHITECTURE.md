@@ -116,7 +116,7 @@ FastAPI → ROS2BagRecorder.start(topics, qos_overrides)
   ├─ Generates a QoS override YAML in tmp/ (when qos_overrides is provided)
   ├─ Creates a pty, bundling stdin/stdout/stderr into it, then subprocess.Popen
   │   ("ros2 bag record -s mcap --start-paused --qos-profile-overrides-path ... -o ... topic1 ...")
-  ├─ Continuously drains pty output (prevents PIPE stalls during cleanup)
+  ├─ Continuously drains pty output (prevents PIPE stalls during cleanup) and forwards each line to the backend log
   ├─ Waits for all topics to be subscribed via DDS discovery (recording_discovery_timeout)
   ├─ Additional wait via recording_start_delay_sec (absorbs camera publish ramp-up, for real hardware)
   ├─ Sends SPACE through the pty to start recording
@@ -131,6 +131,8 @@ Graceful shutdown on stop:
 3. Force-kill with SIGKILL on timeout
 4. Stop the pty drain thread and close the pty master
 5. Delete the temporary QoS override file
+
+**Recorder diagnostics in the backend log** (`docker logs`): rosbag2's own output is logged line by line under `app.infra.ros2.record_log` at its ROS level (`[ERROR]`/`[FATAL]` → ERROR, `[WARN]` → WARNING, `[INFO]` → INFO; unprefixed lines such as C++ exceptions or tracebacks → WARNING). Every recorder exit is logged with its status (`exit code=N` or `killed by SIGxxx`); a non-zero exit, a crash, or a kill after the SIGINT timeout is an ERROR.
 
 #### 2. TopicMonitor (rclpy real-time monitoring)
 
