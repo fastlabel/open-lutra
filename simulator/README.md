@@ -30,7 +30,7 @@ make restart-sim  # started automatically with --profile sim
 SIM_MODE=unstable make restart-sim
 
 # Standalone (inside a ROS2 environment)
-source /opt/ros/humble/setup.bash
+source /opt/ros/humble/setup.bash  # or jazzy
 python3 robot_simulator.py
 ```
 

@@ -12,8 +12,14 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend (lint + test)
+    name: Backend (lint + test, Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Python of the ROS 2 distros the backend image supports: Humble (3.10) and Jazzy (3.12)
+        python: ["3.10", "3.12"]
+    env:
+      UV_PYTHON: ${{ matrix.python }}
     defaults:
       run:
         working-directory: backend
@@ -26,7 +32,7 @@ jobs:
           enable-cache: true
 
       - name: Set up Python
-        run: uv python install 3.10
+        run: uv python install ${{ matrix.python }}
 
       - name: Install dependencies
         run: uv sync --extra dev

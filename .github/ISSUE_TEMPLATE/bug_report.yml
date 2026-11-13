@@ -179,13 +179,14 @@ body:
       description: |
         For reports involving a physical robot. Whatever you can share of:
         - Robot model / vendor
-        - ROS2 distribution on the robot side
+        - ROS2 distribution on the robot side, and `ROS_DISTRO` of the OpenLUTRA images (`humble` / `jazzy`)
         - `RMW_IMPLEMENTATION` on the robot side (OpenLUTRA uses `rmw_fastrtps_cpp`)
         - Cameras: model and count (e.g. RealSense D435 x4 @ 30Hz)
         - Whether you build custom ROS2 message packages into the image (see `examples/custom_ros2_messages/`)
       placeholder: |
         Robot: <vendor/model>
         ROS2 (robot side): Humble
+        ROS2 (OpenLUTRA ROS_DISTRO): humble
         RMW: rmw_fastrtps_cpp
         Cameras: RealSense D435 x4 @ 30Hz
         Custom message packages: yes (my_robot_msgs)

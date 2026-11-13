@@ -28,7 +28,7 @@ UDP/IP (or Shared Memory)
 ROS2 Node (Subscriber / ros2 bag record)
 ```
 
-This project uses **ROS2 Humble + Fast DDS** (`rmw_fastrtps_cpp`, the Humble default; pinned via `RMW_IMPLEMENTATION` in `docker-compose.yml`). Recording is done by running `ros2 bag record -s mcap` in a subprocess.
+This project uses **ROS2 (Humble or Jazzy) + Fast DDS** (`rmw_fastrtps_cpp`, the default of both; pinned via `RMW_IMPLEMENTATION` in `docker-compose.yml`). Recording is done by running `ros2 bag record -s mcap` in a subprocess.
 
 Sections below that describe implementation-specific defaults name the implementation they apply to. Cyclone DDS values are kept as comparison reference and do **not** describe this project's runtime.
 
@@ -509,7 +509,7 @@ Results from high-rate (>1kHz) tests:
 
 Cyclone DDS is the most stable in high-rate scenarios. Even so, ~20-message losses have been reported for very large messages (~5MB).
 
-This project runs on Fast DDS, the ROS 2 Humble default, which fares worst in these >1kHz benchmarks. The topics recorded here are well below that rate, so the benchmark is not directly applicable — but switching implementations is a lever worth remembering if high-rate loss ever shows up.
+This project runs on Fast DDS, the ROS 2 default, which fares worst in these >1kHz benchmarks. The topics recorded here are well below that rate, so the benchmark is not directly applicable — but switching implementations is a lever worth remembering if high-rate loss ever shows up.
 
 ### 6.5 The "cleanup after SIGINT" problem when launched via subprocess
 
@@ -635,7 +635,7 @@ This project runs on Fast DDS, so the file is a Fast DDS profiles XML:
 </dds>
 ```
 
-Point to it via an environment variable: `export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/fastdds.xml` (Humble ships Fast DDS 2.6, which still uses the `FASTRTPS_` prefix). Because the recording subprocess inherits the backend's environment (`app/infra/ros2/command.py`), setting it on the container covers both the rclpy monitor and `ros2 bag record`.
+Point to it via an environment variable: `export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/fastdds.xml` (Humble ships Fast DDS 2.6 and Jazzy 2.14; both still use the `FASTRTPS_` prefix). Because the recording subprocess inherits the backend's environment (`app/infra/ros2/command.py`), setting it on the container covers both the rclpy monitor and `ros2 bag record`.
 
 QoS written in this file is normally discarded: `rmw_fastrtps_cpp` overwrites it with the QoS coming from the ROS 2 API. `RMW_FASTRTPS_USE_QOS_FROM_XML=1` reverses that precedence, but it then competes with the per-topic reliability this project passes through `--qos-profile-overrides-path` (see §3.4), so the two should not be mixed casually.
 
