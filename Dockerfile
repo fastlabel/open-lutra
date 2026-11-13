@@ -1,7 +1,9 @@
 # OpenLUTRA - Backend
-# ROS2 Humble + FastAPI
+# ROS2 (Humble / Jazzy) + FastAPI
 
-FROM ros:humble-ros-base-jammy
+# ROS 2 distro of the image: humble (Python 3.10) or jazzy (Python 3.12).
+ARG ROS_DISTRO=humble
+FROM ros:${ROS_DISTRO}-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,9 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     curl \
     ffmpeg \
-    ros-humble-rosbag2-storage-mcap \
+    ros-${ROS_DISTRO}-rosbag2-storage-mcap \
     python3-colcon-common-extensions \
-    ros-humble-rosidl-default-generators \
+    ros-${ROS_DISTRO}-rosidl-default-generators \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -47,7 +49,7 @@ ENV PORT=8000
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e
-source /opt/ros/humble/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 # Source the custom-message workspace when it exists (see examples/custom_ros2_messages/)
 [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash
 if [ -f "${RECORDING_CONFIG:-}" ]; then

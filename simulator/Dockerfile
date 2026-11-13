@@ -1,7 +1,9 @@
 # Robot Simulator - ROS2 Dummy Data Publisher
 # Lightweight container that publishes simulated robot data
 
-FROM ros:humble-ros-base-jammy
+# ROS 2 distro of the image: humble (Python 3.10) or jazzy (Python 3.12).
+ARG ROS_DISTRO=humble
+FROM ros:${ROS_DISTRO}-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -18,7 +20,7 @@ COPY joint_replay.json .
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e
-source /opt/ros/humble/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 if [ -f "${RECORDING_CONFIG:-}" ]; then
   export ROS_DOMAIN_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('${RECORDING_CONFIG}')).get('ros_domain_id', 0))")
 fi

@@ -10,10 +10,10 @@ This file covers only how the container is put together, and which edits are pic
 
 ## Container layout
 
-The repository-root `Dockerfile` builds `open-lutra-backend:latest`, shared by the development and the production stack. Unlike the frontend image, it does contain the application code, the config directory, and a resolved virtualenv:
+The repository-root `Dockerfile` builds `open-lutra-backend:<distro>` (`humble` or `jazzy`, see [ROS 2 Distro](../docs/SETUP.md#ros-2-distro-humble--jazzy)), shared by the development and the production stack. Unlike the frontend image, it does contain the application code, the config directory, and a resolved virtualenv:
 
 ```console
-$ docker run --rm --entrypoint sh open-lutra-backend:latest -c "ls -a /app"
+$ docker run --rm --entrypoint sh open-lutra-backend:humble -c "ls -a /app"
 .env  .venv  app  config  pyproject.toml  uv.lock
 ```
 
@@ -57,6 +57,6 @@ That is how development adds `--reload --reload-dir /app/app`, so edits under `b
 Carrying an updated image to a site without network access:
 
 ```bash
-docker save open-lutra-backend:latest | gzip > backend.tar.gz   # online
+docker save open-lutra-backend:humble | gzip > backend.tar.gz   # online (the tag of your ROS_DISTRO)
 docker load < backend.tar.gz                                    # on site
 ```

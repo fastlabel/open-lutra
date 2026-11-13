@@ -8,7 +8,9 @@
 #
 # See README.md in this directory for the full walkthrough.
 
-FROM ros:humble-ros-base-jammy
+# ROS 2 distro of the image: humble (Python 3.10) or jazzy (Python 3.12).
+ARG ROS_DISTRO=humble
+FROM ros:${ROS_DISTRO}-ros-base
 
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,9 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     curl \
     ffmpeg \
-    ros-humble-rosbag2-storage-mcap \
+    ros-${ROS_DISTRO}-rosbag2-storage-mcap \
     python3-colcon-common-extensions \
-    ros-humble-rosidl-default-generators \
+    ros-${ROS_DISTRO}-rosidl-default-generators \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast dependency management
@@ -35,7 +37,7 @@ ENV PATH="/root/.local/bin:$PATH"
 # have more than one.
 COPY examples/custom_ros2_messages/example_robot_msgs/ /ros2_ws/src/example_robot_msgs/
 RUN /bin/bash -c "\
-    source /opt/ros/humble/setup.bash && \
+    source /opt/ros/${ROS_DISTRO}/setup.bash && \
     cd /ros2_ws && \
     colcon build --packages-select example_robot_msgs --cmake-args -DCMAKE_BUILD_TYPE=Release \
     "
@@ -70,7 +72,7 @@ ENV PORT=8000
 COPY <<'EOF' /entrypoint.sh
 #!/bin/bash
 set -e
-source /opt/ros/humble/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 # The custom-message workspace is always present in this sample image.
 source /ros2_ws/install/setup.bash
 if [ -f "${RECORDING_CONFIG:-}" ]; then

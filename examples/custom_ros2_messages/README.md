@@ -23,7 +23,7 @@ However, before runtime detection can run, ROS2 must be able to **deserialize** 
 The base container entrypoint runs:
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash
 ```
 
@@ -80,7 +80,7 @@ Once the image is built, OpenLUTRA inside it can subscribe to topics that publis
    ```dockerfile
    COPY examples/custom_ros2_messages/your_robot_msgs/ /ros2_ws/src/your_robot_msgs/
    RUN /bin/bash -c "\
-       source /opt/ros/humble/setup.bash && \
+       source /opt/ros/${ROS_DISTRO}/setup.bash && \
        cd /ros2_ws && \
        colcon build --packages-select your_robot_msgs --cmake-args -DCMAKE_BUILD_TYPE=Release \
        "
