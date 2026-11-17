@@ -11,6 +11,7 @@ import { StatusBar } from "@/components/layout/StatusBar";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CollectionStatsSummary } from "@/features/collection-stats";
+import { RecordingGlow } from "@/features/recording";
 import { useJobsStream } from "@/hooks/use-jobs-stream";
 import { isDevMode } from "@/lib/dev-mode";
 import { queryClient } from "@/lib/query-client";
@@ -34,6 +35,7 @@ function RootLayoutInner() {
         </div>
         {isDevMode() && <StatusBar />}
       </div>
+      <RecordingGlow />
       <Toaster />
     </TooltipProvider>
   );

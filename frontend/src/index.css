@@ -25,6 +25,17 @@
   }
 }
 
+/* Recording-in-progress edge glow: a slow, soft breath so it stays noticeable without being distracting. */
+@keyframes recording-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
