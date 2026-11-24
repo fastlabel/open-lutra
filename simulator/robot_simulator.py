@@ -25,6 +25,7 @@ Data sources:
 Simulation modes: see config.py
 """
 
+import array
 import bisect
 import json
 from pathlib import Path
@@ -60,14 +61,18 @@ CAMERA_HZ = 30
 JOINT_HZ = 100
 
 
-def _load_camera_frames() -> dict[str, list[bytes]]:
-    """Load `frames/<cam>/*.jpg` for each camera directory and key by topic name."""
-    frames: dict[str, list[bytes]] = {}
+def _load_camera_frames() -> dict[str, list[array.array]]:
+    """Load `frames/<cam>/*.jpg` for each camera directory and key by topic name.
+
+    Frames are kept as `array('B')` because Humble's generated `uint8[]` setter
+    validates `bytes` byte-by-byte in Python, which starves the 100Hz joint timer.
+    """
+    frames: dict[str, list[array.array]] = {}
     for cam_dir, topic in CAMERA_TOPICS_BY_DIR.items():
         cam_path = FRAMES_DIR / cam_dir
         if not cam_path.is_dir():
             continue
-        loaded = [p.read_bytes() for p in sorted(cam_path.glob("*.jpg"))]
+        loaded = [array.array("B", p.read_bytes()) for p in sorted(cam_path.glob("*.jpg"))]
         if loaded:
             frames[topic] = loaded
     return frames
