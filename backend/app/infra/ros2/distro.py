@@ -13,8 +13,7 @@ class RosDistro:
     name: str
     # Flag preceding the topic list of `ros2 bag record`; None means positional
     topics_flag: str | None
-    # Log line `ros2 bag record --start-paused` prints once it accepts the SPACE key.
-    # The wording is rosbag2's own and differs per distro ("Waiting for" vs "Wait for"), not a typo.
+    # Log line `ros2 bag record --start-paused` prints once it accepts the SPACE key
     start_prompt: str
 
     def topic_args(self, topics: list[str]) -> list[str]:
@@ -22,6 +21,7 @@ class RosDistro:
         return [self.topics_flag, *topics] if self.topics_flag else list(topics)
 
 
+# The start_prompt wording is rosbag2's own and differs per distro ("Waiting for" vs "Wait for"), not a typo.
 HUMBLE = RosDistro(name="humble", topics_flag=None, start_prompt="Waiting for recording: Press")
 JAZZY = RosDistro(name="jazzy", topics_flag="--topics", start_prompt="Wait for recording: Press")
 
