@@ -13,7 +13,8 @@ class RosDistro:
     name: str
     # Flag preceding the topic list of `ros2 bag record`; None means positional
     topics_flag: str | None
-    # Log line `ros2 bag record --start-paused` prints once it accepts the SPACE key
+    # Log line `ros2 bag record --start-paused` prints once it accepts the SPACE key.
+    # The wording is rosbag2's own and differs per distro ("Waiting for" vs "Wait for"), not a typo.
     start_prompt: str
 
     def topic_args(self, topics: list[str]) -> list[str]:

@@ -160,7 +160,7 @@ The `.env` file holds only infrastructure and connection settings:
 | Variable | Default | Description |
 |------|-----------|------|
 | `RECORDING_CONFIG` | _required_ | Path to the recording configuration YAML (startup fails if unset) |
-| `LUTRA_ROS_DISTRO` | `humble` | ROS 2 distro of the backend / simulator images. See [ROS 2 Distro](#ros-2-distro-humble--jazzy) |
+| `TARGET_ROS_DISTRO` | `humble` | ROS 2 distro of the backend / simulator images. See [ROS 2 Distro](#ros-2-distro-humble--jazzy) |
 | `OUTPUT_DIR` | _required_ | Directory where recording data is stored (startup fails if unset) |
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `8000` | Server port number |
@@ -173,15 +173,15 @@ The `.env` file holds only infrastructure and connection settings:
 
 ### ROS 2 Distro (Humble / Jazzy)
 
-The backend and simulator images are built for one ROS 2 distro, chosen by `LUTRA_ROS_DISTRO` (Compose reads it from `.env` or the shell and passes it as the `ROS_DISTRO` build arg). It is deliberately not named `ROS_DISTRO`: sourcing ROS 2 on the host sets that variable, and Compose would let it override `.env`.
+The backend and simulator images are built for one ROS 2 distro, chosen by `TARGET_ROS_DISTRO` (Compose reads it from `.env` or the shell and passes it as the `ROS_DISTRO` build arg). It is deliberately not named `ROS_DISTRO`: sourcing ROS 2 on the host sets that variable, which Compose would let override `.env`; and since `.env` is also passed to the backend container, a `ROS_DISTRO` line there would override the image's own `ENV ROS_DISTRO` (so a Humble image could report itself as Jazzy).
 
-| `LUTRA_ROS_DISTRO` | Base image | Python |
+| `TARGET_ROS_DISTRO` | Base image | Python |
 |---|---|---|
 | `humble` (default) | `ros:humble-ros-base` (Ubuntu 22.04) | 3.10 |
 | `jazzy` | `ros:jazzy-ros-base` (Ubuntu 24.04) | 3.12 |
 
 ```bash
-LUTRA_ROS_DISTRO=jazzy make up     # or set LUTRA_ROS_DISTRO=jazzy in .env (also applies to make prod-up)
+TARGET_ROS_DISTRO=jazzy make up     # or set TARGET_ROS_DISTRO=jazzy in .env (also applies to make prod-up)
 ```
 
 Each distro is its own image tag (`open-lutra-backend:humble` / `open-lutra-backend:jazzy`, likewise for the simulator), so switching back and forth does not rebuild anything once both exist. `make build` rebuilds only the selected distro.

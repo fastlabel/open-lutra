@@ -21,8 +21,8 @@ services:
       context: ./simulator
       dockerfile: Dockerfile
       args:
-        ROS_DISTRO: ${LUTRA_ROS_DISTRO:-humble}
-    image: open-lutra-simulator:${LUTRA_ROS_DISTRO:-humble}
+        ROS_DISTRO: ${TARGET_ROS_DISTRO:-humble}
+    image: open-lutra-simulator:${TARGET_ROS_DISTRO:-humble}
     container_name: ros2-publisher-simulator
     environment:
       - RECORDING_CONFIG=/app/config/simulator.yaml
@@ -50,8 +50,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        ROS_DISTRO: ${LUTRA_ROS_DISTRO:-humble}
-    image: open-lutra-backend:${LUTRA_ROS_DISTRO:-humble}
+        ROS_DISTRO: ${TARGET_ROS_DISTRO:-humble}
+    image: open-lutra-backend:${TARGET_ROS_DISTRO:-humble}
     container_name: open-lutra-backend
     # Forward .env into the container so optional features can read their
     # settings without each variable needing an explicit `environment:` entry.
