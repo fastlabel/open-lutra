@@ -57,6 +57,6 @@ That is how development adds `--reload --reload-dir /app/app`, so edits under `b
 Carrying an updated image to a site without network access:
 
 ```bash
-docker save open-lutra-backend:humble | gzip > backend.tar.gz   # online (the tag of your ROS_DISTRO)
+docker save open-lutra-backend:humble | gzip > backend.tar.gz   # online (the tag of your LUTRA_ROS_DISTRO)
 docker load < backend.tar.gz                                    # on site
 ```
