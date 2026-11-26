@@ -25,6 +25,8 @@ import subprocess
 import threading
 import time
 
+from app.infra.ros2.distro import RosDistro
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,8 +43,9 @@ class RecordProcess:  # pragma: no cover
     during the cleanup phase after SIGINT).
     """
 
-    def __init__(self, process: subprocess.Popen[bytes], pty_fd: int) -> None:
+    def __init__(self, process: subprocess.Popen[bytes], pty_fd: int, distro: RosDistro) -> None:
         self.process = process
+        self._distro = distro
         self._pty_fd = pty_fd
         # Ring buffer and lock for discovery waiting
         self._buffer = bytearray()
@@ -85,7 +88,7 @@ class RecordProcess:  # pragma: no cover
                     if topic not in subscribed:
                         subscribed.add(topic)
                         logger.info("Topic connection confirmed: %s", topic)
-                if "Waiting for recording" in text:
+                if self._distro.start_prompt in text:
                     ready_for_input = True
             # Break once all topics are subscribed and the recorder is waiting for SPACE
             if subscribed >= expected and ready_for_input:

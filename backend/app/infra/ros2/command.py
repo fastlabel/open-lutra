@@ -11,6 +11,7 @@ import pty
 import subprocess
 from pathlib import Path
 
+from app.infra.ros2.distro import current_distro
 from app.infra.ros2.record_process import RecordProcess
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,10 @@ class ROS2Command:
         Raises:
             ROS2CommandError: If the command fails to execute.
         """
+        try:
+            distro = current_distro()
+        except ValueError as e:
+            raise ROS2CommandError(str(e)) from e
         command = [
             "ros2",
             "bag",
@@ -50,7 +55,7 @@ class ROS2Command:
             *(qos_args or []),
             "-o",
             str(output_path),
-            *topics,
+            *distro.topic_args(topics),
         ]
         logger.info("Starting recording (paused): %s", " ".join(command))
 
@@ -88,4 +93,4 @@ class ROS2Command:
             with contextlib.suppress(OSError):
                 os.close(slave_fd)
 
-        return RecordProcess(process, master_fd)
+        return RecordProcess(process, master_fd, distro)

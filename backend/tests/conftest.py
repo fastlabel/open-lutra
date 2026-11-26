@@ -21,7 +21,7 @@ os.environ.setdefault("OUTPUT_DIR", str(Path(tempfile.gettempdir()) / "open-lutr
 def _restore_log_propagation() -> Iterator[None]:
     """Keep `caplog` working when tests run inside the ROS 2 image (Dev Container).
 
-    With `/opt/ros/humble/setup.bash` sourced, pytest auto-loads ROS plugins.
+    With `/opt/ros/<distro>/setup.bash` sourced, pytest auto-loads ROS plugins.
     Loading them imports `launch.logging`, which calls
     `logging.setLoggerClass(LaunchLogger)`; every `LaunchLogger` sets
     `propagate = False` in its constructor. With propagation disabled, `app.*`

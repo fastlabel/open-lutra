@@ -6,11 +6,11 @@
 
 | Library | Version | Purpose |
 |---|---|---|
-| Python | 3.11+ | Language |
+| Python | 3.10 (Humble) / 3.12 (Jazzy) | Language — the backend runs on both ([ROS 2 Distro](SETUP.md#ros-2-distro-humble--jazzy)) |
 | FastAPI | 0.110+ | REST API / SSE |
 | uvicorn | latest | ASGI server |
 | pydantic / pydantic-settings | 2.6+ | Validation / settings management |
-| rclpy | (ROS2 Humble) | Topic subscription / real-time monitoring |
+| rclpy | (ROS2 Humble / Jazzy) | Topic subscription / real-time monitoring |
 | mcap / mcap-ros2-support | 1.1+ | MCAP file analysis / CDR deserialization |
 | Pillow | 10.0+ | Image processing |
 | boto3 | 1.34+ | S3 client for the upload feature (also covers any S3-compatible endpoint: MinIO / R2 / LocalStack) |
@@ -41,7 +41,7 @@
 | Tool | Purpose |
 |---|---|
 | Docker Compose | Development / production environments |
-| Fast DDS (`rmw_fastrtps_cpp`) | ROS2 DDS communication (the ROS 2 Humble default) |
+| Fast DDS (`rmw_fastrtps_cpp`) | ROS2 DDS communication (the default RMW of both Humble and Jazzy) |
 | MinIO (pgsty/minio) | Local S3-compatible sandbox for testing the upload feature (`make minio-up`) |
 
 ## Dev Tools

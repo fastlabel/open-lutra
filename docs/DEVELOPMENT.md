@@ -78,7 +78,7 @@ Host PC (macOS)
 Inside the Dev Container, the backend does not start automatically (it waits with `sleep infinity`). Start it manually from a terminal:
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app
 ```
 
@@ -89,7 +89,7 @@ You can check the API docs in a browser at `http://localhost:8000/docs`.
 Run pytest directly inside the container:
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 uv run pytest tests/ -v
 ```
 
@@ -136,7 +136,7 @@ docker volume ls | grep devcontainer-venv | awk '{print $2}' | xargs -r docker v
 **You added or updated a Python package:**
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 uv sync
 ```
 

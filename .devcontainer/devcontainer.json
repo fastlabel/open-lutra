@@ -14,14 +14,15 @@
   ],
 
   // Rebuild the venv
-  "postCreateCommand": "bash -c 'source /opt/ros/humble/setup.bash && uv venv --system-site-packages --clear && uv sync'",
+  "postCreateCommand": "bash -c 'source /opt/ros/$ROS_DISTRO/setup.bash && uv venv --system-site-packages --clear && uv sync'",
 
   "customizations": {
     "vscode": {
       "settings": {
         // Make Pylance recognize ROS2 packages such as rclpy
         "python.analysis.extraPaths": [
-          "/opt/ros/humble/lib/python3.10/site-packages"
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/opt/ros/jazzy/lib/python3.12/site-packages"
         ],
         // The backend container has no Node.js, so run Vitest/Biome extensions on the UI side instead
         "remote.extensionKind": {
