@@ -13,6 +13,7 @@
 - [Lint and Type Checking](#lint-and-type-checking)
 - [Frontend Development Notes](#frontend-development-notes)
 - [Common Development Tasks](#common-development-tasks)
+- [Dependency Updates](#dependency-updates)
 
 ---
 
@@ -330,3 +331,11 @@ Which edits are picked up by a restart and which need `make build` differs per c
 
 - [backend/README.md](../backend/README.md#what-lands-where) — Python dependencies, ROS 2 / apt packages, config YAML
 - [frontend/README.md](../frontend/README.md#what-lands-where) — Node.js dependencies, the pnpm version, Vite config
+
+## Dependency Updates
+
+Dependency updates are proposed as pull requests by [Renovate](https://docs.renovatebot.com/), configured in [renovate.json](../renovate.json). It covers the backend and example `uv` projects, the frontend `pnpm` project, Node.js / pnpm versions, Dockerfile base images, and GitHub Actions.
+
+- **Two-week cooldown**: a release is proposed only once it has been published for at least 14 days (`minimumReleaseAge`). Until then, the update waits on the Dependency Dashboard issue.
+- **Security fixes are exempt**: updates that fix a known vulnerability (GitHub security advisories and [OSV](https://osv.dev/)) are proposed immediately, labelled `security`. GitHub's Dependabot alerts must be enabled on the repository for the advisory source.
+- The cooldown applies to the version Renovate selects for each declared dependency; transitive dependencies newly pulled in by a lockfile update are not age-checked.
