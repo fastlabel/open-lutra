@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "5.100.14",
-    "@tanstack/react-router": "1.170.10",
+    "@tanstack/react-router": "1.170.46",
     "@tanstack/react-virtual": "3.14.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -37,7 +37,7 @@
     "@faker-js/faker": "^10.4.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query-devtools": "5.100.14",
-    "@tanstack/router-vite-plugin": "1.167.13",
+    "@tanstack/router-vite-plugin": "1.167.49",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
